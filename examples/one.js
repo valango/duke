@@ -11,13 +11,19 @@
 
 const Walker = require('../Walker')
 
-const begin = ({path, entries}) => {
-  console.log('B', path, entries.length)
-  return entries
+const begin = ({ dirId, path, entries }) => {
+  console.log('B', dirId, path, entries.length)
+  for (const entry of entries) {
+    if(/^\.\w+$/.test(entry.name)){
+      console.log('SKIP', entry.name)
+      entry.skip = true
+    }
+  }
+  return true
 }
 
-const end = ({path}) => {
-  console.log('E', path)
+const end = ({ dirId, path }) => {
+  console.log('E', dirId, path)
 }
 
 const visit = ({ name, path, type }) => {
