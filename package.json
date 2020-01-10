@@ -1,0 +1,11 @@
+{
+  "name": "duke",
+  "version": "0.1.0",
+  "description": "A rules-based file directory walker",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC"
+}
