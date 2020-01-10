@@ -3,7 +3,7 @@
  */
 'use strict'
 
-const { format, inspect } = require('util')
+const { format } = require('util')
 const Walker = require('../Walker')
 
 const print = (...args) => process.stdout.write(format.apply(null, args) + '\n')
@@ -36,13 +36,16 @@ w.go()
 const t1 = process.hrtime(t0)
 const t = t1[0] * 1e9 + t1[1], v = Math.floor(t / total)
 
-print(`Results from '%s':`, w.rootDir)
+print("Results from '%s':", w.rootDir)
+
 Object.keys(counts).forEach((k) => print(k.padStart(16, ' ') + ':', counts[k]))
+
 if (w.failures.length) {
   print('Total %i failures:', w.failures.length)
   for (const e of w.failures) {
     print(e.message)
   }
 }
+
 print('Total %i nanoseconds (%i ns per item), maximum directory depth: %i\n',
   t, v, depth)

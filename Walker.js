@@ -25,6 +25,8 @@ const getType = (entry) => {
   }
 }
 
+let debugLocus
+
 /**
  * @typedef TClient <Object>
  *   @property {function(Object):boolean} begin - start with directory
@@ -58,48 +60,46 @@ class Walker {
   }
 
   fail_ (data) {
+    data.message += ' @' + debugLocus
     this.failures.push(data)
   }
 
   walk_ (path, context) {
     const dirId = ++this._seed
+    /** @type {TClient} */
     const cli = this.client
-    const dir = types.isDirectory
-    const dirPath = join(this._root, path.join(sep))
-    let aborted = false, entries
+    let aborted = false, dir, entry
+
+    if (cli.begin && cli.begin({ dirId, path, context }) === false) return
 
     try {
-      //  Todo: run the rest of the stuff directly under dir.read...()
-      const dir = fs.opendirSync(dirPath)
-      entries = []
-      for (let entry; (entry = dir.readSync()); entries.push(entry)) {}
-      dir.closeSync()
-      entries = entries.map((e) => ({ name: e.name, type: getType(e) }))
-        .sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0))
+      dir = fs.opendirSync(join(this._root, path.join(sep)))
+
+      while (!aborted && (entry = dir.readSync())) {
+        if (cli.visit) {
+          if ((aborted =
+            (cli.visit({
+              context,
+              dirId,
+              entry,
+              name: entry.name,
+              path,
+              type: getType(entry)
+            }) === false))) {
+            break
+          }
+        }
+        if (entry.isDirectory()) {
+          this.walk_(path.concat(entry.name), context)
+        }
+      }
     } catch (e) {
       if (e.code === 'EBADF') return this.fail_(e)
       if (e.code === 'EACCES') return this.fail_(e)
       if (e.code === 'EPERM') return this.fail_(e)
       throw e
-    }
-
-    if (!cli.begin || cli.begin(
-      { dirId, path, entries, context })) {
-      if (cli.visit) {
-        for (const entry of entries) {
-          if (entry.skip) continue
-          if (cli.visit({ dirId, context, path, ...entry }) === false) {
-            aborted = true
-            break
-          }
-        }
-      }
-      if (!aborted) {
-        for (const entry of entries) {
-          if (entry.skip || entry.type !== dir) continue
-          this.walk_(path.concat(entry.name), context)
-        }
-      }
+    } finally {
+      if (entry !== undefined) dir.closeSync()
     }
     cli.end && cli.end({ dirId, path, context, aborted })
   }

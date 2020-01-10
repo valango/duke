@@ -9,25 +9,25 @@
  */
 'use strict'
 
+const { format } = require('util')
 const Walker = require('../Walker')
 
-const begin = ({ dirId, path, entries }) => {
-  console.log('B', dirId, path, entries.length)
-  for (const entry of entries) {
-    if(/^\.\w+$/.test(entry.name)){
-      console.log('SKIP', entry.name)
-      entry.skip = true
-    }
-  }
-  return true
+const print = (...args) => process.stdout.write(format.apply(null, args) + '\n')
+
+const spaces = '                                              '
+
+const begin = ({ dirId, path }) => {
+  const l = path.length, name = path[l - 1] || ''
+  print(spaces.substr(0, l), 'B', dirId, name)
+  return !/^(\.\w+)|(node_modules)$/.test(name)
 }
 
 const end = ({ dirId, path }) => {
-  console.log('E', dirId, path)
+  print(spaces.substr(0, path.length), 'E', dirId)
 }
 
 const visit = ({ name, path, type }) => {
-  console.log(' ', type[0], name, path)
+  print(spaces.substr(0, path.length + 1), type[0], name)
 }
 
 const client = { begin, end, visit }
@@ -36,4 +36,4 @@ const w = new Walker(process.cwd(), { client })
 
 w.go()
 
-console.log('---')
+print('---')
