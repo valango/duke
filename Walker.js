@@ -69,7 +69,7 @@ class Walker {
     /** @type {TClient} */
     const cli = this.client
     const dirPath = path.join(sep)
-    const data = {dirId, dirPath, path, rootPath: this._root}
+    const data = { dirId, dirPath, path, rootPath: this._root }
     let aborted = false, countDown = this.maxEntries
     let dir, dirEntry
 
@@ -84,13 +84,13 @@ class Walker {
       while (!aborted && (dirEntry = dir.readSync())) {
         if (--countDown < 0) {
           this.fail_(
-            { message: format("%s: limit exceeded for '%s'", ME, dirPath) })
+            { message: format('%s: limit exceeded for \'%s\'', ME, dirPath) })
           aborted = true
           break
         }
         if (cli.visit) {
-          if ((aborted = (cli.visit(getType(dirEntry), dirEntry.name, data)
-            === false))) {
+          if ((aborted = (cli.visit(getType(dirEntry), dirEntry.name, data) ===
+            false))) {
             break
           }
         }
