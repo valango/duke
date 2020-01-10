@@ -43,7 +43,6 @@ const visit = (type, name, { context }) => {
 
 const w = new Walker(process.argv[2] || process.cwd(), { begin, end, visit })
 
-// w.context = results
 w.go()
 
 print('Results (%i) from \'%s\':', results.length, w.rootDir)

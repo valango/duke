@@ -44,7 +44,6 @@ class Walker {
     assert(rootDir && typeof rootDir === 'string',
       `${ME}: bad roodDir`)
     this.client = client
-    this.context = options.context
     this.failures = []
     this.maxEntries = options.maxEntries || 10000
     this._root = resolve(rootDir)
@@ -55,10 +54,10 @@ class Walker {
     return this._root
   }
 
-  go () {
+  go (context = undefined) {
     this.failures = []
     this._seed = -1
-    this.walk_([], this.context)
+    this.walk_([], context)
   }
 
   fail_ (data) {
