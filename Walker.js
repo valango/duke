@@ -47,8 +47,8 @@ class Walker {
     this.failures = []
   }
 
-  get dirId () {
-    return this._seed
+  get rootDir () {
+    return this._root
   }
 
   go () {
@@ -73,6 +73,8 @@ class Walker {
         .map((e) => ({ name: e.name, type: getType(e) }))
         .sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0))
     } catch (e) {
+      if (e.code === 'EBADF') return this.fail_(e)
+      if (e.code === 'EACCES') return this.fail_(e)
       if (e.code === 'EPERM') return this.fail_(e)
       throw e
     }
