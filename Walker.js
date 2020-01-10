@@ -44,6 +44,7 @@ class Walker {
     this.client = options.client
     this.context = options.context
     this._seed = -1
+    this.failures = []
   }
 
   get dirId () {
@@ -51,8 +52,13 @@ class Walker {
   }
 
   go () {
+    this.failures = []
     this._seed = -1
     this.walk_([], this.context)
+  }
+
+  fail_ (data) {
+    this.failures.push(data)
   }
 
   walk_ (path, context) {
@@ -60,10 +66,16 @@ class Walker {
     const cli = this.client
     const dir = types.isDirectory
     const dirPath = join(this._root, path.join(sep))
-    let aborted = false
-    let entries = readdirSync(dirPath, { withFileTypes: true })
-      .map((e) => ({ name: e.name, type: getType(e) }))
-      .sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0))
+    let aborted = false, entries
+
+    try {
+      entries = readdirSync(dirPath, { withFileTypes: true })
+        .map((e) => ({ name: e.name, type: getType(e) }))
+        .sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0))
+    } catch (e) {
+      if (e.code === 'EPERM') return this.fail_(e)
+      throw e
+    }
 
     if (!cli.begin || cli.begin(
       { dirId, path, entries, context })) {
