@@ -26,24 +26,24 @@ const getType = (entry) => {
   }
 }
 
-let debugLocus
-
 /**
  * @typedef TClient <Object>
- *   @property {function(Object):boolean} begin - start with directory
- *   @property {function(string, string, Object):boolean} visit - visit a directory entry
- *   @property {function(Object):boolean} end   - finalize with directory
+ *   @property {function(Object, Object=):*} [begin] - start with directory
+ *   @property {function(string, string=, Object=):boolean} [visit] - visit a directory entry
+ *   @property {function(Object, boolean)} [end]     - finalize with directory
  */
 class Walker {
   /**
    *
    * @param {string} rootDir
+   * @param {TClient} client
+   * @param {Object=} options
    * @param {Object<{client:TClient, context:*}>} options
    */
-  constructor (rootDir, options) {
+  constructor (rootDir, client, options = {}) {
     assert(rootDir && typeof rootDir === 'string',
       `${ME}: bad roodDir`)
-    this.client = options.client
+    this.client = client
     this.context = options.context
     this.failures = []
     this.maxEntries = options.maxEntries || 10000
@@ -62,7 +62,6 @@ class Walker {
   }
 
   fail_ (data) {
-    if (debugLocus) data.message += ' @' + debugLocus
     this.failures.push(data)
   }
 
@@ -70,17 +69,18 @@ class Walker {
     const dirId = ++this._seed
     /** @type {TClient} */
     const cli = this.client
-    let context = parentContext
-    let aborted = false, dir, dirEntry, countDown = this.maxEntries
+    const dirPath = path.join(sep)
+    const data = {dirId, dirPath, path, rootPath: this._root}
+    let aborted = false, countDown = this.maxEntries
+    let dir, dirEntry
 
     if (cli.begin &&
-      (context = cli.begin({ dirId, path, context }) === false)) {
+      (data.context = cli.begin(data, parentContext)) === false) {
       return
     }
 
     try {
-      const dirPath = path.join(sep)
-      dir = exports.fs.opendirSync(join(this._root, dirPath))
+      dir = exports.fs.opendirSync(join(data.rootPath, dirPath))
 
       while (!aborted && (dirEntry = dir.readSync())) {
         if (--countDown < 0) {
@@ -90,13 +90,13 @@ class Walker {
           break
         }
         if (cli.visit) {
-          if ((aborted = (cli.visit(dirEntry.name, getType(dirEntry),
-            { context, dirEntry, dirId, path }) === false))) {
+          if ((aborted = (cli.visit(getType(dirEntry), dirEntry.name, data)
+            === false))) {
             break
           }
         }
         if (dirEntry.isDirectory()) {
-          this.walk_(path.concat(dirEntry.name), context)
+          this.walk_(path.concat(dirEntry.name), data.context)
         }
       }
     } catch (e) {
@@ -108,7 +108,7 @@ class Walker {
       if (dirEntry !== undefined) dir.closeSync()
     }
     //  When aborted, the client may want to roll back something it did.
-    cli.end && cli.end({ dirId, path, context, aborted })
+    cli.end && cli.end(data, aborted)
   }
 }
 

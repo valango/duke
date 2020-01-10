@@ -1,11 +1,5 @@
 /**
- * one.js
- *
- * $
- *
- * Created: 09/01/2020
- * @author Villem Alango <villem.alango@gmail.com>
- * @license http://opensource.org/licenses/MIT
+ * Simple listing of subdirectories.
  */
 'use strict'
 
@@ -26,13 +20,11 @@ const end = ({ dirId, path }) => {
   print(spaces.substr(0, path.length), 'E', dirId)
 }
 
-const visit = (name, type, { path }) => {
+const visit = (type, name, { path }) => {
   print(spaces.substr(0, path.length + 1), type[0], name)
 }
 
-const client = { begin, end, visit }
-
-const w = new Walker(process.cwd(), { client })
+const w = new Walker(process.cwd(), { begin, end, visit })
 
 w.go()
 
