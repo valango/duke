@@ -28,7 +28,7 @@ const visit = ({ type }) => {
   return add(type)
 }
 
-const w = new Walker(rootDir, { client: { begin, visit } })
+const w = new Walker(rootDir, { client: { begin, visit }, maxEntries: 20 })
 const t0 = process.hrtime()
 
 w.go()

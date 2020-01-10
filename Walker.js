@@ -4,6 +4,7 @@
 'use strict'
 const ME = 'Walker'
 const assert = require('assert')
+const { format } = require('util')
 const fs = require('fs')
 const { join, resolve, sep } = require('path')
 
@@ -30,7 +31,7 @@ let debugLocus
 /**
  * @typedef TClient <Object>
  *   @property {function(Object):boolean} begin - start with directory
- *   @property {function(Object):boolean} visit - visit a directory entry
+ *   @property {function(string, string, Object):boolean} visit - visit a directory entry
  *   @property {function(Object):boolean} end   - finalize with directory
  */
 class Walker {
@@ -42,11 +43,12 @@ class Walker {
   constructor (rootDir, options) {
     assert(rootDir && typeof rootDir === 'string',
       `${ME}: bad roodDir`)
-    this._root = resolve(rootDir)
     this.client = options.client
     this.context = options.context
-    this._seed = -1
     this.failures = []
+    this.maxEntries = options.maxEntries || 10000
+    this._root = resolve(rootDir)
+    this._seed = -1
   }
 
   get rootDir () {
@@ -60,37 +62,41 @@ class Walker {
   }
 
   fail_ (data) {
-    data.message += ' @' + debugLocus
+    if (debugLocus) data.message += ' @' + debugLocus
     this.failures.push(data)
   }
 
-  walk_ (path, context) {
+  walk_ (path, parentContext) {
     const dirId = ++this._seed
     /** @type {TClient} */
     const cli = this.client
-    let aborted = false, dir, entry
+    let context = parentContext
+    let aborted = false, dir, dirEntry, countDown = this.maxEntries
 
-    if (cli.begin && cli.begin({ dirId, path, context }) === false) return
+    if (cli.begin &&
+      (context = cli.begin({ dirId, path, context }) === false)) {
+      return
+    }
 
     try {
-      dir = fs.opendirSync(join(this._root, path.join(sep)))
+      const dirPath = path.join(sep)
+      dir = exports.fs.opendirSync(join(this._root, dirPath))
 
-      while (!aborted && (entry = dir.readSync())) {
+      while (!aborted && (dirEntry = dir.readSync())) {
+        if (--countDown < 0) {
+          this.fail_(
+            { message: format("%s: limit exceeded for '%s'", ME, dirPath) })
+          aborted = true
+          break
+        }
         if (cli.visit) {
-          if ((aborted =
-            (cli.visit({
-              context,
-              dirId,
-              entry,
-              name: entry.name,
-              path,
-              type: getType(entry)
-            }) === false))) {
+          if ((aborted = (cli.visit(dirEntry.name, getType(dirEntry),
+            { context, dirEntry, dirId, path }) === false))) {
             break
           }
         }
-        if (entry.isDirectory()) {
-          this.walk_(path.concat(entry.name), context)
+        if (dirEntry.isDirectory()) {
+          this.walk_(path.concat(dirEntry.name), context)
         }
       }
     } catch (e) {
@@ -99,11 +105,13 @@ class Walker {
       if (e.code === 'EPERM') return this.fail_(e)
       throw e
     } finally {
-      if (entry !== undefined) dir.closeSync()
+      if (dirEntry !== undefined) dir.closeSync()
     }
+    //  When aborted, the client may want to roll back something it did.
     cli.end && cli.end({ dirId, path, context, aborted })
   }
 }
 
 exports = module.exports = Walker
+exports.fs = fs
 exports.types = types

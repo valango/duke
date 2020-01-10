@@ -26,7 +26,7 @@ const end = ({ dirId, path }) => {
   print(spaces.substr(0, path.length), 'E', dirId)
 }
 
-const visit = ({ name, path, type }) => {
+const visit = (name, type, { path }) => {
   print(spaces.substr(0, path.length + 1), type[0], name)
 }
 
