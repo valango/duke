@@ -4,7 +4,7 @@
 'use strict'
 const ME = 'Walker'
 const assert = require('assert')
-const { readdirSync } = require('fs')
+const fs = require('fs')
 const { join, resolve, sep } = require('path')
 
 const types = {
@@ -69,8 +69,12 @@ class Walker {
     let aborted = false, entries
 
     try {
-      entries = readdirSync(dirPath, { withFileTypes: true })
-        .map((e) => ({ name: e.name, type: getType(e) }))
+      //  Todo: run the rest of the stuff directly under dir.read...()
+      const dir = fs.opendirSync(dirPath)
+      entries = []
+      for (let entry; (entry = dir.readSync()); entries.push(entry)) {}
+      dir.closeSync()
+      entries = entries.map((e) => ({ name: e.name, type: getType(e) }))
         .sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0))
     } catch (e) {
       if (e.code === 'EBADF') return this.fail_(e)
