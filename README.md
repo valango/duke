@@ -5,7 +5,10 @@ A rules-based file directory walker.
 <p>Duke Dirwalker</p> 
 </div>
 
+Converting a set of patterns into a set of file paths (globing) and starting some
+processing on those paths afterwards is not feasible for many practical
+tasks.
 
+## Concept
 
-
-
+**_`Walker`_** instance gets initialized with _`rootPath`_ and _`client`_ parameters.

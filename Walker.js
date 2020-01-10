@@ -1,11 +1,5 @@
 /**
- * Walker.js
- *
- * $
- *
- * Created: 08/01/2020
- * @author Villem Alango <villem.alango@gmail.com>
- * @license http://opensource.org/licenses/MIT
+ * @module Walker
  */
 'use strict'
 const ME = 'Walker'
@@ -31,7 +25,18 @@ const getType = (entry) => {
   }
 }
 
+/**
+ * @typedef TClient <Object>
+ *   @property {function(Object):boolean} begin - start with directory
+ *   @property {function(Object):boolean} visit - visit a directory entry
+ *   @property {function(Object):boolean} end   - finalize with directory
+ */
 class Walker {
+  /**
+   *
+   * @param {string} rootDir
+   * @param {Object<{client:TClient, context:*}>} options
+   */
   constructor (rootDir, options) {
     assert(rootDir && typeof rootDir === 'string',
       `${ME}: bad roodDir`)
@@ -53,12 +58,11 @@ class Walker {
       .map((e) => ({ name: e.name, type: getType(e) }))
       .sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0))
 
-    if (!cli.begin || (entries = cli.begin(path, entries, context))) {
-      if (cli.node) {
+    if (!cli.begin || (entries = cli.begin({path, entries, context}))) {
+      if (cli.visit) {
         for (const entry of entries) {
           const { name, type } = entry
-          if (type === dir) continue
-          if (cli.node({ context, name, path, type }) === false) {
+          if (cli.visit({ context, name, path, type }) === false) {
             aborted = true
             break
           }
@@ -71,7 +75,7 @@ class Walker {
         }
       }
     }
-    cli.end && cli.end(path, context, aborted)
+    cli.end && cli.end({path, context, aborted})
   }
 }
 
