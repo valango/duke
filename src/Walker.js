@@ -3,14 +3,17 @@
  */
 'use strict'
 const ME = 'Walker'
+
 const assert = require('assert')
-const { format } = require('util')
 const fs = require('fs')
 const { join, resolve, sep } = require('path')
+const { format } = require('util')
 
+//  Special return values from visit() client method - exported.
 const ABORT = -1
 const SKIP = -2
 
+//  DirEntry types - exported.
 const T_BLOCK = 'blockDevice'
 const T_CHAR = 'characterDevice'
 const T_DIR = 'directory'
@@ -40,15 +43,15 @@ const getType = (entry) => {
 /**
  * @typedef TClient <Object>
  *   @property {function(Object, Object=):*} [begin] - start with directory
- *   @property {function(string, string=, Object=):boolean} [visit] - visit a directory entry
+ *   @property {function(string, string=, Object=):*} [visit] - visit a directory entry
  *   @property {function(Object, boolean)} [end]     - finalize with directory
  */
 class Walker {
   /**
-   *
    * @param {string} rootDir
    * @param {TClient} client
    * @param {Object=} options
+   * @param {Object=} fsApi   - replacement for Node.js internal 'fs', e.g. for testing.
    * @param {Object<{client:TClient, context:*}>} options
    */
   constructor (rootDir, client, options = {}, fsApi = undefined) {

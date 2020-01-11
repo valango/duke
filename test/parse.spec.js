@@ -9,36 +9,36 @@ const test = (str, exp) => expect(p(str)).to.eql(exp, `'${str}'`)
 
 describe(ME, () => {
   it('should do simple parse', () => {
-    test('a', [null, 'a'])
-    test('/a', ['a'])
-    test('/*/a', ['.*/', 'a'])
-    test('/a/*', ['a/', '.*'])
-    test('/a/', ['a/'])
-    test('**/a', [null, 'a'])
-    test('/**/a', [null, 'a'])
-    test('/a/b', ['a/', 'b'])
+    test('a', [null, '^a$'])
+    test('/a', ['^a$'])
+    test('/*/a', ['^.*\\/$', '^a$'])
+    test('/a/*', ['^a\\/$', '^.*$'])
+    test('/a/', ['^a\\/$'])
+    test('**/a', [null, '^a$'])
+    test('/**/a', [null, '^a$'])
+    test('/a/b', ['^a\\/$', '^b$'])
   })
 
   it('should handle inversion', () => {
-    test('!/a  ', ['!', 'a'])
-    test('!/a!  ', ['!', 'a!'])
-    test('\\!a', [null, '!a'])
+    test('!/a  ', ['!', '^a$'])
+    test('!/a!  ', ['!', '^a!$'])
+    test('\\!a', [null, '^!a$'])
  })
 
   it('should handle trailing spaces', () => {
-    test('/a  ', ['a'])
-    test('/a\\ \\  ', ['a\\s\\s'])
+    test('/a  ', ['^a$'])
+    test('/a\\ \\  ', ['^a\\s\\s$'])
   })
 
   it('should ignore repeated glob', () => {
-    test('**/a/**', [null, 'a/', '.*'])
+    test('**/a/**', [null, '^a\\/$', '^.*$'])
   })
 
   it('should strip trailing glob', () => {
-    test('/a/**', ['a/'])
-    test('/a/**/', ['a/'])
-    test('/a/**/*', ['a/'])
-    test('/a/**/*/*', ['a/', null, '.*/', '.*'])
+    test('/a/**', ['^a\\/$'])
+    test('/a/**/', ['^a\\/$'])
+    test('/a/**/*', ['^a\\/$'])
+    test('/a/**/*/*', ['^a\\/$', null, '^.*\\/$', '^.*$'])
   })
 
   it('should fail', () => {

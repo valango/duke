@@ -4,8 +4,9 @@
 'use strict'
 
 const ANY = '.*'
+const ANYQ = '^.*$'
+const EXCL = '!'
 const GLOB = null
-const NEG = '!'
 
 const assert = require('assert').strict
 
@@ -20,7 +21,7 @@ exports = module.exports = (string) => {
   let pattern = string.replace(/\\\s/g, '\\s').trimEnd()
   switch(pattern[0]){
     case '!':
-      rules.push(NEG)
+      rules.push(EXCL)
       // fall through
     case'\\':
       pattern = pattern.substring(1)
@@ -46,14 +47,16 @@ exports = module.exports = (string) => {
       continue
     }
     rule = rule.replace(/\*+/g, ANY).replace(/\?/g, '.')
-    if (i < last || lastIsDir) rule += '/'
-    rules.push(rule)
+    if (i < last || lastIsDir) rule += '\\/'
+    rules.push('^' + rule + '$')
   }
   let l = rules.length - 1
   //  **/*$ --> **$
-  if (rules[l] === ANY && rules[l - 1] === GLOB) (rules.pop() && --l)
+  if (rules[l] === ANYQ && rules[l - 1] === GLOB) (rules.pop() && --l)
   //  a/**$ --> a/$
   if (rules[l] === GLOB) rules.pop()
   check(!(rules.length === 1 && (rules[0] === GLOB || rules[0] === ANY)))
   return rules
 }
+
+Object.assign(exports, {ANY, EXCL, GLOB})
