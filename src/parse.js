@@ -7,13 +7,15 @@ const ANY = null
 
 const assert = require('assert').strict
 
-exports = module.exports = (rule) => {
-  // Todo: escaping
-  const lastIsDir = /\/$/.test(rule)
-  const parts = rule.split('/'), rules = []
-  let inDir = false, wasGlob = false
+exports = module.exports = (string) => {
+  const check = (cond) => assert(cond, `invalid pattern '${string}'`)
 
-  const check = (cond) => assert(cond, `invalid rule '${rule}'`)
+  // Todo: escaping
+  const pattern = string.replace(/\\\s/g, '\\s').trimEnd()
+  check(pattern && pattern[0] > ' ')
+  const lastIsDir = /\/$/.test(pattern)
+  const parts = pattern.split('/'), rules = []
+  let inDir = false, wasGlob = false
 
   if (lastIsDir) parts.pop()
   if (!parts[0]) {

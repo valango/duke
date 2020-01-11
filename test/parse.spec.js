@@ -5,7 +5,7 @@ const { AssertionError } = require('assert')
 const { expect } = require('chai')
 const p = require('../src/' + ME)
 
-const test = (str, exp) => expect(p(str)).to.eql(exp, str)
+const test = (str, exp) => expect(p(str)).to.eql(exp, `'${str}'`)
 
 describe(ME, () => {
   it('should do simple parse', () => {
@@ -17,6 +17,11 @@ describe(ME, () => {
     test('**/a', [null, 'a'])
     test('/**/a', [null, 'a'])
     test('/a/b', ['a/', 'b'])
+  })
+
+  it('should handle trailing spaces', () => {
+    test('/a  ', ['a'])
+    test('/a\\ \\  ', ['a\\s\\s'])
   })
 
   it('should ignore repeated glob', () => {
@@ -31,8 +36,9 @@ describe(ME, () => {
   })
 
   it('should fail', () => {
-    expect(() => p('  ')).to.throw(AssertionError, 'invalid')
-    expect(() => p('/')).to.throw(AssertionError, 'invalid')
-    expect(() => p('**')).to.throw(AssertionError, 'invalid')
+    expect(() => p(' a')).to.throw(AssertionError, 'invalid', '\' a\'')
+    expect(() => p('  ')).to.throw(AssertionError, 'invalid', '\'  \'')
+    expect(() => p('/')).to.throw(AssertionError, 'invalid', '\'/\'')
+    expect(() => p('**')).to.throw(AssertionError, 'invalid', '\'**\'')
   })
 })
