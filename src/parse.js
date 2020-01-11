@@ -19,11 +19,11 @@ exports = module.exports = (string) => {
   const rules = []
 
   let pattern = string.replace(/\\\s/g, '\\s').trimEnd()
-  switch(pattern[0]){
+  switch (pattern[0]) {
     case '!':
       rules.push(EXCL)
-      // fall through
-    case'\\':
+    // fall through
+    case '\\':
       pattern = pattern.substring(1)
   }
   check(pattern && pattern[0] > ' ')
@@ -59,4 +59,4 @@ exports = module.exports = (string) => {
   return rules
 }
 
-Object.assign(exports, {ANY, EXCL, GLOB})
+Object.assign(exports, { ANY, EXCL, GLOB })
