@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "lint": "eslint --ext .js .",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "cross-env NODE_ENV=test nyc mocha 'test/**/*.spec.js'"
   },
   "author": "",
   "license": "ISC",
@@ -25,9 +25,6 @@
     "all": true,
     "check-coverage": true,
     "exclude": [
-      "src/lib/assert.js",
-      "src/*.js",
-      "src/cmd-*.js"
     ],
     "include": [
       "src/**/*.js"

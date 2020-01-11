@@ -60,6 +60,7 @@ class Ruler {
           ((nodeIndex = j) || true)
       })
     }
+    //  If we are out of rules, we should indicate default action.
     //  If no rule matches, but the `previous` was ANY, then stick w it.
     if (nodeIndex === undefined) {
       return (previous && previous.rule === ANY) ? previous : false
@@ -78,6 +79,13 @@ class Ruler {
     return res
   }
 
+  /**
+   *
+   * @param type
+   * @param name
+   * @param context
+   * @returns {boolean| {action...}}
+   */
   visit (type, name, { context }) {
     if (type === 'File') {
       const r = this.match(name, context.previous)

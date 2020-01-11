@@ -5,7 +5,7 @@
  */
 'use strict'
 
-const parse = require('../parse')
+const parse = require('../src/parse')
 
 const res = parse(process.argv[2])
 
