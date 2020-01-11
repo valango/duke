@@ -19,6 +19,12 @@ describe(ME, () => {
     test('/a/b', ['a/', 'b'])
   })
 
+  it('should handle inversion', () => {
+    test('!/a  ', ['!', 'a'])
+    test('!/a!  ', ['!', 'a!'])
+    test('\\!a', [null, '!a'])
+ })
+
   it('should handle trailing spaces', () => {
     test('/a  ', ['a'])
     test('/a\\ \\  ', ['a\\s\\s'])
