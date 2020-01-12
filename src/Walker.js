@@ -4,7 +4,8 @@
 'use strict'
 const ME = 'Walker'
 
-const assert = require('assert')
+const assert = require('assert').strict
+const _ = require('lodash')
 const fs = require('fs')
 const { join, resolve, sep } = require('path')
 const { format } = require('util')
@@ -54,12 +55,12 @@ class Walker {
    * @param {Object=} fsApi   - replacement for Node.js internal 'fs', e.g. for testing.
    * @param {Object<{client:TClient, context:*}>} options
    */
-  constructor (rootDir, client, options = {}, fsApi = undefined) {
+  constructor (rootDir, options = {}, fsApi = undefined) {
     assert(rootDir && typeof rootDir === 'string',
       `${ME}: bad roodDir`)
-    this.client = client
     this.failures = []
     this.maxEntries = options.maxEntries || 10000
+    this._stack = []
     this._fs = fsApi || fs
     this._root = resolve(rootDir)
     this._seed = -1
@@ -69,10 +70,13 @@ class Walker {
     return this._root
   }
 
-  go (context) {
+  go (rootContext) {
+    const context = rootContext || {}, stack = this._stack
+    assert(stack.length === 0, 'Walker.go() is not multi-threading')
+    stack.push(context)
     this.failures = []
     this._seed = -1
-    this.walk_([], context)
+    this.walk_([])
     return this
   }
 
@@ -80,16 +84,25 @@ class Walker {
     this.failures.push(data)
   }
 
-  walk_ (path, parentContext) {
+  walk_ (path) {
     const dirId = ++this._seed
-    /** @type {TClient} */
-    const cli = this.client
+    const stack = this._stack, sp = stack.length
     const dirPath = path.join(sep)
-    const data = { dirId, dirPath, path, rootPath: this._root }
-    let aborted = false, countDown = this.maxEntries
+    const data = { dirId, dirPath, path, rootPath: this._root, wasAborted: false }
+    let context = stack[sp - 1]
+    let wasAborted = false, countDown = this.maxEntries
     let dir, dirEntry, res, type, toDive
 
-    if (cli.begin && !(data.context = cli.begin(data, parentContext))) {
+    data.setContext = (values) => {
+      if (!Object.keys(values).some((k) => values[k] !== context[k])) return
+      if (stack[sp].key !== dirId) {
+        context = _.clone(context)
+        stack.push(context)
+      }
+      Object.assign(context, values)
+    }
+
+    if (context.begin && context.begin(data, context) === SKIP) {
       return
     }
 
@@ -97,21 +110,21 @@ class Walker {
       dir = this._fs.opendirSync(join(data.rootPath, dirPath))
       toDive = []
 
-      while (!aborted && (dirEntry = dir.readSync())) {
+      while (!wasAborted && (dirEntry = dir.readSync())) {
         if (--countDown < 0) {
           this.fail_(
             { message: format('%s: limit exceeded for \'%s\'', ME, dirPath) })
-          aborted = true
+          data.wasAborted = true
           break
         }
         type = getType(dirEntry)
 
-        if (cli.visit) {
+        if (context.visit) {
           //  The following return values have special meaning:
           //  ABORT: ignore the rest of dirEntries, do not walk sub-directories.
           //  SKIP: do not walk this sub-directory (has no effect on non-directories).
-          res = cli.visit(getType(dirEntry), dirEntry.name, data)
-          if (!(aborted = res === ABORT) && type === T_DIR && res !== SKIP) {
+          res = context.visit(getType(dirEntry), dirEntry.name, data, context)
+          if (!(wasAborted = res === ABORT) && type === T_DIR && res !== SKIP) {
             toDive.push(dirEntry.name)
           }
         }
@@ -124,7 +137,7 @@ class Walker {
     } finally {
       if (dirEntry !== undefined) dir.closeSync()
     }
-    if (!aborted) {
+    if (!wasAborted) {
       while (toDive[0]) {
         path.push(toDive.shift())
         this.walk_(path, data.context)
@@ -132,7 +145,15 @@ class Walker {
       }
     }
     //  When aborted, the client may want to roll back something it did.
-    cli.end && cli.end(data, aborted)
+    delete data.setContext
+    data.wasAborted = wasAborted
+    const thisEnd = context.end
+    thisEnd && context.end(data, context)
+    while (stack.length > sp) stack.pop()
+    context = stack[sp - 1]
+    if (context.end && context.end !== thisEnd) {
+      context.end(data, aborted, context)
+    }
   }
 }
 

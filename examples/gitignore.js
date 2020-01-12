@@ -9,7 +9,7 @@ const RuleTree = require('../src/RuleTree')
 const Walker = require('../src/Walker')
 const { GLOB, TERM, TERM_EX } = RuleTree
 const {
-        ABORT,
+        // ABORT,
         SKIP,
         T_DIR,
         T_FILE,
@@ -42,11 +42,10 @@ const begin = ({ dirId, dirPath, path }, context) => {
     console.log('BEG_' + dirId, path, savedParents)
     break
   }
-  return context
 }
 
 // {context, dirId, dirPath, path, rootPath}, aborted
-const end = ({ dirId, context }, aborted) => {
+const end = ({ dirId }, context) => {
   const saved = context.savedParents[dirId]
   if (saved !== undefined) {
     context.toIgnore.parent = saved
@@ -56,7 +55,7 @@ const end = ({ dirId, context }, aborted) => {
 }
 
 // type, name, {context, dirId, dirPath, path, rootPath}
-const visit = (type, name, { context, dirPath }) => {
+const visit = (type, name, { dirPath }, context) => {
   let resolution = 0
   if (name === 'node_modules') {
     resolution = 0
@@ -86,10 +85,10 @@ const savedParents = {}
 
 print(inspect(toIgnore.dump()))
 print('ROOT:', startDir, walker.rootDir)
-walker.go({ toIgnore, savedParents })
+walker.go({ begin, end, visit, toIgnore, savedParents })
 
 print('dirs: %i, symlinks: %i, files: %i, ignored: %i, balance: %i',
-  dirs.length, links.length, files.length, ign.length, balance.length)
+  dirs.length, links.length, files.length, ign.length, balance)
 print('savedParents:', inspect(savedParents))
 
 if (links.length) print('SymLinks:\n' + links.join('\n'))

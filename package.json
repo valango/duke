@@ -18,14 +18,14 @@
     "eslint-plugin-node": "^11.0.0",
     "eslint-plugin-promise": "^4.2.1",
     "eslint-plugin-standard": "^4.0.1",
+    "lodash": "^4.17.15",
     "mocha": "^7.0.0",
     "nyc": "^15.0.0"
   },
   "nyc": {
     "all": true,
     "check-coverage": true,
-    "exclude": [
-    ],
+    "exclude": [],
     "include": [
       "src/**/*.js"
     ],
