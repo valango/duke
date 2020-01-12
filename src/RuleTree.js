@@ -14,10 +14,7 @@ const TERM_EX = 2   //  Terminal node of exclusion path.
 
 const { GLOB } = parse
 
-/**
- * @typedef TNode [parent, rule, flags]
- */
-
+//  Used for results sorting.
 const score_ = ({ rule, flag }) => {
   let l, v = 0
   if (rule) {
@@ -35,17 +32,13 @@ class RuleTree {
   constructor (patterns = [], debug = undefined) {
     // istanbul ignore next
     this._debug = debug || (() => undefined)
-    /**
-     * @type {TNode[]}
-     * @private
-     */
-    this._tree = []
+    this.tree = []      //  Every node is an array [parenIndex, rule, flag].
     this.parent = NIL
     patterns.forEach((pattern) => this.add(pattern))
   }
 
   add (pattern) {
-    const parsed = parse(pattern), tree = this._tree
+    const parsed = parse(pattern), tree = this.tree
     const term = parsed[0] === parse.EXCL ? TERM_EX : TERM
 
     if (term === TERM_EX) parsed.shift()
@@ -75,29 +68,19 @@ class RuleTree {
     return this
   }
 
-  dump () {
-    return this._tree.map(([a, b, c]) => [a, b === GLOB ? GLOB : b.source, c])
-  }
-
-  inspect (index) {
-    let [a, r, t] = this._tree[index]
-    if (r !== GLOB) r = r.source
-    return [a, r, t]
-  }
-
   /**
    * Match the `string` against rules.
    *
    * The results array will be sorted: TERM_EX, TERM, non-GLOB, GLOB
    *
    * @param {string} string to match
-   * @param {number=} ancestor node index or NIL (defaults to this.previous)
+   * @param {number=} ancestor node index or NIL (defaults to this.parent)
    * @param {boolean=} exact
    * @returns {Object<{flag:number, index:number, rule:*}>[]}
    */
   match (string, ancestor = undefined, exact = false) {
     let parent = ancestor === undefined ? this.parent : ancestor
-    const tree = this._tree, len = tree.length, parents = [parent], res = []
+    const tree = this.tree, len = tree.length, parents = [parent], res = []
 
     while ((parent = parents.pop()) !== undefined) {
       for (let i = parent === NIL ? 0 : parent; i < len; i += 1) {
@@ -118,6 +101,12 @@ class RuleTree {
     return res
   }
 
+  /**
+   * Rigid version of match()
+   * @param {string} string
+   * @param {number=} ancestor node index or NIL (defaults to this.parent)
+   * @returns {Object<{flag:number, index:number, rule:*}> | false}
+   */
   test (string, ancestor = undefined) {
     const res = this.match(string, ancestor, true)
     return res.length ? res[0] : false

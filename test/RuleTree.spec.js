@@ -8,12 +8,12 @@ const { GLOB, NIL, TERM, TERM_EX } = RuleTree
 
 const T1 = ['a/b', 'a/c/', 'f*', '!file']
 const D1 = [
-  [-1, '^a\\/$', 0],
-  [0, '^b$', TERM],
-  [0, '^c\\/$', TERM],
+  [-1, /^a\/$/, 0],
+  [0, /^b$/, TERM],
+  [0, /^c\/$/, TERM],
   [-1, null, 0],
-  [3, '^f.*$', TERM],
-  [3, '^file$', TERM_EX]
+  [3, /^f.*$/, TERM],
+  [3, /^file$/, TERM_EX]
 ]
 
 const t = new RuleTree(T1)
@@ -28,12 +28,8 @@ const test = (str, exp, anc = undefined) => {
 
 describe(ME, () => {
   it('should construct', () => {
-    const d = t.dump()
     // console.log('DUMP', d)
-    expect(d).to.eql(D1)
-    expect(t.inspect(3)).to.eql(D1[3])
-    expect(t.inspect(4)).to.eql(D1[4])
-    expect(() => t.inspect(10)).to.throw(TypeError, 'not iterable')
+    expect(t.tree).to.eql(D1)
   })
 
   it('should match', () => {

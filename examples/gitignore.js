@@ -28,36 +28,36 @@ const print = (...args) => process.stdout.write(format.apply(null, args) + '\n')
 
 let files = [], dirs = [], links = [], ign = [], balance = 0
 
+const ruler = new RuleTree(ignoreList)
+
 // { dirId, dirPath, path, rootPath }, parentContext
-const begin = ({ dirId, dirPath, path, setContext }, context) => {
+ruler.begin = function ({ dirPath, path, setContext }) {
   dirs.push(dirPath) && ++balance
-  const { toIgnore } = context
-  toIgnore.parent = context.parent
-  const m = toIgnore.match(path[path.length - 1] + '/')
+  const m = this.match(path[path.length - 1] + '/')
   //  If the directory name matches any rule, we need to remember it.
   while (m.length) {
     const { index, rule } = m.shift()
     if (rule === GLOB) continue
-    setContext({ parent: toIgnore.parent = index }) //  New start for rules.
+    setContext({ parent: index }) //  New start for rules.
     break
   }
 }
 
 // {context, dirId, dirPath, path, rootPath}, aborted
-const end = () => {
+ruler.end = function () {
   --balance
 }
 
 // type, name, {context, dirId, dirPath, path, rootPath}
-const visit = (type, name, { dirPath }, context) => {
+ruler.visit = function (type, name, { dirPath }) {
   let resolution = 0
   if (name === 'node_modules') {
     resolution = 0
   }
-  const res = [context.toIgnore.test(name, context.parent)]
+  const res = [this.test(name)]
 
   if (type === T_DIR) {   // Directory may have more specific rules.
-    res.unshift(context.toIgnore.test(name + '/'))
+    res.unshift(this.test(name + '/'))
   }
   for (const r of res) {
     if (!r) continue
@@ -72,13 +72,12 @@ const visit = (type, name, { dirPath }, context) => {
   } else if (type === T_SYMLINK) links.push(dirPath + '/' + name)
 }
 
-const toIgnore = new RuleTree(ignoreList)
 const startDir = process.argv[2] || process.cwd()
-const walker = new Walker(startDir, { begin, end, visit })
+const walker = new Walker(startDir)
 
-print(inspect(toIgnore.dump()))
+print(inspect(ruler.tree))
 print('ROOT:', startDir, walker.rootDir)
-walker.go({ begin, end, visit, toIgnore, parent: toIgnore.parent })
+walker.go(ruler)
 
 print('dirs: %i, symlinks: %i, files: %i, ignored: %i, balance: %i',
   dirs.length, links.length, files.length, ign.length, balance)
