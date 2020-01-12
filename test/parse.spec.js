@@ -23,7 +23,7 @@ describe(ME, () => {
     test('!/a  ', ['!', '^a$'])
     test('!/a!  ', ['!', '^a!$'])
     test('\\!a', [null, '^!a$'])
- })
+  })
 
   it('should handle trailing spaces', () => {
     test('/a  ', ['^a$'])

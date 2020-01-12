@@ -32,7 +32,7 @@ describe(ME, () => {
   })
 
   it('should walk', () => {
-    let w = new Walker(process.cwd(), { begin, visit })
+    const w = new Walker(process.cwd(), { begin, visit })
     w.go({dived, skipped, visited})
     expect(dived.sort()).to.eql(['', 'examples', 'src', 'test'], 'dived')
     expect(skipped.indexOf('/node_modules')).to.gte(0, 'skipped')
