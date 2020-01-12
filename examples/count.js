@@ -4,7 +4,7 @@
 'use strict'
 
 const { format } = require('util')
-const Walker = require('../Walker')
+const Walker = require('../src/Walker')
 
 const print = (...args) => process.stdout.write(format.apply(null, args) + '\n')
 

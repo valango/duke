@@ -27,6 +27,7 @@ exports = module.exports = (string) => {
       pattern = pattern.substring(1)
   }
   check(pattern && pattern[0] > ' ')
+  pattern = pattern.replace(/\./g, '\\.')
   const lastIsDir = /\/$/.test(pattern)
   const parts = pattern.split('/')
   let inDir = false, wasGlob = false

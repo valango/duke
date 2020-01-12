@@ -2,7 +2,6 @@
 const ME = 'Walker'
 
 const { expect } = require('chai')
-// const _ = require('lodash')
 const Walker = require('../src/' + ME)
 
 let dived, skipped, visited
@@ -33,8 +32,11 @@ describe(ME, () => {
 
   it('should walk', () => {
     const w = new Walker(process.cwd(), { begin, visit })
-    w.go({dived, skipped, visited})
-    expect(dived.sort()).to.eql(['', 'examples', 'src', 'test'], 'dived')
+    w.go({ dived, skipped, visited })
+    console.log('dived', dived)
+    console.log('skipped', skipped)
+    console.log('visited', visited)
+    expect(dived.sort()).to.eql(['', 'a', 'b'], 'dived')
     expect(skipped.indexOf('/node_modules')).to.gte(0, 'skipped')
     // expect(visited).to.eql([], 'visited')
   })

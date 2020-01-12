@@ -40,6 +40,7 @@ class RuleTree {
      * @private
      */
     this._tree = []
+    this.previous = NIL
     patterns.forEach((pattern) => this.add(pattern))
   }
 
@@ -53,10 +54,10 @@ class RuleTree {
 
     for (const s of parsed) {
       if (s === GLOB) {
-        index = tree.findIndex(([p, r]) => p === parent && r === GLOB)
+        index = tree.findIndex(([p, r]) => p === parent && r === s)
         if (index < 0) index = tree.push([parent, GLOB, 0]) - 1
       } else {
-        index = tree.findIndex(([p, r]) => p === parent && r.source === s)
+        index = tree.findIndex(([p, r]) => p === parent && r && r.source === s)
         if (index === NIL) {
           index = tree.push([parent, new RegExp(s), 0]) - 1
         }
@@ -88,16 +89,19 @@ class RuleTree {
    *
    * The results array will be sorted: TERM_EX, TERM, non-GLOB, GLOB
    *
-   * @param {number} ancestor node index or NIL
    * @param {string} string to match
+   * @param {number=} ancestor node index or NIL (defaults to this.previous)
+   * @param {boolean=} exact
    * @returns {Object<{flag:number, index:number, rule:*}>[]}
    */
-  match (ancestor, string) {
+  match (string, ancestor = undefined, exact = false) {
     const res = [], tree = this._tree, len = tree.length
+    const previous = ancestor === undefined ? this.previous : ancestor
 
-    for (let i = ancestor === NIL ? 0 : ancestor; i < len; i += 1) {
+    for (let i = previous === NIL ? 0 : previous; i < len; i += 1) {
       let [a, rule, flag] = tree[i]
-      if (a !== ancestor) continue
+      if (a !== previous) continue
+      if (exact && !flag) continue
       if (rule === GLOB ||
         (rule.test(string) && (rule = rule.source))) {
         res.push({ index: i, rule, flag })
@@ -107,6 +111,11 @@ class RuleTree {
       res.sort((a, b) => score_(b) - score_(a))
     }
     return res
+  }
+
+  test (string, ancestor = undefined) {
+    const res = this.match(string, ancestor, true)
+    return res.length ? res[0] : false
   }
 }
 
