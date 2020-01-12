@@ -29,28 +29,22 @@ const print = (...args) => process.stdout.write(format.apply(null, args) + '\n')
 let files = [], dirs = [], links = [], ign = [], balance = 0
 
 // { dirId, dirPath, path, rootPath }, parentContext
-const begin = ({ dirId, dirPath, path }, context) => {
+const begin = ({ dirId, dirPath, path, setContext }, context) => {
   dirs.push(dirPath) && ++balance
-  const { savedParents, toIgnore } = context
+  const { toIgnore } = context
+  toIgnore.parent = context.parent
   const m = toIgnore.match(path[path.length - 1] + '/')
   //  If the directory name matches any rule, we need to remember it.
   while (m.length) {
     const { index, rule } = m.shift()
     if (rule === GLOB) continue
-    savedParents[dirId] = toIgnore.parent
-    toIgnore.parent = index
-    console.log('BEG_' + dirId, path, savedParents)
+    setContext({ parent: toIgnore.parent = index }) //  New start for rules.
     break
   }
 }
 
 // {context, dirId, dirPath, path, rootPath}, aborted
-const end = ({ dirId }, context) => {
-  const saved = context.savedParents[dirId]
-  if (saved !== undefined) {
-    context.toIgnore.parent = saved
-    delete context.savedParents[dirId]
-  }
+const end = () => {
   --balance
 }
 
@@ -60,7 +54,7 @@ const visit = (type, name, { dirPath }, context) => {
   if (name === 'node_modules') {
     resolution = 0
   }
-  const res = [context.toIgnore.test(name)]
+  const res = [context.toIgnore.test(name, context.parent)]
 
   if (type === T_DIR) {   // Directory may have more specific rules.
     res.unshift(context.toIgnore.test(name + '/'))
@@ -81,15 +75,13 @@ const visit = (type, name, { dirPath }, context) => {
 const toIgnore = new RuleTree(ignoreList)
 const startDir = process.argv[2] || process.cwd()
 const walker = new Walker(startDir, { begin, end, visit })
-const savedParents = {}
 
 print(inspect(toIgnore.dump()))
 print('ROOT:', startDir, walker.rootDir)
-walker.go({ begin, end, visit, toIgnore, savedParents })
+walker.go({ begin, end, visit, toIgnore, parent: toIgnore.parent })
 
 print('dirs: %i, symlinks: %i, files: %i, ignored: %i, balance: %i',
   dirs.length, links.length, files.length, ign.length, balance)
-print('savedParents:', inspect(savedParents))
 
 if (links.length) print('SymLinks:\n' + links.join('\n'))
 

@@ -86,18 +86,23 @@ class Walker {
 
   walk_ (path) {
     const dirId = ++this._seed
-    const stack = this._stack, sp = stack.length
+    const stack = this._stack, length = stack.length
     const dirPath = path.join(sep)
-    const data = { dirId, dirPath, path, rootPath: this._root, wasAborted: false }
-    let context = stack[sp - 1]
+    const data = {
+      dirId,
+      dirPath,
+      path,
+      rootPath: this._root,
+      wasAborted: false
+    }
+    let sp = length - 1, context = stack[sp]
     let wasAborted = false, countDown = this.maxEntries
     let dir, dirEntry, res, type, toDive
 
     data.setContext = (values) => {
       if (!Object.keys(values).some((k) => values[k] !== context[k])) return
-      if (stack[sp].key !== dirId) {
-        context = _.clone(context)
-        stack.push(context)
+      if (sp === (length - 1)) {
+        sp = stack.push(context = _.clone(context)) - 1
       }
       Object.assign(context, values)
     }
@@ -149,10 +154,10 @@ class Walker {
     data.wasAborted = wasAborted
     const thisEnd = context.end
     thisEnd && context.end(data, context)
-    while (stack.length > sp) stack.pop()
-    context = stack[sp - 1]
+    while (stack.length > length) stack.pop()
+    context = stack[length - 1]
     if (context.end && context.end !== thisEnd) {
-      context.end(data, aborted, context)
+      context.end(data, context)
     }
   }
 }
