@@ -48,5 +48,4 @@ describe(ME, () => {
     expect(t.test('a/')).to.eql(false, 'a/')
     expect(t.test('file').flag).to.eql(TERM_EX, 'file')
   })
-
 })

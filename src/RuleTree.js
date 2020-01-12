@@ -46,9 +46,9 @@ class RuleTree {
 
   add (pattern) {
     const parsed = parse(pattern), tree = this._tree
-    const terminator = parsed[0] === parse.EXCL ? TERM_EX : TERM
+    const term = parsed[0] === parse.EXCL ? TERM_EX : TERM
 
-    if (terminator === TERM_EX) parsed.shift()
+    if (term === TERM_EX) parsed.shift()
 
     let parent = NIL, index
 
@@ -67,10 +67,11 @@ class RuleTree {
     }
     assert(index >= 0, ME + ': no node created')
     const node = tree[index]
+    assert(!term || node[1] !== GLOB, `${ME}: '${pattern}' can't be terminal`)
     if (node[2] !== 0) {
-      this._debug(`add(${pattern}) i=${index} ${node[2]} <- ${terminator}`)
+      this._debug(`add(${pattern}) i=${index} ${node[2]} <- ${term}`)
     }
-    node[2] = terminator
+    node[2] = term
     return this
   }
 
@@ -95,9 +96,8 @@ class RuleTree {
    * @returns {Object<{flag:number, index:number, rule:*}>[]}
    */
   match (string, ancestor = undefined, exact = false) {
-    let parent = ancestor === undefined ? this.parent : ancestor, p0 = parent
-    let res = []
-    const tree = this._tree, len = tree.length, parents = [parent]
+    let parent = ancestor === undefined ? this.parent : ancestor
+    const tree = this._tree, len = tree.length, parents = [parent], res = []
 
     while ((parent = parents.pop()) !== undefined) {
       for (let i = parent === NIL ? 0 : parent; i < len; i += 1) {

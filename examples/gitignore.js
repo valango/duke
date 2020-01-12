@@ -4,10 +4,10 @@
 'use strict'
 // const ME = 'gitignore'
 
-const { format } = require('util')
+const { inspect, format } = require('util')
 const RuleTree = require('../src/RuleTree')
 const Walker = require('../src/Walker')
-const { NIL, TERM, TERM_EX } = RuleTree
+const { GLOB, TERM, TERM_EX } = RuleTree
 const {
         ABORT,
         SKIP,
@@ -18,30 +18,45 @@ const {
 
 const ignoreList = [
   '*.tmp',
+  '/test/*.js',
   '.*',
-  '!stats.tmp',
-  '/node_modules'
+  '!test/Rule*.js',
+  'node_modules'
 ]
 
 const print = (...args) => process.stdout.write(format.apply(null, args) + '\n')
 
-let nFiles = 0, nDirs = 0, nLinks = 0, nIgn = 0, balance = 0
+let files = [], dirs = [], links = [], ign = [], balance = 0
 
 // { dirId, dirPath, path, rootPath }, parentContext
-const begin = ({ dirId, path }, parentContext) => {
-  // print('BEG_' + dirId, path)
-  ++nDirs && ++balance
-  return parentContext
+const begin = ({ dirId, dirPath, path }, context) => {
+  dirs.push(dirPath) && ++balance
+  const { savedParents, toIgnore } = context
+  const m = toIgnore.match(path[path.length - 1] + '/')
+  //  If the directory name matches any rule, we need to remember it.
+  while (m.length) {
+    const { index, rule } = m.shift()
+    if (rule === GLOB) continue
+    savedParents[dirId] = toIgnore.parent
+    toIgnore.parent = index
+    console.log('BEG_' + dirId, path, savedParents)
+    break
+  }
+  return context
 }
 
 // {context, dirId, dirPath, path, rootPath}, aborted
-const end = ({ dirId }, aborted) => {
+const end = ({ dirId, context }, aborted) => {
+  const saved = context.savedParents[dirId]
+  if (saved !== undefined) {
+    context.toIgnore.parent = saved
+    delete context.savedParents[dirId]
+  }
   --balance
-  // print('END_' + dirId, aborted ? 'ABORTED' : '')
 }
 
 // type, name, {context, dirId, dirPath, path, rootPath}
-const visit = (type, name, { context, path }) => {
+const visit = (type, name, { context, dirPath }) => {
   let resolution = 0
   if (name === 'node_modules') {
     resolution = 0
@@ -57,24 +72,29 @@ const visit = (type, name, { context, path }) => {
   }
 
   if (resolution === TERM) {
-    print('IGN', path, name)
-    ++nIgn
-    return SKIP
+    return ign.push(name) && SKIP
   }
   if (type === T_FILE) {
-    ++nFiles
-  } else if (type === T_SYMLINK) ++nLinks
+    files.push(dirPath + '/' + name)
+  } else if (type === T_SYMLINK) links.push(dirPath + '/' + name)
 }
 
 const toIgnore = new RuleTree(ignoreList)
-console.log(toIgnore.dump())
 const startDir = process.argv[2] || process.cwd()
 const walker = new Walker(startDir, { begin, end, visit })
+const savedParents = {}
 
-print('ROOT:', startDir)
-print('START:', walker.rootDir)
+print(inspect(toIgnore.dump()))
+print('ROOT:', startDir, walker.rootDir)
+walker.go({ toIgnore, savedParents })
 
-walker.go({ toIgnore })
+print('dirs: %i, symlinks: %i, files: %i, ignored: %i, balance: %i',
+  dirs.length, links.length, files.length, ign.length, balance.length)
+print('savedParents:', inspect(savedParents))
 
-print('dirs: %i, files: %i, ignored: %i, balance: %i', nDirs, nFiles, nIgn,
-  balance)
+if (links.length) print('SymLinks:\n' + links.join('\n'))
+
+if (!ign.find((o) => /RuleTree.+js$/.test(o)) &&
+  ign.find((o) => /spec\.js$/.test(o))) {
+  print('rules seem to work!')
+}
