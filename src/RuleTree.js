@@ -18,8 +18,22 @@ const { GLOB } = parse
  * @typedef TNode [parent, rule, flags]
  */
 
+const score_ = ({ rule, flag }) => {
+  let l, v = 0
+  if (rule) {
+    v = (l = rule.length) * 100
+    if (rule[0] !== '^') v -= 20
+    if (rule[l - 1] !== '$') v -= 20
+    if (rule.indexOf('*') >= 0) v -= 10
+    if (rule.indexOf('+') >= 0) v -= 8
+    if (rule.indexOf('.') >= 0) v -= 5
+  }
+  return flag * 10000 + v
+}
+
 class RuleTree {
   constructor (patterns = [], debug = undefined) {
+    // istanbul ignore next
     this._debug = debug || (() => undefined)
     /**
      * @type {TNode[]}
@@ -54,8 +68,9 @@ class RuleTree {
     const node = tree[index]
     if (node[2] !== 0) {
       this._debug(`add(${pattern}) i=${index} ${node[2]} <- ${terminator}`)
-      node[2] = terminator
     }
+    node[2] = terminator
+    return this
   }
 
   dump () {
@@ -69,26 +84,32 @@ class RuleTree {
   }
 
   /**
-   * Compute matching rule node indexes.
+   * Match the `string` against rules.
+   *
+   * The results array will be sorted: TERM_EX, TERM, non-GLOB, GLOB
    *
    * @param {number} ancestor node index or NIL
    * @param {string} string to match
-   * @param {boolean=} all in one of multiple matches was GLOB, keep it.
-   * @returns {number[]}
+   * @returns {Object<{flag:number, index:number, rule:*}>[]}
    */
-  match (ancestor, string, all = false) {
+  match (ancestor, string) {
     const res = [], tree = this._tree, len = tree.length
 
     for (let i = ancestor === NIL ? 0 : ancestor; i < len; i += 1) {
-      const [a, r] = tree[i]
+      let [a, rule, flag] = tree[i]
       if (a !== ancestor) continue
-      if (r === GLOB || r.test(string)) res.push(i)
+      if (rule === GLOB ||
+        (rule.test(string) && (rule = rule.source))) {
+        res.push({ index: i, rule, flag })
+      }
     }
-    if (all || res.length <= 1) return res
-    return res.filter((i) => tree[i][1] !== GLOB)
+    if (res.length > 1) {
+      res.sort((a, b) => score_(b) - score_(a))
+    }
+    return res
   }
 }
 
 exports = module.exports = RuleTree
 
-Object.assign(exports, { NIL, TERM, TERM_EX })
+Object.assign(exports, { GLOB, NIL, TERM, TERM_EX })
