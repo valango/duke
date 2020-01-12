@@ -52,7 +52,7 @@ class RuleTree {
     }
     assert(index >= 0, ME + ': no node created')
     const node = tree[index]
-    if (node[2] !== undefined) {
+    if (node[2] !== 0) {
       this._debug(`add(${pattern}) i=${index} ${node[2]} <- ${terminator}`)
       node[2] = terminator
     }
@@ -63,9 +63,9 @@ class RuleTree {
   }
 
   inspect (index) {
-    let [a, b, c] = this._tree[index]
-    if (a !== GLOB) a = a.source
-    return [a, b, c]
+    let [a, r, t] = this._tree[index]
+    if (r !== GLOB) r = r.source
+    return [a, r, t]
   }
 
   /**

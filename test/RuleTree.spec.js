@@ -10,8 +10,10 @@ describe(ME, () => {
   it('should construct', () => {
     const t = new RuleTree(['a/b', 'a/c/', 'file'])
     const d = t.dump()
-    // console.log('DUMP', d)
+    //  console.log('DUMP', d)
     expect(d.map(([p]) => p)).to.eql([NIL, 0, 0, NIL, 3], 'dump')
+    expect(t.inspect(0)).to.eql([NIL, '^a\\/$', 0])
+    expect(() => t.inspect(10)).to.throw(TypeError, 'not iterable')
   })
 
   it('should match', () => {
