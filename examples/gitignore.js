@@ -43,7 +43,7 @@ const end = ({ dirId }, aborted) => {
 // type, name, {context, dirId, dirPath, path, rootPath}
 const visit = (type, name, { context, path }) => {
   let resolution = 0
-  if (name === '.git') {
+  if (name === 'node_modules') {
     resolution = 0
   }
   const res = [context.toIgnore.test(name)]

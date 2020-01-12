@@ -40,7 +40,7 @@ class RuleTree {
      * @private
      */
     this._tree = []
-    this.previous = NIL
+    this.parent = NIL
     patterns.forEach((pattern) => this.add(pattern))
   }
 
@@ -95,18 +95,23 @@ class RuleTree {
    * @returns {Object<{flag:number, index:number, rule:*}>[]}
    */
   match (string, ancestor = undefined, exact = false) {
-    const res = [], tree = this._tree, len = tree.length
-    const previous = ancestor === undefined ? this.previous : ancestor
+    let parent = ancestor === undefined ? this.parent : ancestor, p0 = parent
+    let res = []
+    const tree = this._tree, len = tree.length, parents = [parent]
 
-    for (let i = previous === NIL ? 0 : previous; i < len; i += 1) {
-      let [a, rule, flag] = tree[i]
-      if (a !== previous) continue
-      if (exact && !flag) continue
-      if (rule === GLOB ||
-        (rule.test(string) && (rule = rule.source))) {
-        res.push({ index: i, rule, flag })
+    while ((parent = parents.pop()) !== undefined) {
+      for (let i = parent === NIL ? 0 : parent; i < len; i += 1) {
+        let [a, rule, flag] = tree[i]
+        if (a !== parent) continue
+        if (rule !== GLOB) {
+          if (!rule.test(string)) continue
+          rule = rule.source
+        }
+        parents.push(i)
+        if (flag || !exact) res.push({ index: i, rule, flag })
       }
     }
+
     if (res.length > 1) {
       res.sort((a, b) => score_(b) - score_(a))
     }
