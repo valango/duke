@@ -47,15 +47,13 @@ class Walker {
   /**
    * @param {string} rootDir
    * @param {Object=} options
-   * @param {Object=} fsApi   - replacement for Node.js internal 'fs', e.g. for testing.
    */
-  constructor (rootDir, options = {}, fsApi = undefined) {
+  constructor (rootDir, options = {}) {
     assert(rootDir && typeof rootDir === 'string',
       `${ME}: bad roodDir`)
     this.failures = []
     this.maxEntries = options.maxEntries || 10000
     this._stack = []
-    this._fs = fsApi || fs
     this._root = resolve(rootDir)
     this._seed = -1
   }
@@ -99,7 +97,7 @@ class Walker {
     }
 
     try {
-      dir = this._fs.opendirSync(join(data.rootPath, dirPath))
+      dir = fs.opendirSync(join(data.rootPath, dirPath))
 
       while (!wasAborted && (dirEntry = dir.readSync())) {
         if (--countDown < 0) {
