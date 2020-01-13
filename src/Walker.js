@@ -23,6 +23,8 @@ const T_FILE = 'file'
 const T_SOCKET = 'socket'
 const T_SYMLINK = 'symLink'
 
+const M_LIMIT = '%s: limit exceeded for \'%s\''
+
 const types = {
   isBlockDevice: T_BLOCK,
   isCharacterDevice: T_CHAR,
@@ -41,19 +43,11 @@ const getType = (entry) => {
   }
 }
 
-/**
- * @typedef TClient <Object>
- *   @property {function(Object, Object=):*} [begin] - start with directory
- *   @property {function(string, string=, Object=):*} [visit] - visit a directory entry
- *   @property {function(Object, boolean)} [end]     - finalize with directory
- */
 class Walker {
   /**
    * @param {string} rootDir
-   * @param {TClient} client
    * @param {Object=} options
    * @param {Object=} fsApi   - replacement for Node.js internal 'fs', e.g. for testing.
-   * @param {Object<{client:TClient, context:*}>} options
    */
   constructor (rootDir, options = {}, fsApi = undefined) {
     assert(rootDir && typeof rootDir === 'string',
@@ -85,19 +79,12 @@ class Walker {
   }
 
   walk_ (path) {
-    const dirId = ++this._seed
     const stack = this._stack, length = stack.length
-    const dirPath = path.join(sep)
-    const data = {
-      dirId,
-      dirPath,
-      path,
-      rootPath: this._root,
-      wasAborted: false
-    }
+    const dirId = ++this._seed, dirPath = path.join(sep), toDive = []
+    const data = { dirId, dirPath, path, rootPath: this._root }
     let sp = length - 1, context = stack[sp]
     let wasAborted = false, countDown = this.maxEntries
-    let dir, dirEntry, res, type, toDive
+    let dir, dirEntry, res, type
 
     data.setContext = (values) => {
       if (!Object.keys(values).some((k) => values[k] !== context[k])) return
@@ -113,13 +100,11 @@ class Walker {
 
     try {
       dir = this._fs.opendirSync(join(data.rootPath, dirPath))
-      toDive = []
 
       while (!wasAborted && (dirEntry = dir.readSync())) {
         if (--countDown < 0) {
-          this.fail_(
-            { message: format('%s: limit exceeded for \'%s\'', ME, dirPath) })
-          data.wasAborted = true
+          this.fail_({ message: format(M_LIMIT, ME, dirPath) })
+          wasAborted = true
           break
         }
         type = getType(dirEntry)
@@ -152,6 +137,7 @@ class Walker {
     //  When aborted, the client may want to roll back something it did.
     delete data.setContext
     data.wasAborted = wasAborted
+    //  If `end` method was changed via setContext(), call possibly both.
     const thisEnd = context.end
     thisEnd && context.end(data, context)
     while (stack.length > length) stack.pop()
