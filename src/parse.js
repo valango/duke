@@ -4,42 +4,55 @@
 'use strict'
 
 const ANY = '.*'
-const ANYQ = '^.*$'
 const EXCL = '!'
 const GLOB = null
 
+const DEFAULTS = { extended: true, optimize: true }
+const SEPARATOR = /(?<!\\)\//     //  Matches '/' only if not escaped.
+
+const defaults = require('lodash.defaults')
 const assert = require('assert').strict
+const brexIt = require('brace-expansion')
+
+const rxBraces = /(?<!\\){[^}]+(?<!\\)}/g   //  Detect non-escaped {...}
 
 /**
+ * Convert `string` parts separated by '/' to array of RegExp instances.
+ *
  * @param {string} string
+ * @param {Object=} options
  * @returns {string[]}
  */
-exports = module.exports = (string) => {
+exports = module.exports = (string, options = undefined) => {
   const check = (cond) => assert(cond, `invalid pattern '${string}'`)
-  const rules = []
+  const opts = defaults({}, options || {}, exports.DEFAULTS), rules = []
 
-  let pattern = string.replace(/\\\s/g, '\\s').trimEnd()
-  switch (pattern[0]) {
+  let pattern = string.replace(/\\\s/g, '\\s').trimEnd()  //  Normalize spaces.
+
+  switch (pattern[0]) {             //  Process pattern negation '!something'.
     case '!':
       rules.push(EXCL)
     // fall through
     case '\\':
       pattern = pattern.substring(1)
   }
+
   check(pattern && pattern[0] > ' ')
-  pattern = pattern.replace(/\./g, '\\.')
-  const lastIsDir = /\/$/.test(pattern)
-  const parts = pattern.split('/')
-  let inDir = false, wasGlob = false
+  if (opts.extended) {
+    pattern = pattern.replace(rxBraces, (p) => '(' + brexIt(p).join('|') + ')')
+  }
+  pattern = pattern.replace(/\./g, '\\.')   //  Screen dot characters.
+  const parts = pattern.split(SEPARATOR)
+  const lastIsDir = parts[parts.length - 1] === ''  //  Had trailing '/'
+  let isDirectory = lastIsDir, wasGlob = false
 
   if (lastIsDir) parts.pop()
-  if (!parts[0]) {
-    (inDir = true) && parts.shift()
-  }
-  if (parts.length > 1) inDir = true
+  if (!parts[0]) (isDirectory = true) && parts.shift()  //  Had leading '/'
+
+  if (parts.length > 1) isDirectory = true
   check(parts.length > 0)
 
-  if (!inDir) rules.push(GLOB)
+  if (!isDirectory) rules.push(GLOB)
 
   for (let i = 0, last = parts.length - 1, rule; i <= last; ++i) {
     rule = parts[i]
@@ -49,15 +62,26 @@ exports = module.exports = (string) => {
     }
     rule = rule.replace(/\*+/g, ANY).replace(/\?/g, '.')
     if (i < last || lastIsDir) rule += '\\/'
-    rules.push('^' + rule + '$')
+
+    if (!opts.optimize) {
+      rule = '^' + rule + '$'
+    } else if (rule === ANY || rule === '.') {
+      rule = '.'
+    } else {
+      rule = rule.indexOf(ANY) === 0 ? rule.substring(2) : '^' + rule
+      rule = /\.\*$/.test(rule)
+        ? rule.substring(0, rule.length - 2) : rule + '$'
+    }
+    rules.push(rule)
   }
   let l = rules.length - 1
+  const any = opts.optimize ? '.' : '^.*$'
   //  **/*$ --> **$
-  if (rules[l] === ANYQ && rules[l - 1] === GLOB) (rules.pop() && --l)
+  if (rules[l] === any && rules[l - 1] === GLOB) (rules.pop() && --l)
   //  a/**$ --> a/$
   if (rules[l] === GLOB) rules.pop()
-  check(!(rules.length === 1 && (rules[0] === GLOB || rules[0] === ANY)))
+  check(!(rules.length === 1 && (rules[0] === GLOB || rules[0] === any)))
   return rules
 }
 
-Object.assign(exports, { ANY, EXCL, GLOB })
+Object.assign(exports, { ANY, DEFAULTS, EXCL, GLOB })

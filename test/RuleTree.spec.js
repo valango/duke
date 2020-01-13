@@ -12,7 +12,7 @@ const D1 = [
   [0, /^b$/, TERM],
   [0, /^c\/$/, TERM],
   [-1, null, 0],
-  [3, /^f.*$/, TERM],
+  [3, /^f/, TERM],
   [3, /^file$/, TERM_EX]
 ]
 
