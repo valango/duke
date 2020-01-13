@@ -5,7 +5,7 @@
 const ME = 'Walker'
 
 const assert = require('assert').strict
-const _ = require('lodash')
+const clone = require('lodash.clone')
 const fs = require('fs')
 const { join, resolve, sep } = require('path')
 const { format } = require('util')
@@ -23,7 +23,7 @@ const T_FILE = 'file'
 const T_SOCKET = 'socket'
 const T_SYMLINK = 'symLink'
 
-const M_LIMIT = '%s: limit exceeded for \'%s\''
+const M_LIMIT = '%s: %i directory entries limit exceeded for \'%s\''
 
 const types = {
   isBlockDevice: T_BLOCK,
@@ -89,7 +89,7 @@ class Walker {
     data.setContext = (values) => {
       if (!Object.keys(values).some((k) => values[k] !== context[k])) return
       if (sp === (length - 1)) {
-        sp = stack.push(context = _.clone(context)) - 1
+        sp = stack.push(context = clone(context)) - 1
       }
       Object.assign(context, values)
     }
@@ -103,7 +103,7 @@ class Walker {
 
       while (!wasAborted && (dirEntry = dir.readSync())) {
         if (--countDown < 0) {
-          this.fail_({ message: format(M_LIMIT, ME, dirPath) })
+          this.fail_({ message: format(M_LIMIT, ME, this.maxEntries, dirPath) })
           wasAborted = true
           break
         }

@@ -86,5 +86,7 @@ if (links.length) print('SymLinks:\n' + links.join('\n'))
 
 if (!ign.find((o) => /RuleTree.+js$/.test(o)) &&
   ign.find((o) => /spec\.js$/.test(o))) {
-  print('rules seem to work!')
+  print('Rules seem to work!')
+} else {
+  print('Rule system failed!')
 }

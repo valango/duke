@@ -1,5 +1,5 @@
 /**
- * Count all files and subdirectories.
+ * Count all files and subdirectories, w/o ignoring anything.
  */
 'use strict'
 
@@ -29,10 +29,10 @@ const visit = (type) => {
   return true
 }
 
-const w = new Walker(rootDir, { begin, visit })
+const w = new Walker(rootDir)
 const t0 = process.hrtime()
 
-w.go()
+w.go({ begin, visit })
 
 const t1 = process.hrtime(t0)
 const t = t1[0] * 1e9 + t1[1], v = Math.floor(t / total)
