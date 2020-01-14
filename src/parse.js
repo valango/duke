@@ -3,16 +3,17 @@
  */
 'use strict'
 
-const ANY = '.*'
+const OPTIONAL = '.*'
 const EXCL = '!'
 const GLOB = null
 
 const DEFAULTS = { extended: true, optimize: true }
 const SEPARATOR = /(?<!\\)\//     //  Matches '/' only if not escaped.
 
-const defaults = require('lodash.defaults')
 const assert = require('assert').strict
 const brexIt = require('brace-expansion')
+// const {} = require('./constants')
+const defaults = require('lodash.defaults')
 
 const rxBraces = /(?<!\\){[^}]+(?<!\\)}/g   //  Detect non-escaped {...}
 
@@ -60,15 +61,15 @@ exports = module.exports = (string, options = undefined) => {
       wasGlob = rules.push(GLOB)
       continue
     }
-    rule = rule.replace(/\*+/g, ANY).replace(/\?/g, '.')
+    rule = rule.replace(/\*+/g, OPTIONAL).replace(/\?/g, '.')
     if (i < last || lastIsDir) rule += '\\/'
 
     if (!opts.optimize) {
       rule = '^' + rule + '$'
-    } else if (rule === ANY || rule === '.') {
+    } else if (rule === OPTIONAL || rule === '.') {
       rule = '.'
     } else {
-      rule = rule.indexOf(ANY) === 0 ? rule.substring(2) : '^' + rule
+      rule = rule.indexOf(OPTIONAL) === 0 ? rule.substring(2) : '^' + rule
       rule = /\.\*$/.test(rule)
         ? rule.substring(0, rule.length - 2) : rule + '$'
     }
@@ -84,4 +85,4 @@ exports = module.exports = (string, options = undefined) => {
   return rules
 }
 
-Object.assign(exports, { ANY, DEFAULTS, EXCL, GLOB })
+Object.assign(exports, { OPTIONAL, DEFAULTS, EXCL, GLOB })
