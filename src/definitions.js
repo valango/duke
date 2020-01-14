@@ -36,8 +36,8 @@ exports = module.exports = {
 
   //  Action types.
   A_NOPE: -4,
-  A_SKIP: -1,
-  A_EXCL: -2,
+  A_SKIP: -3,
+  A_EXCL: -2,       //  No match
   A_ABORT: -1,
 
   /* eslint-disable */

@@ -4,7 +4,7 @@
 'use strict'
 
 const ANY = '.'
-const EXCL = 0
+const EXCL = -1
 const GLOB = '**'
 const OPTIONAL = '.*'
 
@@ -46,7 +46,7 @@ exports = module.exports = (string, options = undefined) => {
   }
   pattern = pattern.replace(/\./g, '\\.')   //  Screen dot characters.
   const parts = pattern.split(SEPARATOR)
-  let lastIsDir = parts[parts.length - 1] === ''  //  Had trailing '/'
+  const lastIsDir = parts[parts.length - 1] === ''  //  Had trailing '/'
   let isDirectory = lastIsDir, wasGlob = false
 
   if (lastIsDir) parts.pop()
@@ -60,7 +60,8 @@ exports = module.exports = (string, options = undefined) => {
   if (!isDirectory) rules.push([ANY, T_DIR])
 
   for (let i = 0, last = parts.length - 1; i <= last; ++i) {
-    let rule = parts[i], type = i < last || lastIsDir ? T_DIR : T_ANY
+    let rule = parts[i]
+    const type = i < last || lastIsDir ? T_DIR : T_ANY
 
     if (!wasGlob && rule === GLOB) {
       wasGlob = rules.push([GLOB, type])
@@ -86,8 +87,8 @@ exports = module.exports = (string, options = undefined) => {
   //  a/**$ --> a/$
   if (rules[l][0] === GLOB) rules.pop()
   check(!(rules.length === 1 && (rules[0][0] === ANY || rules[0][0] === any)))
-  rules= rules.map(([r, t]) => [r === GLOB ? ANY : r, t])
-  if(isExlusion) rules.unshift(EXCL)
+  rules = rules.map(([r, t]) => [r === GLOB ? ANY : r, t])
+  if (isExlusion) rules.unshift(EXCL)
   return rules
 }
 

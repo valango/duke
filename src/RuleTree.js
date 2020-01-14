@@ -6,16 +6,15 @@
 const ME = 'RuleTree'
 
 const assert = require('assert').strict
-const { A_EXCL, A_NOPE, NIL } = require('./definitions')
+const { A_EXCL, A_NOPE, NIL, T_ANY } = require('./definitions')
 const parse = require('./parse')
 const { format } = require('util')
 
-const TERM = 1      //  Terminal node.
-const TERM_EX = 2   //  Terminal node of exclusion path.
-
-const { GLOB } = parse
+const { ANY } = parse
+const R_ANY = /./
 
 //  Used for results sorting.
+/*
 const score_ = ({ rule, flag }) => {
   let l, v = 0
   if (rule) {
@@ -28,13 +27,15 @@ const score_ = ({ rule, flag }) => {
   }
   return flag * 10000 + v
 }
+*/
 
 class RuleTree {
   constructor (patterns = [], debug = undefined) {
     // istanbul ignore next
     this._debug = debug || (() => undefined)
-    this.tree = []      //  Every node is an array [parenIndex, rule, flag].
-    this.lastIndex = NIL
+    this.tree = []          //  Every node is an array [parenIndex, rule, flag].
+    this.lastIndex = NIL    //  Set by user
+    this.lastMatches = []   //  Set by test()
     patterns.forEach((pattern) => this.add(pattern))
   }
 
@@ -62,7 +63,8 @@ class RuleTree {
         ([anc, r, t]) => anc === parent && t === type &&
           (typeof r === 'string' ? r : r.source) === rule)
       if (index === NIL) {
-        index = tree.push([parent, rule, type]) - 1
+        index = tree.push(
+          [parent, rule === ANY ? R_ANY : RegExp(rule), type, A_NOPE]) - 1
       }
       //  Todo: perhaps we should check flags on found node?
       parent = index
@@ -86,29 +88,31 @@ class RuleTree {
    * The results array will be sorted: TERM_EX, TERM, non-GLOB, GLOB
    *
    * @param {string} string to match
+   * @param type
    * @param {number=} ancestor node index or NIL (defaults to this.lastIndex)
-   * @param {boolean=} exact
    * @returns {Object<{flag:number, index:number, rule:*}>[]}
    */
-  match (string, ancestor = undefined, exact = false) {
-    let parent = ancestor === undefined ? this.lastIndex : ancestor
-    const tree = this.tree, len = tree.length, parents = [parent], res = []
+  match (string, type, ancestor = undefined) {
+    let res = []
+    const parent = ancestor === undefined ? this.lastIndex : ancestor
+    const tree = this.tree, len = tree.length
 
-    while ((parent = parents.pop()) !== undefined) {
-      for (let i = parent === NIL ? 0 : parent; i < len; i += 1) {
-        let [a, rule, flag] = tree[i]
-        if (a !== parent) continue
-        if (rule !== GLOB) {
-          if (!rule.test(string)) continue
-          rule = rule.source
-        }
-        parents.push(i)
-        if (flag || !exact) res.push({ index: i, rule, flag })
+    // while ((parent = parents.pop()) !== undefined) {
+    for (let i = parent === NIL ? 0 : parent; i < len; i += 1) {
+      const [anc, rule, typ, act] = tree[i]
+      if (anc !== parent || (typ !== T_ANY && typ !== type) ||
+        !rule.test(string)) {
+        continue
       }
+      res.push([i, rule, typ, act])
+      if (act === A_EXCL) break
     }
 
     if (res.length > 1) {
-      res.sort((a, b) => score_(b) - score_(a))
+      res = res.filter(([, r]) => r !== R_ANY)
+    }
+    if (res.length > 1) {
+      res.sort((a, b) => b[3] - a[3])
     }
     return res
   }
@@ -116,15 +120,15 @@ class RuleTree {
   /**
    * Rigid version of match()
    * @param {string} string
+   * @param type
    * @param {number=} ancestor node index or NIL (defaults to this.lastIndex)
    * @returns {Object<{flag:number, index:number, rule:*}> | false}
    */
-  test (string, ancestor = undefined) {
-    const res = this.match(string, ancestor, true)
-    return res.length ? res[0] : false
+  test (string, type, ancestor = undefined) {
+    const res = this.match(string, type, ancestor, true)
+    this.lastMatches = res
+    return res.length ? res[0][3] : A_EXCL
   }
 }
 
 exports = module.exports = RuleTree
-
-Object.assign(exports, { GLOB, NIL, TERM, TERM_EX })

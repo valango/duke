@@ -62,7 +62,7 @@ describe(ME, () => {
   it('should handle braces', () => {
     test('/a\\{b\\}{c,d}e', [['^a\\{b\\}(c|d)e$', T_ANY]], 1)
     flags = { extended: false }
-    test('/a\\{b\\}{c,d}e', [['^a\\{b\\}{c,d}e$',T_ANY]], 2)
+    test('/a\\{b\\}{c,d}e', [['^a\\{b\\}{c,d}e$', T_ANY]], 2)
   })
 
   it('should fail', () => {
