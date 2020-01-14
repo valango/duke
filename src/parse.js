@@ -3,9 +3,10 @@
  */
 'use strict'
 
-const OPTIONAL = '.*'
+const ANY = '.'
 const EXCL = '!'
-const GLOB = null
+const GLOB = '**'
+const OPTIONAL = '.*'
 
 const DEFAULTS = { extended: true, optimize: true }
 const SEPARATOR = /(?<!\\)\//     //  Matches '/' only if not escaped.
@@ -53,21 +54,21 @@ exports = module.exports = (string, options = undefined) => {
   if (parts.length > 1) isDirectory = true
   check(parts.length > 0)
 
-  if (!isDirectory) rules.push(GLOB)
+  if (!isDirectory) rules.push(ANY)
 
   for (let i = 0, last = parts.length - 1, rule; i <= last; ++i) {
     rule = parts[i]
-    if (!wasGlob && rule === '**') {
+    if (!wasGlob && rule === GLOB) {
       wasGlob = rules.push(GLOB)
       continue
     }
-    rule = rule.replace(/\*+/g, OPTIONAL).replace(/\?/g, '.')
+    rule = rule.replace(/\*+/g, OPTIONAL).replace(/\?/g, ANY)
     if (i < last || lastIsDir) rule += '\\/'
 
     if (!opts.optimize) {
       rule = '^' + rule + '$'
-    } else if (rule === OPTIONAL || rule === '.') {
-      rule = '.'
+    } else if (rule === OPTIONAL || rule === ANY) {
+      rule = ANY
     } else {
       rule = rule.indexOf(OPTIONAL) === 0 ? rule.substring(2) : '^' + rule
       rule = /\.\*$/.test(rule)
@@ -76,13 +77,13 @@ exports = module.exports = (string, options = undefined) => {
     rules.push(rule)
   }
   let l = rules.length - 1
-  const any = opts.optimize ? '.' : '^.*$'
+  const any = opts.optimize ? ANY : '^.*$'
   //  **/*$ --> **$
   if (rules[l] === any && rules[l - 1] === GLOB) (rules.pop() && --l)
   //  a/**$ --> a/$
   if (rules[l] === GLOB) rules.pop()
-  check(!(rules.length === 1 && (rules[0] === GLOB || rules[0] === any)))
-  return rules
+  check(!(rules.length === 1 && (rules[0] === ANY || rules[0] === any)))
+  return rules.map((r) => r === GLOB ? ANY : r)
 }
 
-Object.assign(exports, { OPTIONAL, DEFAULTS, EXCL, GLOB })
+Object.assign(exports, { ANY, DEFAULTS, EXCL })

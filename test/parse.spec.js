@@ -4,6 +4,7 @@ const ME = 'parse'
 const { AssertionError } = require('assert')
 const { expect } = require('chai')
 const p = require('../src/' + ME)
+const { ANY, EXCL } = p
 let flags
 
 const test = (str, exp) => expect(p(str, flags)).to.eql(exp, `'${str}'`)
@@ -11,20 +12,20 @@ const test = (str, exp) => expect(p(str, flags)).to.eql(exp, `'${str}'`)
 describe(ME, () => {
   beforeEach(() => (flags = undefined))
   it('should do simple parse', () => {
-    test('a', [null, '^a$'])
+    test('a', [ANY, '^a$'])
     test('/a/b*', ['^a\\/$', '^b'])
     test('/*/a', ['\\/$', '^a$'])
     test('/a/*', ['^a\\/$', '.'])
     test('/a/', ['^a\\/$'])
-    test('**/a', [null, '^a$'])
-    test('/**/a', [null, '^a$'])
+    test('**/a', [ANY, '^a$'])
+    test('/**/a', [ANY, '^a$'])
     test('/a/b', ['^a\\/$', '^b$'])
   })
 
   it('should handle inversion', () => {
-    test('!/a  ', ['!', '^a$'])
-    test('!/a!  ', ['!', '^a!$'])
-    test('\\!a', [null, '^!a$'])
+    test('!/a  ', [EXCL, '^a$'])
+    test('!/a!  ', [EXCL, '^a!$'])
+    test('\\!a', [ANY, '^!a$'])
   })
 
   it('should handle separator escape', () => {
@@ -37,16 +38,16 @@ describe(ME, () => {
   })
 
   it('should ignore repeated glob', () => {
-    test('**/a/**', [null, '^a\\/$', '.'])
+    test('**/a/**', [ANY, '^a\\/$', '.'])
   })
 
   it('should strip trailing glob', () => {
     test('/a/**', ['^a\\/$'])
     test('/a/**/', ['^a\\/$'])
     test('/a/**/*', ['^a\\/$'])
-    test('/a/**/*/*', ['^a\\/$', null, '\\/$', '.'])
+    test('/a/**/*/*', ['^a\\/$', ANY, '\\/$', '.'])
     flags = { optimize: false }
-    test('/a/**/*/*', ['^a\\/$', null, '^.*\\/$', '^.*$'])
+    test('/a/**/*/*', ['^a\\/$', ANY, '^.*\\/$', '^.*$'])
     test('/a/b*', ['^a\\/$', '^b.*$'])
   })
 
