@@ -28,7 +28,7 @@ const visit = (type, name, { dirPath }, context) => {
 
 const end = () => ++e0
 
-describe(ME, () => {
+xdescribe(ME, () => {
   beforeEach(() => {
     (dived = []) && (visited = []) && (skipped = [])
     e0 = e1 = 0

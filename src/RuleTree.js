@@ -6,9 +6,10 @@
 const ME = 'RuleTree'
 
 const assert = require('assert').strict
+const { A_EXCL, A_NOPE, NIL } = require('./definitions')
 const parse = require('./parse')
+const { format } = require('util')
 
-const NIL = -1
 const TERM = 1      //  Terminal node.
 const TERM_EX = 2   //  Terminal node of exclusion path.
 
@@ -33,38 +34,49 @@ class RuleTree {
     // istanbul ignore next
     this._debug = debug || (() => undefined)
     this.tree = []      //  Every node is an array [parenIndex, rule, flag].
-    this.parent = NIL
+    this.lastIndex = NIL
     patterns.forEach((pattern) => this.add(pattern))
   }
 
-  add (pattern) {
-    const parsed = parse(pattern), tree = this.tree
-    const term = parsed[0] === parse.EXCL ? TERM_EX : TERM
+  /**
+   *
+   * @param {string[] | {pattern:string, mask:string}} givenRules
+   * @param forAction
+   * @returns {RuleTree}
+   */
+  add (givenRules, forAction = A_NOPE) {
+    let rules = givenRules
+    assert(rules[0], 'no rules')
+    if (typeof rules === 'string') {
+      rules = parse(rules)
+    } else {
+      throw new TypeError('bad rules')
+    }
+    const tree = this.tree
+    const action = rules[0] === parse.EXCL ? rules.shift() && A_EXCL : forAction
 
-    if (term === TERM_EX) parsed.shift()
+    let parent = this.lastIndex, index
 
-    let parent = NIL, index
-
-    for (const s of parsed) {
-      if (s === GLOB) {
-        index = tree.findIndex(([p, r]) => p === parent && r === s)
-        if (index < 0) index = tree.push([parent, GLOB, 0]) - 1
-      } else {
-        index = tree.findIndex(([p, r]) => p === parent && r && r.source === s)
-        if (index === NIL) {
-          index = tree.push([parent, new RegExp(s), 0]) - 1
-        }
-        //  Todo: perhaps we should check flags on found node?
+    for (const [rule, type] of rules) {
+      index = tree.findIndex(
+        ([anc, r, t]) => anc === parent && t === type &&
+          (typeof r === 'string' ? r : r.source) === rule)
+      if (index === NIL) {
+        index = tree.push([parent, rule, type]) - 1
       }
+      //  Todo: perhaps we should check flags on found node?
       parent = index
     }
     assert(index >= 0, ME + ': no node created')
-    const node = tree[index]
-    assert(!term || node[1] !== GLOB, `${ME}: '${pattern}' can't be terminal`)
-    if (node[2] !== 0) {
-      this._debug(`add(${pattern}) i=${index} ${node[2]} <- ${term}`)
+    const node = tree[index], act = node[3]
+
+    if (act === undefined || act === A_NOPE || act === action) {
+      node[3] = action
+    } else {
+      assert(0, format('action conflict @%i: [%i, $s, %s, %i] < %i',
+        index, node[0], node[1], node[2], node[3], action))
     }
-    node[2] = term
+
     return this
   }
 
@@ -74,12 +86,12 @@ class RuleTree {
    * The results array will be sorted: TERM_EX, TERM, non-GLOB, GLOB
    *
    * @param {string} string to match
-   * @param {number=} ancestor node index or NIL (defaults to this.parent)
+   * @param {number=} ancestor node index or NIL (defaults to this.lastIndex)
    * @param {boolean=} exact
    * @returns {Object<{flag:number, index:number, rule:*}>[]}
    */
   match (string, ancestor = undefined, exact = false) {
-    let parent = ancestor === undefined ? this.parent : ancestor
+    let parent = ancestor === undefined ? this.lastIndex : ancestor
     const tree = this.tree, len = tree.length, parents = [parent], res = []
 
     while ((parent = parents.pop()) !== undefined) {
@@ -104,7 +116,7 @@ class RuleTree {
   /**
    * Rigid version of match()
    * @param {string} string
-   * @param {number=} ancestor node index or NIL (defaults to this.parent)
+   * @param {number=} ancestor node index or NIL (defaults to this.lastIndex)
    * @returns {Object<{flag:number, index:number, rule:*}> | false}
    */
   test (string, ancestor = undefined) {

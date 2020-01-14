@@ -7,7 +7,7 @@
 
 const parse = require('../src/parse')
 
-// const res = parse('/a/*')
-const res = parse(process.argv[2])
+let res = parse('\\!a')
+res = parse(process.argv[2]) || res
 
 console.log('RES', res)

@@ -9,7 +9,7 @@ const { EventEmitter } = require('events')
 const { opendirSync } = require('fs')
 const { join } = require('path')
 const { inspect } = require('util')
-const constants = require('./constants')
+const constants = require('./definitions')
 /* eslint-disable */
 const {
         A_ABORT, A_NOPE, A_SKIP,
