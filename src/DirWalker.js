@@ -5,24 +5,20 @@
 const ME = 'DirWalker'
 
 const assert = require('assert').strict
+const { EventEmitter } = require('events')
 const { opendirSync } = require('fs')
 const { join } = require('path')
+const { inspect } = require('util')
+const constants = require('./constants')
+/* eslint-disable */
+const {
+        A_ABORT, A_NOPE, A_SKIP,
+        NIL,
+        T_BLOCK, T_CHAR, T_DIR, T_FIFO, T_FILE, T_SOCKET, T_SYMLINK
+      } = constants
+/* eslint-enable */
 
-const NIL = -1
-
-//  Action types - exported.
-const A_NOPE = 0
-const A_SKIP = 1
-const A_EXCL = 2
-
-//  DirEntry types - exported.
-const T_BLOCK = 'bdev'
-const T_CHAR = 'cdev'
-const T_DIR = 'dir'
-const T_FIFO = 'fifo'
-const T_FILE = 'file'
-const T_SOCKET = 'socket'
-const T_SYMLINK = 'slink'
+const ErrorEvent = ME + '-error'
 
 const types = {
   isBlockDevice: T_BLOCK,
@@ -43,19 +39,44 @@ const getType = (entry) => {
   throw new Error(ME + '.getType(): bad entry')
 }
 
-class DirWalker {
+class DirWalker extends EventEmitter {
   constructor (processor = undefined) {
+    super()
     this.failures = null
     this.paths = []
     this.ruleIndex = NIL
+    this.rules = null
+    this.directory = undefined
     //  This method can be dynamically changed.
     this.process = processor || function (entryContext) {
       return this.processEntry(entryContext)
     }
   }
 
+  closeDir () {
+    if (this.directory) {
+      this.directory.closeSync()
+      this.directory = undefined
+    }
+    return this
+  }
+
+  handleError (error, context = undefined) {
+    const d = { context, instance: this }
+    this.emit(ErrorEvent, error, d)
+    if (d.action !== undefined) {
+      return d.action === A_SKIP ? undefined : d.action
+    }
+    const comment = context &&
+      (typeof context === 'string' ? context : inspect(context))
+    this.registerFailure(error.message, comment)
+  }
+
   match (type, name, ancestor) {
-    return A_NOPE
+    if (!this.rules) return A_NOPE
+    const res = this.rules.match(type, name, ancestor)
+    if (res !== A_SKIP) this.ruleIndex = this.rules.lastIndex
+    return res
   }
 
   /**
@@ -67,6 +88,13 @@ class DirWalker {
     return entryContext
   }
 
+  registerFailure (failure, comment = '') {
+    let msg = typeof failure === 'string' ? failure : failure.message
+    if (comment) msg += '\n  ' + comment
+    this.failures.push(msg)
+    return this
+  }
+
   walk (rootDir) {
     const paths = this.paths
     assert(paths.length === 0, ME + '.walk() is not re-enterable')
@@ -75,15 +103,26 @@ class DirWalker {
 
     while (paths.length) {
       const { ancestor, dir } = paths.shift()
-      const directory = opendirSync(join(rootDir, dir))
+      try {
+        this.directory = opendirSync(join(rootDir, dir))
+      } catch (error) {
+        const r = this.handleError(error)
+        if (r === A_ABORT || r === A_SKIP) return this
+      }
+
+      if (!this.directory) {
+        continue                        //  There was an error.
+      }
       let entry
 
-      while ((entry = directory.readSync())) {
+      while ((entry = this.directory.readSync())) {
         const name = entry.name
         const type = getType(entry)
 
         const action = this.match(type, name, ancestor)
         const ultimate = this.process({ action, dir, name, type })
+
+        if (ultimate === A_ABORT) break
 
         if (type === T_DIR && ultimate !== A_SKIP) {
           paths.push({
@@ -92,15 +131,11 @@ class DirWalker {
           })
         }
       }
-      directory.closeSync()
+      this.closeDir()
     }
+    return this
   }
 }
 
-exports = module.exports = DirWalker
-
-/* eslint-disable object-property-newline */
-Object.assign(exports, {
-  A_NOPE, A_SKIP, A_EXCL,
-  T_BLOCK, T_CHAR, T_DIR, T_FIFO, T_FILE, T_SOCKET, T_SYMLINK
-})
+Object.assign(DirWalker, { ErrorEvent, ...constants })
+module.exports = DirWalker
