@@ -4,7 +4,8 @@
 'use strict'
 
 const { format } = require('util')
-const Walker = require('../src/Walker')
+const Walker = require('../src/DirWalker')
+const {A_SKIP} = Walker
 
 const print = (...args) => process.stdout.write(format.apply(null, args) + '\n')
 
@@ -19,20 +20,17 @@ const add = (key) => {
   total += 1
 }
 
-const begin = ({ path }) => {
-  depth = Math.max(depth, path.length)
-  return {}
+const processor = function processor({action, type}){
+  if(action !== A_SKIP){
+    add(type)
+  }
+  return action
 }
 
-const visit = (type) => {
-  add(type)
-  return true
-}
-
-const w = new Walker(rootDir)
+const w = new Walker(processor)
 const t0 = process.hrtime()
 
-w.go({ begin, visit })
+w.walk(rootDir)
 
 const t1 = process.hrtime(t0)
 const t = t1[0] * 1e9 + t1[1], v = Math.floor(t / total)
