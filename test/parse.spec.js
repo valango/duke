@@ -4,63 +4,69 @@ const ME = 'parse'
 const { AssertionError } = require('assert')
 const { expect } = require('chai')
 const p = require('../src/' + ME)
-const { ANY, HAS_DIRS, ALL_DIRS, IS_EXCL } = p
-let flags
+const { ANY } = p
+const ALLD = { allDirs: true, hasDirs: true, isExclusion: false }
+const DIRS = { allDirs: false, hasDirs: true, isExclusion: false }
+const NONE = { allDirs: false, hasDirs: false, isExclusion: false }
+const XALL = { allDirs: true, hasDirs: true, isExclusion: true }
+let options
 
-const test = (str, exp, x = '') =>
-  expect(p(str, flags)).to.eql(exp, `'${str}' ` + x)
+const test = (str, exp, x = '') => {
+  const r = p(str, options)
+  expect(r).to.eql(exp, `'${str}' ` + x)
+}
 
 describe(ME, () => {
-  beforeEach(() => (flags = undefined))
+  beforeEach(() => (options = undefined))
   it('should do simple parse', () => {
-    test('/a', [ALL_DIRS + HAS_DIRS, '^a$'])
-    test('/a/', [ALL_DIRS + HAS_DIRS, '^a$'])
-    test('a', ['', '^a$'])
-    test('/a/b*', [HAS_DIRS, '^a$', '^b'])
-    test('/*/a', [HAS_DIRS, ANY, '^a$'])
-    test('/a/*', [HAS_DIRS, '^a$', '.'])
-    test('**/a', [HAS_DIRS, ANY, '^a$'])
-    test('/**/a', [HAS_DIRS, ANY, '^a$'])
-    test('/a/b', [HAS_DIRS, '^a$', '^b$'])
+    test('/a', [ALLD, '^a$'])
+    test('/a/', [ALLD, '^a$'])
+    test('a', [NONE, '^a$'])
+    test('/a/b*', [DIRS, '^a$', '^b'])
+    test('/*/a', [DIRS, ANY, '^a$'])
+    test('/a/*', [DIRS, '^a$', '.'])
+    test('**/a', [DIRS, ANY, '^a$'])
+    test('/**/a', [DIRS, ANY, '^a$'])
+    test('/a/b', [DIRS, '^a$', '^b$'])
   })
 
   it('should handle inversion', () => {
-    test('!/a  ', [IS_EXCL + ALL_DIRS + HAS_DIRS, '^a$'])
-    test('!/a!  ', [IS_EXCL + ALL_DIRS + HAS_DIRS, '^a!$'])
-    test('\\!a', ['', '^!a$'])
+    test('!/a  ', [XALL, '^a$'])
+    test('!/a!  ', [XALL, '^a!$'])
+    test('\\!a', [NONE, '^!a$'])
   })
 
   it('should handle separator escape', () => {
-    test('a\\/b\\/c/d', [HAS_DIRS, '^a\\/b\\/c$', '^d$'])
+    test('a\\/b\\/c/d', [DIRS, '^a\\/b\\/c$', '^d$'])
   })
 
   it('should handle trailing spaces', () => {
-    test('/a  ', [ALL_DIRS + HAS_DIRS, '^a$'])
-    test('/a\\ \\  ', [ALL_DIRS + HAS_DIRS, '^a\\s\\s$'])
+    test('/a  ', [ALLD, '^a$'])
+    test('/a\\ \\  ', [ALLD, '^a\\s\\s$'])
   })
 
   it('should ignore repeated glob', () => {
-    test('**/a/**', [HAS_DIRS, ANY, '^a$', ANY])
+    test('**/a/**', [DIRS, ANY, '^a$', ANY])
   })
 
   it('should strip trailing glob', () => {
     //  Todo: give some analysis back to parser
-    test('/a/**', [ALL_DIRS + HAS_DIRS, '^a$'])
-    test('/a/**/', [ALL_DIRS + HAS_DIRS, '^a$'])
-    test('/a/**/*', [ALL_DIRS + HAS_DIRS, '^a$'])
-    test('/a/**/*/*', [HAS_DIRS, '^a$', ANY, ANY, ANY])
+    test('/a/**', [ALLD, '^a$'])
+    test('/a/**/', [ALLD, '^a$'])
+    test('/a/**/*', [ALLD, '^a$'])
+    test('/a/**/*/*', [DIRS, '^a$', ANY, ANY, ANY])
   })
 
   it('should strip trailing glob, unoptimized', () => {
-    flags = { optimize: false }
-    test('/a/**/*/*', [HAS_DIRS, '^a$', ANY, '^.*$', '^.*$'])
-    test('/a/b*', [HAS_DIRS, '^a$', '^b.*$'])
+    options = { optimize: false }
+    test('/a/**/*/*', [DIRS, '^a$', ANY, '^.*$', '^.*$'])
+    test('/a/b*', [DIRS, '^a$', '^b.*$'])
   })
 
   it('should handle braces', () => {
-    test('/a\\{b\\}{c,d}e', [ALL_DIRS + HAS_DIRS, '^a\\{b\\}(c|d)e$'], 1)
-    flags = { extended: false }
-    test('/a\\{b\\}{c,d}e', [ALL_DIRS + HAS_DIRS, '^a\\{b\\}{c,d}e$'], 2)
+    test('/a\\{b\\}{c,d}e', [ALLD, '^a\\{b\\}(c|d)e$'], 1)
+    options = { extended: false }
+    test('/a\\{b\\}{c,d}e', [ALLD, '^a\\{b\\}{c,d}e$'], 2)
   })
 
   it('should fail', () => {

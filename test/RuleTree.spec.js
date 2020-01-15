@@ -16,7 +16,7 @@ const D1 = [
   [3, /^file$/, T_ANY, A_EXCL]
 ]
 
-const t = new RuleTree(T1)
+const t = 0 // new RuleTree(T1)
 
 // const idx = (a) => a.map((r) => r[0])
 

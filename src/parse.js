@@ -5,9 +5,6 @@
 
 const ANY = '.'
 const EXCL = '!'
-const IS_EXCL = '!'
-const HAS_DIRS = 'd'
-const ALL_DIRS = 'D'
 const SCREENED_EXCL = '\\!'
 const GLOB = '**'
 const OPTIONAL = '.*'
@@ -26,17 +23,17 @@ const rxBraces = /(?<!\\){[^}]+(?<!\\)}/g   //  Detect non-escaped {...}
  *
  * @param {string} string
  * @param {Object=} options
- * @returns {string[]} = the first string is flags
+ * @returns {*[]} = the first entry is flags object
  */
 exports = module.exports = (string, options = undefined) => {
   const check = (cond) => assert(cond, `invalid pattern '${string}'`)
   const opts = defaults({}, options || {}, exports.DEFAULTS)
 
   let pattern = string.replace(/\\\s/g, '\\s').trimEnd()  //  Normalize spaces.
-  let fX = '', fD = '', fA = ''
+  let isExclusion = false, hasDirs = false, allDirs = false
 
   if (pattern[0] === EXCL) {
-    (fX = IS_EXCL) && (pattern = pattern.substring(1))
+    (isExclusion = true) && (pattern = pattern.substring(1))
   } else if (pattern.indexOf(SCREENED_EXCL) === 0) {
     pattern = pattern.substring(1)
   }
@@ -45,14 +42,14 @@ exports = module.exports = (string, options = undefined) => {
   }
   pattern = pattern.replace(/\./g, '\\.')   //  Screen dot characters.
   const parts = pattern.split(SEPARATOR)
-  if (!parts[0]) (fD = HAS_DIRS) && parts.shift()
+  if (!parts[0]) hasDirs = parts.shift() || true
   let last = parts.length - 1, rules = [], wasGlob = false
 
-  if (last >= 0 && !parts[last]) (fA = ALL_DIRS) && (parts.pop() || --last)
+  if (last >= 0 && !parts[last]) (allDirs = true) && (parts.pop() || --last)
   check(last >= 0)
   if (last > 0) {
-    fD = HAS_DIRS
-  } else if (fD) fA = ALL_DIRS
+    hasDirs = true
+  } else if (hasDirs) allDirs = true
   // if (fA) fD = HAS_DIRS
 
   for (let i = 0; i <= last; ++i) {
@@ -82,11 +79,11 @@ exports = module.exports = (string, options = undefined) => {
   //  **/*$ --> **$
   if (rules[l] === any && rules[l - 1] === GLOB) (rules.pop() && --l)
   //  a/**$ --> a/$
-  if (rules[l] === GLOB) rules.pop() && (fA = ALL_DIRS)
+  if (rules[l] === GLOB) rules.pop() && (allDirs = true)
   check(!(rules.length === 1 && (rules[0] === ANY || rules[0] === any)))
   rules = rules.map((r) => r === GLOB ? ANY : r)
-  rules.unshift(fX + fA + fD)
+  rules.unshift({ allDirs, hasDirs, isExclusion })
   return rules
 }
 
-Object.assign(exports, { ANY, DEFAULTS, HAS_DIRS, ALL_DIRS, IS_EXCL })
+Object.assign(exports, { ANY, DEFAULTS })

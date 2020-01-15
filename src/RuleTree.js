@@ -54,7 +54,7 @@ class RuleTree {
     } else {
       throw new TypeError('bad rules')
     }
-    const tree = this.tree
+    const tree = this.tree, flags = rules.shift
     const action = rules[0] === parse.EXCL ? rules.shift() && A_EXCL : forAction
 
     let parent = this.lastIndex, index
@@ -67,7 +67,6 @@ class RuleTree {
         index = tree.push(
           [parent, rule === ANY ? R_ANY : RegExp(rule), type, A_NOPE]) - 1
       }
-      //  Todo: perhaps we should check flags on found node?
       parent = index
     }
     assert(index >= 0, ME + ': no node created')
