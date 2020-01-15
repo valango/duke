@@ -7,6 +7,7 @@ const ME = 'RuleTree'
 
 const assert = require('assert').strict
 const { A_EXCL, A_NOPE, NIL, T_DIR, T_ANY } = require('./definitions')
+const GLOB = null
 const parse = require('./parse')
 const { format } = require('util')
 
@@ -93,28 +94,43 @@ class RuleTree {
    * The results array will be sorted: TERM_EX, TERM, non-GLOB, GLOB
    *
    * @param {string} string to match
-   * @param type
-   * @param {number=} ancestor node index or NIL (defaults to this.lastIndex)
-   * @returns {Object<{flag:number, index:number, rule:*}>[]}
+   * @param {boolean} isDirectory
+   * @param {number[]=} ancestors
+   * @returns {number[][]} array of [iAnc, rule, bDir, action, index]
    */
-  match (string, type, ancestor = undefined) {
+  match (string, isDirectory = true, ancestors = undefined) {
     let res = []
-    const parent = ancestor === undefined ? this.lastIndex : ancestor
-    const tree = this.tree, len = tree.length
 
-    // while ((parent = parents.pop()) !== undefined) {
-    for (let i = parent === NIL ? 0 : parent; i < len; i += 1) {
-      const [anc, rule, typ, act] = tree[i]
-      if (anc !== parent || (typ !== T_ANY && typ !== type) ||
-        !rule.test(string)) {
-        continue
+    if (!(ancestors.length >= 1)) return res
+
+    const ancs = ancestors.slice() || [NIL], tree = this.tree
+    const lowest = Math.min.apply(undefined, ancestors)
+    // Scan the three for nodes matching any of the ancestors.
+    for (let i = tree.length; --i > lowest;) {
+      const [an, rule, bDir, act] = tree[i]
+
+      //  Ancestors list is always smaller than tree ;)
+      for (let iA = 0, anc; (anc = ancs[iA]) !== undefined; iA += 1) {
+        if (anc <= i) {   //  Ancestor index is always less than node index.
+          ancs.splice(iA, 1) && (iA -= 1)           //  Discard this ancestor.
+          continue
+        }
+        if (anc !== an) continue
+
+        if ((bDir && !isDirectory) || (rule !== GLOB && !rule.test(string))) {
+          if (an !== NIL && tree[an][1] === GLOB) { //  No match, but if...
+            res.push(tree[an].concat(an))           //  ancestor rule is GLOB,
+          }                                         //  so stick with it.
+          continue
+        }
+        //  idx:   0     1     2    3   4           //  We got match!
+        res.push([an, rule, bDir, act, i])
+        if (act === A_EXCL) break
       }
-      res.push([i, rule, typ, act])
-      if (act === A_EXCL) break
     }
 
     if (res.length > 1) {
-      res = res.filter(([, r]) => r !== R_ANY)
+      res = res.filter(([, r]) => r !== GLOB)
     }
     if (res.length > 1) {
       res.sort((a, b) => b[3] - a[3])
