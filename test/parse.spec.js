@@ -4,7 +4,7 @@ const ME = 'parse'
 const { AssertionError } = require('assert')
 const { expect } = require('chai')
 const p = require('../src/' + ME)
-const { ANY, HAS_DIRS, ALL_DIRS, EXCL } = p
+const { ANY, HAS_DIRS, ALL_DIRS, IS_EXCL } = p
 let flags
 
 const test = (str, exp, x = '') =>
@@ -24,11 +24,11 @@ describe(ME, () => {
     test('/a/b', [HAS_DIRS, '^a$', '^b$'])
   })
 
-  /* xit('should handle inversion', () => {
-    test('!/a  ', [EXCL, ['^a$', T_ANY]])
-    test('!/a!  ', [EXCL, ['^a!$', T_ANY]])
-    test('\\!a', [[ANY, T_DIR], ['^!a$', T_ANY]])
-  }) */
+  it('should handle inversion', () => {
+    test('!/a  ', [IS_EXCL + ALL_DIRS + HAS_DIRS, '^a$'])
+    test('!/a!  ', [IS_EXCL + ALL_DIRS + HAS_DIRS, '^a!$'])
+    test('\\!a', ['', '^!a$'])
+  })
 
   it('should handle separator escape', () => {
     test('a\\/b\\/c/d', [HAS_DIRS, '^a\\/b\\/c$', '^d$'])

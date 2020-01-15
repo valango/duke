@@ -5,6 +5,7 @@
 
 const ANY = '.'
 const EXCL = '!'
+const IS_EXCL = '!'
 const HAS_DIRS = 'd'
 const ALL_DIRS = 'D'
 const SCREENED_EXCL = '\\!'
@@ -35,7 +36,7 @@ exports = module.exports = (string, options = undefined) => {
   let fX = '', fD = '', fA = ''
 
   if (pattern[0] === EXCL) {
-    (fX = EXCL) && (pattern = pattern.substring(1))
+    (fX = IS_EXCL) && (pattern = pattern.substring(1))
   } else if (pattern.indexOf(SCREENED_EXCL) === 0) {
     pattern = pattern.substring(1)
   }
@@ -88,4 +89,4 @@ exports = module.exports = (string, options = undefined) => {
   return rules
 }
 
-Object.assign(exports, { ANY, DEFAULTS, HAS_DIRS, ALL_DIRS, EXCL })
+Object.assign(exports, { ANY, DEFAULTS, HAS_DIRS, ALL_DIRS, IS_EXCL })
