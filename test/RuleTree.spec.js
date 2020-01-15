@@ -16,7 +16,7 @@ const D1 = [
   [3, /^file$/, T_ANY, A_EXCL]
 ]
 
-const t = 0 // new RuleTree(T1)
+const t = new RuleTree(T1)
 
 // const idx = (a) => a.map((r) => r[0])
 
@@ -26,9 +26,9 @@ const test = (str, ty, exp, anc = NIL) => {
   expect(r).to.eql(exp, anc === NIL ? str : str + ' @' + anc)
 }
 
-xdescribe(ME, () => {
+describe(ME, () => {
   it('should construct', () => {
-    // console.log('DUMP', t.tree)
+    console.log('DUMP', t.tree)
     expect(t.tree).to.eql(D1)
   })
 

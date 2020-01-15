@@ -21,7 +21,8 @@ describe(ME, () => {
   it('should do simple parse', () => {
     test('/a', [ALLD, '^a$'])
     test('/a/', [ALLD, '^a$'])
-    test('a', [NONE, '^a$'])
+    //  todo: Fuck! be are back to the NULL rule again!
+    test('a', [DIRS, ANY, '^a$'])
     test('/a/b*', [DIRS, '^a$', '^b'])
     test('/*/a', [DIRS, ANY, '^a$'])
     test('/a/*', [DIRS, '^a$', '.'])

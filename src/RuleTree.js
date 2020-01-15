@@ -6,7 +6,7 @@
 const ME = 'RuleTree'
 
 const assert = require('assert').strict
-const { A_EXCL, A_NOPE, NIL, T_ANY } = require('./definitions')
+const { A_EXCL, A_NOPE, NIL, T_DIR, T_ANY } = require('./definitions')
 const parse = require('./parse')
 const { format } = require('util')
 
@@ -47,19 +47,24 @@ class RuleTree {
    */
   add (givenRules, forAction = A_NOPE) {
     //  Todo: implement type calculation, screening and negation
-    let rules = givenRules
+    let rules = givenRules, flags = {}
     assert(rules[0], 'no rules')
     if (typeof rules === 'string') {
       rules = parse(rules)
+      flags = rules.shift()
     } else {
       throw new TypeError('bad rules')
     }
-    const tree = this.tree, flags = rules.shift
-    const action = rules[0] === parse.EXCL ? rules.shift() && A_EXCL : forAction
+    const tree = this.tree, last = rules.length - 1
+    const action = flags.isExclusion ? A_EXCL : forAction
 
     let parent = this.lastIndex, index
 
-    for (const [rule, type] of rules) {
+    for (let i = 0; i <= last; i += 1) {
+      const rule = rules[i]
+      const type = flags.hasDirs
+        ? (flags.allDirs || i < last ? T_DIR : T_ANY) : T_ANY
+
       index = tree.findIndex(
         ([anc, r, t]) => anc === parent && t === type &&
           (typeof r === 'string' ? r : r.source) === rule)
