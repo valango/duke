@@ -46,6 +46,7 @@ class RuleTree {
    * @returns {RuleTree}
    */
   add (givenRules, forAction = A_NOPE) {
+    //  Todo: implement type calculation, screening and negation
     let rules = givenRules
     assert(rules[0], 'no rules')
     if (typeof rules === 'string') {

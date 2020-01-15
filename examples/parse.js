@@ -8,7 +8,7 @@
 const parse = require('../src/parse')
 const { T_DIR } = require('../src/definitions')
 
-let res = parse(process.argv[2]||'\\!a') || res
+let res = parse(process.argv[2] || '/a') || res
 
 console.log('RES', res)
 

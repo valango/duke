@@ -26,7 +26,7 @@ const test = (str, ty, exp, anc = NIL) => {
   expect(r).to.eql(exp, anc === NIL ? str : str + ' @' + anc)
 }
 
-describe(ME, () => {
+xdescribe(ME, () => {
   it('should construct', () => {
     // console.log('DUMP', t.tree)
     expect(t.tree).to.eql(D1)
