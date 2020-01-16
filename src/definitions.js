@@ -22,16 +22,18 @@ const S_SOCKET = 'socket'
 const S_SYMLINK = 'symLink'
 
 const ts = {
-  B: S_BLOCK,
-  C: S_CHAR,
-  d: S_DIR,
-  F: S_FIFO,
-  f: S_FILE,
-  S: S_SOCKET,
-  L: S_SYMLINK
+  [T_BLOCK]: S_BLOCK,
+  [T_CHAR]: S_CHAR,
+  [T_DIR]: S_DIR,
+  [T_FIFO]: S_FIFO,
+  [T_FILE]: S_FILE,
+  [T_SOCKET]: S_SOCKET,
+  [T_SYMLINK]: S_SYMLINK
 }
 
 exports = module.exports = {
+  GLOB: null,       //  Used in rule tree
+
   NIL: -1,
 
   //  Action types.
@@ -44,6 +46,10 @@ exports = module.exports = {
   S_BLOCK, S_CHAR, S_DIR, S_FIFO, S_FILE, S_SOCKET, S_SYMLINK,
   T_ANY, T_BLOCK, T_CHAR, T_DIR, T_FIFO, T_FILE, T_SOCKET, T_SYMLINK,
   /* eslint-enable */
-
-  typename: (t) => ts[t]
+  /**
+   * Translate DirEntry type to human-readable type name.
+   * @param {string} type
+   * @returns {string}
+   */
+  typename: (type) => ts[type]
 }

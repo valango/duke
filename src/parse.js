@@ -6,7 +6,7 @@
 const ANY = '.'
 const EXCL = '!'
 const SCREENED_EXCL = '\\!'
-const GLOB = '**'
+const P_GLOB = '**'
 const OPTIONAL = '.*'
 
 const DEFAULTS = { extended: true, optimize: true }
@@ -14,6 +14,7 @@ const SEPARATOR = /(?<!\\)\//     //  Matches '/' only if not escaped.
 
 const assert = require('assert').strict
 const brexIt = require('brace-expansion')
+const { GLOB } = require('./definitions')
 const defaults = require('lodash.defaults')
 
 const rxBraces = /(?<!\\){[^}]+(?<!\\)}/g   //  Detect non-escaped {...}
@@ -30,7 +31,7 @@ exports = module.exports = (string, options = undefined) => {
   const opts = defaults({}, options || {}, exports.DEFAULTS)
 
   let pattern = string.replace(/\\\s/g, '\\s').trimEnd()  //  Normalize spaces.
-  let isExclusion = false, hasDirs = false, allDirs = false
+  let isExclusion = false, isDirectory = false
 
   if (pattern[0] === EXCL) {
     (isExclusion = true) && (pattern = pattern.substring(1))
@@ -42,22 +43,20 @@ exports = module.exports = (string, options = undefined) => {
   }
   pattern = pattern.replace(/\./g, '\\.')   //  Screen dot characters.
   const parts = pattern.split(SEPARATOR)
-  if (!parts[0]) hasDirs = parts.shift() || true
+  if (parts[0] !== P_GLOB) {
+    parts[0] ? parts.unshift(P_GLOB) : parts.shift()
+  }
   let last = parts.length - 1, rules = [], wasGlob = false
 
-  if (last >= 0 && !parts[last]) (allDirs = true) && (parts.pop() || --last)
+  if (last >= 0 && !parts[last]) (isDirectory = true) && (parts.pop() || --last)
   check(last >= 0)
-  if (last > 0) {
-    hasDirs = true
-  } else if (hasDirs) allDirs = true
-  // if (fA) fD = HAS_DIRS
 
   for (let i = 0; i <= last; ++i) {
     let rule = parts[i]
 
     check(rule)
 
-    if (!wasGlob && rule === GLOB) {
+    if (!wasGlob && rule === P_GLOB) {
       wasGlob = rules.push(GLOB)
       continue
     }
@@ -77,13 +76,14 @@ exports = module.exports = (string, options = undefined) => {
   let l = rules.length - 1
   const any = opts.optimize ? ANY : '^.*$'
   //  **/*$ --> **$
-  if (rules[l] === any && rules[l - 1] === GLOB) (rules.pop() && --l)
+  if (rules[l] === any && rules[l - 1] === GLOB) {
+    ((isDirectory = true) && rules.pop() && --l)
+  }
   //  a/**$ --> a/$
-  if (rules[l] === GLOB) rules.pop() && (allDirs = true)
+  if (rules[l] === GLOB) (isDirectory = true) && rules.pop()
   check(!(rules.length === 1 && (rules[0] === ANY || rules[0] === any)))
-  rules = rules.map((r) => r === GLOB ? ANY : r)
-  rules.unshift({ allDirs, hasDirs, isExclusion })
+  rules.unshift({ isDirectory, isExclusion })
   return rules
 }
 
-Object.assign(exports, { ANY, DEFAULTS })
+Object.assign(exports, { ANY, DEFAULTS, GLOB })
