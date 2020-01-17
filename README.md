@@ -1,6 +1,6 @@
 # Duke
 A rules-based file directory walker.
-<div style="text-align: right">
+<div style="text-align: right;">
 <span><i>“You’ll find I’m full of surprises.”</i></span> 
 <p>Duke Dirwalker</p> 
 </div>
