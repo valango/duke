@@ -28,7 +28,7 @@ const rxBraces = /(?<!\\){[^}]+(?<!\\)}/g   //  Detect non-escaped {...}
  */
 exports = module.exports = (string, options = undefined) => {
   const check = (cond) => assert(cond, `invalid pattern '${string}'`)
-  const opts = defaults({}, options || {}, exports.DEFAULTS)
+  const opts = defaults({}, options || {}, exports.DEFAULTS), rules = []
 
   let pattern = string.replace(/\\\s/g, '\\s').trimEnd()  //  Normalize spaces.
   let isExclusion = false, isDirectory = false
@@ -46,7 +46,7 @@ exports = module.exports = (string, options = undefined) => {
   if (parts[0] !== P_GLOB) {
     parts[0] ? parts.unshift(P_GLOB) : parts.shift()
   }
-  let last = parts.length - 1, rules = [], wasGlob = false
+  let last = parts.length - 1, wasGlob = false
 
   if (last >= 0 && !parts[last]) (isDirectory = true) && (parts.pop() || --last)
   check(last >= 0)

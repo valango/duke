@@ -15,5 +15,5 @@ console.log('RES', res)
 const RuleTree = require('../src/RuleTree')
 
 const rt = new RuleTree(['a/b', 'a/c/', 'f*', '!file', '/z/y'])
-res = rt.match('o', true, [-1])
+res = rt.match('z')
 console.log('match', res)

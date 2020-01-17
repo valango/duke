@@ -3,58 +3,39 @@
  */
 'use strict'
 
-const ME = 'RuleTree'
-
-const assert = require('assert').strict
 const { NO_MATCH, NOT_YET, GLOB, NIL } = require('./definitions')
 const parse = require('./parse')
-const { format } = require('util')
+const Assertive = require('./Assertive')
 
-//  Used for results sorting.
-/*
-const score_ = ({ rule, flag }) => {
-  let l, v = 0
-  if (rule) {
-    v = (l = rule.length) * 100
-    if (rule[0] !== '^') v -= 20
-    if (rule[l - 1] !== '$') v -= 20
-    if (rule.indexOf('*') >= 0) v -= 10
-    if (rule.indexOf('+') >= 0) v -= 8
-    if (rule.indexOf('.') >= 0) v -= 5
-  }
-  return flag * 10000 + v
-}
-*/
-
-class RuleTree {
-  constructor (patterns = [], debug = undefined) {
-    // istanbul ignore next
-    this._debug = debug || (() => undefined)
+class RuleTree extends Assertive {
+  constructor (rules = undefined, forAction = 0) {
+    super()
     this.tree = []          //  Every node is an array [parenIndex, rule, flag].
     this.lastIndex = NIL    //  Set by user
-    this.lastMatches = []   //  Set by test()
-    patterns.forEach((pattern) => this.add(pattern))
+    this.defaultAction = forAction
+    if (rules) this.add(rules, forAction)
   }
 
-  /**
-   *
-   * @param {string[] | {pattern:string, mask:string}} givenRules
-   * @param forAction
-   * @returns {RuleTree}
-   */
-  add (givenRules, forAction = 0) {
-    let rules = givenRules, flags = {}
-
+  add (rules, action = undefined) {
+    this.assert('add', 'no rules')
     if (typeof rules === 'string') {
-      rules = parse(rules)
-      flags = rules.shift()
+      this.addPath(rules, action)
+    } else if (Array.isArray(rules)) {
+      rules.forEach((rule) => this.add(rule))
     } else {
-      throw new TypeError('bad rules')
+      throw new TypeError(this.diagnosticMessage('add', ['bad rules']))
     }
-    assert(rules[0], 'no rules')
-    assert(forAction >= 0, 'illegal action value')
+    return this
+  }
+
+  addPath (path, forAction = undefined) {
+    const rules = parse(path), flags = rules.shift(), L = 'addPath'
+
+    this.assert(rules.length, L, 'no rules')
     const tree = this.tree, last = rules.length - 1
-    const action = flags.isExclusion ? NO_MATCH : forAction
+    let action = flags.isExclusion ? NO_MATCH : forAction
+    if (action === undefined) action = this.defaultAction
+    this.assert(action > NOT_YET, L, 'illegal action value \'%i\'', action)
 
     let parent = this.lastIndex, index
 
@@ -73,13 +54,13 @@ class RuleTree {
       }
       parent = index
     }
-    assert(index >= 0, ME + ': no node created')
+    this.assert(index >= 0, L, 'no node created')
     const node = tree[index], [p, r, a] = node
 
     if (a !== action) {
       if (a !== NOT_YET) {  //  For debugger breakpoint.
-        const msg = format('@%i: [%i, %s, %i]', index, p, r, a)
-        assert(false, 'action conflict ' + msg)
+        this.assert(false, L, 'action conflict @%i: [%i, %s, %i]',
+          index, p, r, a)
       }
       node[2] = action
     }
@@ -93,11 +74,10 @@ class RuleTree {
    * The results array will be sorted: TERM_EX, TERM, non-GLOB, GLOB
    *
    * @param {string} string to match
-   * @param {boolean=} isDir
    * @param {number[]=} ancestors
    * @returns {number[][]} array of [iAnc, rule, bDir, action, index]
    */
-  match (string, isDir = true, ancestors = undefined) {
+  match (string, ancestors = undefined) {
     let res = []
 
     const ancs = (ancestors || [NIL]).slice(), tree = this.tree
@@ -106,7 +86,7 @@ class RuleTree {
     if (lowest === Infinity) return res
     // Scan the three for nodes matching any of the ancestors.
     for (let i = tree.length; --i > lowest;) {
-      const [an, rule, bDir, act] = tree[i]
+      const [an, rule, act] = tree[i]
 
       //  Ancestors list is always smaller than tree ;)
       for (let iA = 0, anc; (anc = ancs[iA]) !== undefined; iA += 1) {
@@ -116,7 +96,7 @@ class RuleTree {
         }
         if (anc !== an) continue
 
-        if ((bDir && !isDir) || (rule !== GLOB && !rule.test(string))) {
+        if (rule !== GLOB && !rule.test(string)) {
           /*
           if (an !== NIL && tree[an][1] === GLOB) {   //  No match, but...
             res.push(tree[an].concat(an))   //  if the ancestor rule is GLOB,
@@ -125,15 +105,15 @@ class RuleTree {
           continue
         }
         if (rule === GLOB) {
-          let next = this.match(string, isDir, [i])
+          let next = this.match(string, [i])
           next = next.filter((o) => o[1] !== GLOB)
           if (next.length) {
             res = res.concat(next)
             continue
           }
         }
-        //  idx:   0     1     2    3   4   //  We got match!
-        res.push([an, rule, bDir, act, i])
+        //  idx:   0     1    2  3    //  We got match!
+        res.push([an, rule, act, i])
         if (act === NO_MATCH) break
       }
     }
@@ -147,7 +127,7 @@ class RuleTree {
       res = res.filter(([, r]) => r !== GLOB)
     }
     if (res.length > 1) {
-      res.sort((a, b) => b[3] - a[3])
+      res.sort((a, b) => b[2] - a[2])
     }
     return res
   }

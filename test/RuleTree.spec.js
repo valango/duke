@@ -19,7 +19,7 @@ const D1 = [
   [6, /^y$/, YES]
 ]
 
-const t = 0 // new RuleTree(T1, YES)
+const t = new RuleTree(T1, YES)
 
 // const idx = (a) => a.map((r) => r[0])
 let n = 0
@@ -27,12 +27,12 @@ let n = 0
 const match = (str, exp, anc = undefined) => {
   const r = t.match(str, anc)
   // console.log(`match '${str}': `, r)
-  const v = r.map(o => o[4])
+  const v = r.map(o => o[3])
   expect(v).to.eql(exp, anc === NIL ? str : str + ' @' + ++n)
   return v
 }
 
-xdescribe(ME, () => {
+describe(ME, () => {
   beforeEach(() => {
     n = 0
   })
@@ -43,21 +43,21 @@ xdescribe(ME, () => {
   })
 
   it('should match', () => {
-    expect(t.match('z', true)).to.eql([[NIL, /^z$/, NOT_YET, 6]], 'z')
+    expect(t.match('z')).to.eql([[NIL, /^z$/, NOT_YET, 6]], 'z')
     let a
-    a = match('z', [6], true)
-    match('y', [7], false, a)
-    match('y', [7], true, a)
-    a = match('a', [1], true)
-    match('b', [2], false, a)
-    match('b', [2], true, a)
-    match('c', [3], true, a)
+    a = match('z', [6])
+    match('y', [7], a)
+    match('y', [7], a)
+    a = match('a', [1])
+    match('b', [2], a)
+    match('b', [2], a)
+    match('c', [3], a)
   })
 
   it('should glob', () => {
-    let a = match('n', [0], true)
-    a = match('o', a, true, a)
-    match('a', [1], true, a)
+    let a = match('n', [0])
+    a = match('o', a, a)
+    match('a', [1], a)
   })
 
   xit('should test', () => {
