@@ -1,4 +1,4 @@
-# Duke [![Build Status](https://travis-ci.org/valango/duke.svg?branch=master)](https://travis-ci.org/valango/duke) [![Code coverage](https://codecov.io/gh/valango/duke/branch/master/graph/badge.svg)](https://codecov.io/gh/valango/duke)
+# dwalker [![Build Status](https://travis-ci.org/valango/duke.svg?branch=master)](https://travis-ci.org/valango/duke) [![Code coverage](https://codecov.io/gh/valango/duke/branch/master/graph/badge.svg)](https://codecov.io/gh/valango/duke)
 
 A rules-based file directory walker.
 <div style="text-align: left; width=500px;">
@@ -12,7 +12,7 @@ Alternative for globber-based directory walkers.
 Install with npm
 
 ```
-npm i duke
+npm i dwalker
 ```
 
 Documentation will follow. Until then, just examine source code and play with examples.

@@ -1,6 +1,9 @@
 {
-  "author": "Villem Alango",
-  "name": "ddwalk",
+  "author": {
+    "name": "Villem Alango",
+    "email": "villem.alango@gmail.com"
+  },
+  "name": "dwalker",
   "version": "0.7.0",
   "description": "A rules-based file directory walker",
   "repository": {
@@ -16,6 +19,15 @@
     "test": "cross-env NODE_ENV=test nyc mocha 'test/**/*.spec.js'"
   },
   "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/valango/duke/issues"
+  },
+  "homepage": "https://github.com/valango/duke",
+  "engines": {
+    "node": ">= 12.0.0",
+    "npm": ">= 5.6.0",
+    "yarn": ">= 1.6.0"
+  },
   "dependencies": {
     "brace-expansion": "^1.1.11",
     "lodash.clone": "^4.5.0",
