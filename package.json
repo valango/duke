@@ -1,7 +1,7 @@
 {
   "author": "Villem Alango",
   "name": "ddwalk",
-  "version": "0.0.9",
+  "version": "0.7.0",
   "description": "A rules-based file directory walker",
   "repository": {
     "type": "git",
