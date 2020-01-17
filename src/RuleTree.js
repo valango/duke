@@ -88,6 +88,9 @@ class RuleTree extends Assertive {
   match (string, ancestors = undefined) {
     let ancs = (ancestors || [NIL]).slice(), res = []
     if (ancs.length && typeof ancs[0] !== 'number') {
+      if (typeof ancs.map !== 'function') {
+        ancs.map = 0
+      }
       ancs = ancs.map((r) => r[IDX])
     }
     const lowest = Math.min.apply(undefined, ancs), tree = this.tree

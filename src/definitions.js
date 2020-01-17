@@ -46,6 +46,9 @@ exports = module.exports = {
   S_BLOCK, S_CHAR, S_DIR, S_FIFO, S_FILE, S_SOCKET, S_SYMLINK,
   T_ANY, T_BLOCK, T_CHAR, T_DIR, T_FIFO, T_FILE, T_SOCKET, T_SYMLINK,
   /* eslint-enable */
+
+  actionName: (action) =>
+    ['NOT_YET', 'NO_MATCH', 'DO_SKIP', 'DO_ABORT'][action + 4],
   /**
    * Translate DirEntry type to human-readable type name.
    * @param {string} type

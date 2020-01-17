@@ -14,7 +14,8 @@ const constants = require('./definitions')
 const {
         DO_ABORT, NOT_YET, DO_SKIP,
         NIL,
-        T_BLOCK, T_CHAR, T_DIR, T_FIFO, T_FILE, T_SOCKET, T_SYMLINK
+        T_BLOCK, T_CHAR, T_DIR, T_FIFO, T_FILE, T_SOCKET, T_SYMLINK,
+        typename
       } = constants
 /* eslint-enable */
 
@@ -30,22 +31,18 @@ const types = {
   isSymbolicLink: T_SYMLINK
 }
 
-const tests = Object.keys(types)
-
 const getType = (entry) => {
-  for (const test of tests) {
+  for (const test of Object.keys(types)) {
     if (entry[test]()) return types[test]
   }
-  throw new Error(ME + '.getType(): bad entry')
 }
 
 class DirWalker extends EventEmitter {
-  constructor (processor = undefined) {
+  constructor ({ processor, rules }) {
     super()
     this.failures = null
     this.paths = []
-    this.ruleIndex = NIL
-    this.rules = null
+    this.rules = rules || null
     this.directory = undefined
     //  This method can be dynamically changed.
     this.process = processor || function (entryContext) {
@@ -72,11 +69,9 @@ class DirWalker extends EventEmitter {
     this.registerFailure(error.message, comment)
   }
 
-  match (type, name, ancestor) {
+  match (type, name, parents) {
     if (!this.rules) return NOT_YET
-    const res = this.rules.match(type, name, ancestor)
-    if (res !== DO_SKIP) this.ruleIndex = this.rules.lastIndex
-    return res
+    return this.rules.test(name, parents)
   }
 
   /**
@@ -99,10 +94,10 @@ class DirWalker extends EventEmitter {
     const paths = this.paths
     assert(paths.length === 0, ME + '.walk() is not re-enterable')
     this.failures = []
-    paths.push({ ancestor: NIL, dir: '' })
+    paths.push({ parents: [NIL], dir: '' })
 
     while (paths.length) {
-      const { ancestor, dir } = paths.shift()
+      const { parents, dir } = paths.shift(), length = paths.length
       try {
         this.directory = opendirSync(join(rootDir, dir))
       } catch (error) {
@@ -119,15 +114,16 @@ class DirWalker extends EventEmitter {
         const name = entry.name
         const type = getType(entry)
 
-        const action = this.match(type, name, ancestor)
-        const ultimate = this.process({ action, dir, name, type })
+        const action = this.match(type, name, parents)
+        const ultimate = this.process({ action, dir, name, rootDir, type })
 
-        if (ultimate === DO_ABORT) break
-
-        if (type === T_DIR && ultimate !== DO_SKIP) {
+        if (ultimate === DO_ABORT) {
+          paths.splice(length, length)
+          break
+        } else if (type === T_DIR && ultimate !== DO_SKIP) {
           paths.push({
-            ancestor: this.ruleIndex,   // Affected by matchRule()
-            dir: join(dir, name)
+            dir: join(dir, name),
+            parents: this.rules && this.rules.lastMatches
           })
         }
       }
