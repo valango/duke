@@ -7,16 +7,25 @@ const { actionName, DO_ABORT, DO_SKIP } = require('../src/definitions')
 const DirWalker = require('../src/DirWalker')
 const pt = require('path')
 const { format } = require('util')
+const print = (...args) => process.stdout.write(format.apply(null, args) + '\n')
 
 const actions = ['ADD_PROJECT']
 const ADD_PROJECT = 0
 // const ADD_IGNORE = 1
+
+const args = process.argv.slice(2)
 const projects = []
 let nEntries = 0, maxDepth = 0
-const bAllowHierarchy = false
+let bAllowHierarchy = false
 
-const print = (...args) => process.stdout.write(format.apply(null, args) + '\n')
+if (args[0] === '-h') {
+  print('node examples/prj [-a] [directory...]\n -a enables nested projects detection')
+  process.exit(0)
+}
+if (args[0] === '-a') (bAllowHierarchy = true) && args.shift()
+
 const roots = process.argv.slice(2)
+
 const processor = ({ action, depth, dir, name, rootDir, type }) => {
   ++nEntries && (maxDepth = Math.max(depth, maxDepth))
   if (action === ADD_PROJECT) {
