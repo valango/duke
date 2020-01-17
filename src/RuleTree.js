@@ -12,7 +12,7 @@ const ACT = 2
 const IDX = 3
 
 class RuleTree extends Assertive {
-  constructor (rules = undefined, forAction = 0) {
+  constructor (rules = undefined, forAction = undefined) {
     super()
     this.tree = []          //  Every node is an array [parenIndex, rule, action].
     /**
@@ -29,7 +29,7 @@ class RuleTree extends Assertive {
     if (typeof rules === 'string') {
       this.addPath(rules, action)
     } else if (Array.isArray(rules)) {
-      rules.forEach((rule) => this.add(rule))
+      rules.forEach((rule) => this.add(rule, action))
     } else {
       throw new TypeError(this.diagnosticMessage('add', ['bad rules']))
     }
