@@ -4,6 +4,7 @@
 'use strict'
 
 const parse = require('../src/parse')
+const { DO_SKIP } = require('../src/definitions')
 
 let res = parse(process.argv[2] || '/a/**/*') || res
 
@@ -11,7 +12,10 @@ console.log('RES', res)
 
 const RuleTree = require('../src/RuleTree')
 
-const rt = new RuleTree(['a/b', 'a/c/', 'f*', '!file', '/z/y'])
+const rt = new RuleTree(null, 0)
+rt.add(['/nono'], DO_SKIP)
+rt.add(['a/b', 'a/c/', 'f*', '!file', '/z/y'])
+// console.log('T', rt.tree)
 res = rt.test('a')
 console.log('a', res, rt.lastMatches)
 res = rt.test('b')

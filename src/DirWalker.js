@@ -38,14 +38,14 @@ const getType = (entry) => {
 }
 
 class DirWalker extends EventEmitter {
-  constructor ({ processor, rules }) {
+  constructor (opt = {}) {
     super()
     this.failures = null
     this.paths = []
-    this.rules = rules === undefined ? new RuleTree() : rules
+    this.rules = opt.rules === undefined ? new RuleTree() : opt.rules
     this.directory = undefined
     //  This method can be dynamically changed.
-    this.process = processor || function (entryContext) {
+    this.process = opt.processor || function (entryContext) {
       return this.processEntry(entryContext)
     }
   }
@@ -84,7 +84,7 @@ class DirWalker extends EventEmitter {
    * @param entryContext
    * @returns {*}
    */
-  processEntry ({action}) {
+  processEntry ({ action }) {
     return action
   }
 
@@ -118,6 +118,7 @@ class DirWalker extends EventEmitter {
         if (r === DO_ABORT || r === DO_SKIP) return this
       }
 
+      //  istanbul ignore next
       if (!this.directory) {
         continue                        //  There was an error.
       }
@@ -148,5 +149,5 @@ class DirWalker extends EventEmitter {
   }
 }
 
-Object.assign(DirWalker, { ErrorEvent, ...definitions })
+Object.assign(DirWalker, { ErrorEvent, RuleTree, ...definitions })
 module.exports = DirWalker

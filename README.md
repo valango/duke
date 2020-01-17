@@ -1,8 +1,8 @@
 # Duke
 A rules-based file directory walker.
-<div style="text-align: right; width: 100%;">
-    <span><i>“You’ll find I’m full of surprises.”</i></span> 
-    <p>Duke Dirwalker</p> 
+<div style="text-align: left; width=500px;">
+    <br />“You’ll find I’m full of surprises.”
+    <br />Duke Dirwalker<br /> 
 </div>
 
 Alternative for globber-based directory walkers.
