@@ -94,10 +94,10 @@ class DirWalker extends EventEmitter {
     const paths = this.paths
     assert(paths.length === 0, ME + '.walk() is not re-enterable')
     this.failures = []
-    paths.push({ parents: [NIL], dir: '' })
+    paths.push({ parents: [NIL], depth: 0, dir: '' })
 
     while (paths.length) {
-      const { parents, dir } = paths.shift(), length = paths.length
+      const { parents, depth, dir } = paths.shift(), length = paths.length
       try {
         this.directory = opendirSync(join(rootDir, dir))
       } catch (error) {
@@ -115,13 +115,14 @@ class DirWalker extends EventEmitter {
         const type = getType(entry)
 
         const action = this.match(type, name, parents)
-        const ultimate = this.process({ action, dir, name, rootDir, type })
+        const ultimate = this.process({ action, depth, dir, name, rootDir, type })
 
         if (ultimate === DO_ABORT) {
           paths.splice(length, length)
           break
         } else if (type === T_DIR && ultimate !== DO_SKIP) {
           paths.push({
+            depth: depth + 1,
             dir: join(dir, name),
             parents: this.rules && this.rules.lastMatches
           })
