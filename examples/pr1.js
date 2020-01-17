@@ -5,7 +5,6 @@
 
 const { actionName, DO_ABORT, DO_SKIP } = require('../src/definitions')
 const DirWalker = require('../src/DirWalker')
-const RuleTree = require('../src/RuleTree')
 const pt = require('path')
 const { format } = require('util')
 
@@ -18,7 +17,6 @@ const bAllowHierarchy = false
 
 const print = (...args) => process.stdout.write(format.apply(null, args) + '\n')
 const roots = process.argv.slice(2)
-const rules = new RuleTree(['node_modules', '.*'], DO_SKIP)
 const processor = ({ action, depth, dir, name, rootDir, type }) => {
   ++nEntries && (maxDepth = Math.max(depth, maxDepth))
   if (action === ADD_PROJECT) {
@@ -31,9 +29,8 @@ const processor = ({ action, depth, dir, name, rootDir, type }) => {
   }
   return action
 }
-const walker = new DirWalker({ processor, rules })
-
-rules.add('package.json', ADD_PROJECT)
+const walker = new DirWalker({ processor })
+walker.add(['node_modules', '.*'], DO_SKIP).add('package.json', ADD_PROJECT)
 
 if (!roots.length) roots.push('.')
 

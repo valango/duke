@@ -10,12 +10,12 @@ const { opendirSync } = require('fs')
 const { join } = require('path')
 const { inspect } = require('util')
 const constants = require('./definitions')
+const RuleTree = require('./RuleTree')
 /* eslint-disable */
 const {
         DO_ABORT, NOT_YET, DO_SKIP,
         NIL,
-        T_BLOCK, T_CHAR, T_DIR, T_FIFO, T_FILE, T_SOCKET, T_SYMLINK,
-        typename
+        T_BLOCK, T_CHAR, T_DIR, T_FIFO, T_FILE, T_SOCKET, T_SYMLINK
       } = constants
 /* eslint-enable */
 
@@ -42,12 +42,17 @@ class DirWalker extends EventEmitter {
     super()
     this.failures = null
     this.paths = []
-    this.rules = rules || null
+    this.rules = rules === undefined ? new RuleTree() : rules
     this.directory = undefined
     //  This method can be dynamically changed.
     this.process = processor || function (entryContext) {
       return this.processEntry(entryContext)
     }
+  }
+
+  add (rules, action = undefined) {
+    this.rules.add(rules, action)
+    return this
   }
 
   closeDir () {
@@ -115,7 +120,8 @@ class DirWalker extends EventEmitter {
         const type = getType(entry)
 
         const action = this.match(type, name, parents)
-        const ultimate = this.process({ action, depth, dir, name, rootDir, type })
+        const ultimate = this.process(
+          { action, depth, dir, name, rootDir, type })
 
         if (ultimate === DO_ABORT) {
           paths.splice(length, length)
