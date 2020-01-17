@@ -11,7 +11,6 @@ const print = (...args) => process.stdout.write(format.apply(null, args) + '\n')
 
 const actions = ['ADD_PROJECT']
 const ADD_PROJECT = 0
-// const ADD_IGNORE = 1
 
 const args = process.argv.slice(2)
 const projects = []
@@ -26,6 +25,7 @@ if (args[0] === '-a') (bAllowHierarchy = true) && args.shift()
 
 const roots = process.argv.slice(2)
 
+//  Application-specific operations.
 const processor = ({ action, depth, dir, name, rootDir, type }) => {
   ++nEntries && (maxDepth = Math.max(depth, maxDepth))
   if (action === ADD_PROJECT) {
@@ -38,6 +38,7 @@ const processor = ({ action, depth, dir, name, rootDir, type }) => {
   }
   return action
 }
+
 const walker = new DirWalker({ processor })
 walker.add(['node_modules', '.*'], DO_SKIP).add('package.json', ADD_PROJECT)
 

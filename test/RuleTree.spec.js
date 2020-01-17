@@ -45,7 +45,7 @@ describe(ME, () => {
   })
 
   it('should construct', () => {
-    console.log('DUMP', t.tree)
+    // console.log('DUMP', t.tree)
     expect(t.tree).to.eql(D1)
   })
 

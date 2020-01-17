@@ -1,5 +1,5 @@
 /**
- * Count all files and subdirectories, w/o ignoring anything.
+ * Count all files and subdirectories, w/o applying any rules.
  */
 'use strict'
 
@@ -19,6 +19,7 @@ const add = (key) => {
   total += 1
 }
 
+//  Application-specific code.
 const processor = function processor ({ action, type }) {
   if (action !== A_SKIP) {
     add(type)
@@ -30,7 +31,7 @@ const processor = function processor ({ action, type }) {
   return action
 }
 
-w = new Walker(processor)
+w = new Walker({ processor, rules: null })
 const t0 = process.hrtime()
 
 w.walk(rootDir)
@@ -38,7 +39,7 @@ w.walk(rootDir)
 const t1 = process.hrtime(t0)
 const t = t1[0] * 1e9 + t1[1], v = Math.floor(t / total)
 
-print('Results from \'%s\':', w.rootDir)
+print('Results from \'%s\':', rootDir)
 
 Object.keys(counts).forEach((k) => print(k.padStart(16, ' ') + ':', counts[k]))
 
