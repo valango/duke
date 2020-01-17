@@ -126,7 +126,7 @@ class RuleTree extends Assertive {
       }
 
       if (!res.length) {
-        const a = ancs.findIndex((i) => tree[i][RUL] === GLOB)
+        const a = ancs.findIndex((i) => tree[i] && tree[i][RUL] === GLOB)
         if (a >= 0) {
           res.push(tree[a].concat(a))
         }
