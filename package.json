@@ -1,15 +1,16 @@
 {
   "author": "Villem Alango",
   "name": "duke",
-  "version": "0.1.0",
+  "version": "0.0.9",
   "description": "A rules-based file directory walker",
   "repository": {
     "type": "git",
     "url": "git://github.com/valango/duke.git"
   },
-  "main": "index.js",
+  "main": "src/DirWalker.js",
   "scripts": {
-    "clean": "rimraf .nyc_output out reports t*mp *.log *.t*mp *.tar",
+    "clean": "rimraf .nyc_output out reports t*mp *.log *.t*mp *.lcov",
+    "coverage": "nyc report --reporter=text-lcov > coverage.lcov && codecov",
     "lint": "eslint --ext .js .",
     "purge": "npm run clean && rimraf node_modules",
     "test": "cross-env NODE_ENV=test nyc mocha 'test/**/*.spec.js'"

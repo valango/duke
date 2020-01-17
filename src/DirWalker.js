@@ -9,14 +9,14 @@ const { EventEmitter } = require('events')
 const { opendirSync } = require('fs')
 const { join } = require('path')
 const { inspect } = require('util')
-const constants = require('./definitions')
+const definitions = require('./definitions')
 const RuleTree = require('./RuleTree')
 /* eslint-disable */
 const {
         DO_ABORT, NOT_YET, DO_SKIP,
         NIL,
         T_BLOCK, T_CHAR, T_DIR, T_FIFO, T_FILE, T_SOCKET, T_SYMLINK
-      } = constants
+      } = definitions
 /* eslint-enable */
 
 const ErrorEvent = ME + '-error'
@@ -95,6 +95,14 @@ class DirWalker extends EventEmitter {
     return this
   }
 
+  /**
+   *  Process directory tree width-first starting from `rootDir`.
+   *  If `rules` are defined, test these for ever directory entry
+   *  and invoke `process` method.
+   *
+   * @param rootDir
+   * @returns {DirWalker}
+   */
   walk (rootDir) {
     const paths = this.paths
     assert(paths.length === 0, ME + '.walk() is not re-enterable')
@@ -140,5 +148,5 @@ class DirWalker extends EventEmitter {
   }
 }
 
-Object.assign(DirWalker, { ErrorEvent, ...constants })
+Object.assign(DirWalker, { ErrorEvent, ...definitions })
 module.exports = DirWalker
