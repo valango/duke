@@ -6,12 +6,20 @@
 const { NO_MATCH, NOT_YET, GLOB, NIL } = require('./definitions')
 const parse = require('./parse')
 const Assertive = require('./Assertive')
+const PAR = 0
+const RUL = 1
+const ACT = 2
+const IDX = 3
 
 class RuleTree extends Assertive {
   constructor (rules = undefined, forAction = 0) {
     super()
-    this.tree = []          //  Every node is an array [parenIndex, rule, flag].
-    this.lastIndex = NIL    //  Set by user
+    this.tree = []          //  Every node is an array [parenIndex, rule, action].
+    /**
+     * Used by test() method.
+     * @type {*[] | undefined}
+     */
+    this.lastMatches = undefined
     this.defaultAction = forAction
     if (rules) this.add(rules, forAction)
   }
@@ -28,7 +36,7 @@ class RuleTree extends Assertive {
     return this
   }
 
-  addPath (path, forAction = undefined) {
+  addPath (path, forAction = undefined, parentIndex = undefined) {
     const rules = parse(path), flags = rules.shift(), L = 'addPath'
 
     this.assert(rules.length, L, 'no rules')
@@ -37,7 +45,7 @@ class RuleTree extends Assertive {
     if (action === undefined) action = this.defaultAction
     this.assert(action > NOT_YET, L, 'illegal action value \'%i\'', action)
 
-    let parent = this.lastIndex, index
+    let index, parent = parentIndex === undefined ? NIL : parentIndex
 
     for (let i = 0; i <= last; i += 1) {
       let rule = rules[i]
@@ -78,72 +86,72 @@ class RuleTree extends Assertive {
    * @returns {number[][]} array of [iAnc, rule, bDir, action, index]
    */
   match (string, ancestors = undefined) {
-    let res = []
+    let ancs = (ancestors || [NIL]).slice(), res = []
+    if (ancs.length && typeof ancs[0] !== 'number') {
+      ancs = ancs.map((r) => r[IDX])
+    }
+    const lowest = Math.min.apply(undefined, ancs), tree = this.tree
 
-    const ancs = (ancestors || [NIL]).slice(), tree = this.tree
-    const lowest = Math.min.apply(undefined, ancs)
+    if (lowest !== Infinity) {
+      // Scan the three for nodes matching any of the ancestors.
+      for (let i = tree.length; --i > lowest;) {
+        const [par, rule, act] = tree[i]
 
-    if (lowest === Infinity) return res
-    // Scan the three for nodes matching any of the ancestors.
-    for (let i = tree.length; --i > lowest;) {
-      const [an, rule, act] = tree[i]
-
-      //  Ancestors list is always smaller than tree ;)
-      for (let iA = 0, anc; (anc = ancs[iA]) !== undefined; iA += 1) {
-        if (anc >= i) {   //  Ancestor index is always less than node index.
-          ancs.splice(iA, 1) && (iA -= 1)   //  Discard this ancestor.
-          continue
-        }
-        if (anc !== an) continue
-
-        if (rule !== GLOB && !rule.test(string)) {
-          /*
-          if (an !== NIL && tree[an][1] === GLOB) {   //  No match, but...
-            res.push(tree[an].concat(an))   //  if the ancestor rule is GLOB,
-          }                                 //  then stick with it.
-          */
-          continue
-        }
-        if (rule === GLOB) {
-          let next = this.match(string, [i])
-          next = next.filter((o) => o[1] !== GLOB)
-          if (next.length) {
-            res = res.concat(next)
+        //  Ancestors list is always smaller than tree ;)
+        for (let iA = 0, anc; (anc = ancs[iA]) !== undefined; iA += 1) {
+          if (anc >= i) {   //  Ancestor index is always less than node index.
+            ancs.splice(iA, 1) && (iA -= 1)   //  Discard this ancestor.
             continue
           }
-        }
-        //  idx:   0     1    2  3    //  We got match!
-        res.push([an, rule, act, i])
-        if (act === NO_MATCH) break
-      }
-    }
+          if (anc !== par) continue
 
-    if (!res.length) {
-      const a = ancs.findIndex((i) => tree[i][1] === GLOB)
-      if (a >= 0) {
-        res.push(tree[a].concat(a))
+          if (rule !== GLOB && !rule.test(string)) {
+            continue
+          }
+          if (rule === GLOB) {
+            let next = this.match(string, [i])
+            next = next.filter((o) => o[1] !== GLOB)
+            if (next.length) {
+              res = res.concat(next)
+              continue
+            }
+          }
+          ///  We got match!
+          res.push([par, rule, act, i])
+          if (act === NO_MATCH) break
+        }
       }
-    } else if (res.length > 1) {
-      res = res.filter(([, r]) => r !== GLOB)
-    }
-    if (res.length > 1) {
-      res.sort((a, b) => b[2] - a[2])
+
+      if (!res.length) {
+        const a = ancs.findIndex((i) => tree[i][RUL] === GLOB)
+        if (a >= 0) {
+          res.push(tree[a].concat(a))
+        }
+      } else if (res.length > 1) {
+        res = res.filter(([, r]) => r !== GLOB)
+      }
+      if (res.length > 1) {
+        res.sort((a, b) => b[ACT] - a[ACT])
+      }
     }
     return res
   }
 
   /**
-   * Rigid version of match()
+   * Rigid version of match().
+   * NB: this method uses and affects the `lastMatches` property!
+   *
    * @param {string} string
-   * @param type
-   * @param {number=} ancestor node index or NIL (defaults to this.lastIndex)
-   * @returns {Object<{flag:number, index:number, rule:*}> | false}
+   * @param {*[]=} ancestors
+   * @returns {number}            action code
    */
-  test (string, type, ancestor = undefined) {
-    const res = this.match(string, type, ancestor, true)
-    this.lastMatches = res
-    return res.length ? res[0][3] : NO_MATCH
+  test (string, ancestors = undefined) {
+    const res = this.match(string, ancestors || this.lastMatches)
+    if (res.length) this.lastMatches = res
+    return res.length ? res[0][ACT] : NO_MATCH
   }
 }
 
 exports = module.exports = RuleTree
+
+Object.assign(exports, { ACT, GLOB, IDX, NIL, PAR, RUL })

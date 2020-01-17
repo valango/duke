@@ -2,7 +2,7 @@
 const ME = 'RuleTree'
 
 const { expect } = require('chai')
-// const _ = require('lodash')
+const { inspect } = require('util')
 const { NO_MATCH, NOT_YET, GLOB, NIL } = require('../src/definitions')
 const YES = 0
 const RuleTree = require('../src/' + ME)
@@ -32,9 +32,16 @@ const match = (str, exp, anc = undefined) => {
   return v
 }
 
+const test = (str, exp, prev) => {
+  const r = t.test(str, prev)
+  expect(r).to.eql(exp, `'${str}' -> ` + inspect(t.lastMatches))
+}
+
 describe(ME, () => {
   beforeEach(() => {
     n = 0
+    t.lastIndex = NIL
+    t.lastMatches = undefined
   })
 
   it('should construct', () => {
@@ -52,6 +59,7 @@ describe(ME, () => {
     match('b', [2], a)
     match('b', [2], a)
     match('c', [3], a)
+    expect(t.lastMatches).to.eql(undefined, 'lastMatches')
   })
 
   it('should glob', () => {
@@ -60,10 +68,14 @@ describe(ME, () => {
     match('a', [1], a)
   })
 
-  xit('should test', () => {
-    test('a', YES, NO_MATCH)
-    test('foo', YES, NO_MATCH)
-    test('file', YES, NO_MATCH)
-    test('nope', YES, NO_MATCH)
+  it('should test', () => {
+    test('a', NOT_YET)
+    expect(t.lastMatches).to.eql([[0, /^a$/, NOT_YET, 1]], 'lastMatches 1')
+    test('nope', NO_MATCH)
+    expect(t.lastMatches).to.eql([[0, /^a$/, NOT_YET, 1]], 'lastMatches 2')
+    test('b', YES)
+    test('c', YES, [1])
+    test('nope', NOT_YET, [0])
+    test('nope', NOT_YET, [NIL])
   })
 })
