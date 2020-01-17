@@ -1,14 +1,12 @@
 # Duke
 A rules-based file directory walker.
-<div style="text-align: right;">
+<div style="text-align: right; width: 60em;">
 <span><i>“You’ll find I’m full of surprises.”</i></span> 
 <p>Duke Dirwalker</p> 
 </div>
 
-Converting a set of patterns into a set of file paths (globing) and starting some
-processing on those paths afterwards is not feasible for many practical
-tasks.
+Alternative for globber-based directory walkers.
 
-## Concept
+## Usage
 
-**_`Walker`_** instance gets initialized with _`rootPath`_ and _`client`_ parameters.
+Documentation will follow. Until then, just examine source code and paly with examples.

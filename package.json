@@ -1,7 +1,12 @@
 {
+  "author": "Villem Alango",
   "name": "duke",
   "version": "0.1.0",
   "description": "A rules-based file directory walker",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/valango/duke.git"
+  },
   "main": "index.js",
   "scripts": {
     "clean": "rimraf .nyc_output out reports t*mp *.log *.t*mp *.tar",
@@ -9,7 +14,6 @@
     "purge": "npm run clean && rimraf node_modules",
     "test": "cross-env NODE_ENV=test nyc mocha 'test/**/*.spec.js'"
   },
-  "author": "",
   "license": "ISC",
   "dependencies": {
     "brace-expansion": "^1.1.11",
