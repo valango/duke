@@ -84,8 +84,8 @@ class DirWalker extends EventEmitter {
    * @param entryContext
    * @returns {*}
    */
-  processEntry (entryContext) {
-    return entryContext
+  processEntry ({action}) {
+    return action
   }
 
   registerFailure (failure, comment = '') {
