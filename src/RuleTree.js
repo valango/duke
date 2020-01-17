@@ -88,9 +88,6 @@ class RuleTree extends Assertive {
   match (string, ancestors = undefined) {
     let ancs = (ancestors || [NIL]).slice(), res = []
     if (ancs.length && typeof ancs[0] !== 'number') {
-      if (typeof ancs.map !== 'function') {
-        ancs.map = 0
-      }
       ancs = ancs.map((r) => r[IDX])
     }
     const lowest = Math.min.apply(undefined, ancs), tree = this.tree
@@ -128,7 +125,8 @@ class RuleTree extends Assertive {
       if (!res.length) {
         const a = ancs.findIndex((i) => tree[i] && tree[i][RUL] === GLOB)
         if (a >= 0) {
-          res.push(tree[a].concat(a))
+          const i = ancs[a]             //  Here for debugging
+          res.push(tree[i].concat(i))
         }
       } else if (res.length > 1) {
         res = res.filter(([, r]) => r !== GLOB)
