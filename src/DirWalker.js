@@ -12,7 +12,7 @@ const { inspect } = require('util')
 const constants = require('./definitions')
 /* eslint-disable */
 const {
-        A_ABORT, A_NOPE, A_SKIP,
+        DO_ABORT, NOT_YET, DO_SKIP,
         NIL,
         T_BLOCK, T_CHAR, T_DIR, T_FIFO, T_FILE, T_SOCKET, T_SYMLINK
       } = constants
@@ -65,7 +65,7 @@ class DirWalker extends EventEmitter {
     const d = { context, instance: this }
     this.emit(ErrorEvent, error, d)
     if (d.action !== undefined) {
-      return d.action === A_SKIP ? undefined : d.action
+      return d.action === DO_SKIP ? undefined : d.action
     }
     const comment = context &&
       (typeof context === 'string' ? context : inspect(context))
@@ -73,9 +73,9 @@ class DirWalker extends EventEmitter {
   }
 
   match (type, name, ancestor) {
-    if (!this.rules) return A_NOPE
+    if (!this.rules) return NOT_YET
     const res = this.rules.match(type, name, ancestor)
-    if (res !== A_SKIP) this.ruleIndex = this.rules.lastIndex
+    if (res !== DO_SKIP) this.ruleIndex = this.rules.lastIndex
     return res
   }
 
@@ -107,7 +107,7 @@ class DirWalker extends EventEmitter {
         this.directory = opendirSync(join(rootDir, dir))
       } catch (error) {
         const r = this.handleError(error)
-        if (r === A_ABORT || r === A_SKIP) return this
+        if (r === DO_ABORT || r === DO_SKIP) return this
       }
 
       if (!this.directory) {
@@ -122,9 +122,9 @@ class DirWalker extends EventEmitter {
         const action = this.match(type, name, ancestor)
         const ultimate = this.process({ action, dir, name, type })
 
-        if (ultimate === A_ABORT) break
+        if (ultimate === DO_ABORT) break
 
-        if (type === T_DIR && ultimate !== A_SKIP) {
+        if (type === T_DIR && ultimate !== DO_SKIP) {
           paths.push({
             ancestor: this.ruleIndex,   // Affected by matchRule()
             dir: join(dir, name)

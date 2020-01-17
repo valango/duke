@@ -3,36 +3,36 @@ const ME = 'RuleTree'
 
 const { expect } = require('chai')
 // const _ = require('lodash')
-const { A_EXCL, A_NOPE, GLOB, NIL, T_ANY, T_DIR, T_FILE }
-        = require('../src/definitions')
+const { NO_MATCH, NOT_YET, GLOB, NIL } = require('../src/definitions')
+const YES = 0
 const RuleTree = require('../src/' + ME)
 
 const T1 = ['a/b', 'a/c/', 'f*', '!file', '/z/y']
 const D1 = [
-  [NIL, GLOB, true, A_NOPE],
-  [0, /^a$/, true, A_NOPE],
-  [1, /^b$/, false, A_NOPE],
-  [1, /^c$/, true, A_NOPE],
-  [0, /^f/, false, A_NOPE],
-  [0, /^file$/, false, A_EXCL],
-  [NIL, /^z$/, true, A_NOPE],
-  [6, /^y$/, false, A_NOPE]
+  [NIL, GLOB, NOT_YET],
+  [0, /^a$/, NOT_YET],
+  [1, /^b$/, YES],
+  [1, /^c$/, YES],
+  [0, /^f/, YES],
+  [0, /^file$/, NO_MATCH],
+  [NIL, /^z$/, NOT_YET],
+  [6, /^y$/, YES]
 ]
 
-const t = new RuleTree(T1)
+const t = 0 // new RuleTree(T1, YES)
 
 // const idx = (a) => a.map((r) => r[0])
 let n = 0
 
-const match = (str, exp, ty = undefined, anc = undefined) => {
-  const r = t.match(str, ty, anc)
+const match = (str, exp, anc = undefined) => {
+  const r = t.match(str, anc)
   // console.log(`match '${str}': `, r)
   const v = r.map(o => o[4])
   expect(v).to.eql(exp, anc === NIL ? str : str + ' @' + ++n)
   return v
 }
 
-describe(ME, () => {
+xdescribe(ME, () => {
   beforeEach(() => {
     n = 0
   })
@@ -43,7 +43,7 @@ describe(ME, () => {
   })
 
   it('should match', () => {
-    expect(t.match('z', true)).to.eql([[NIL, /^z$/, true, A_NOPE, 6]], 'z')
+    expect(t.match('z', true)).to.eql([[NIL, /^z$/, NOT_YET, 6]], 'z')
     let a
     a = match('z', [6], true)
     match('y', [7], false, a)
@@ -54,10 +54,16 @@ describe(ME, () => {
     match('c', [3], true, a)
   })
 
+  it('should glob', () => {
+    let a = match('n', [0], true)
+    a = match('o', a, true, a)
+    match('a', [1], true, a)
+  })
+
   xit('should test', () => {
-    test('a', T_FILE, A_EXCL)
-    test('foo', T_FILE, A_EXCL)
-    test('file', T_FILE, A_EXCL)
-    test('nope', T_FILE, A_EXCL)
+    test('a', YES, NO_MATCH)
+    test('foo', YES, NO_MATCH)
+    test('file', YES, NO_MATCH)
+    test('nope', YES, NO_MATCH)
   })
 })

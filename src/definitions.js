@@ -37,10 +37,10 @@ exports = module.exports = {
   NIL: -1,
 
   //  Action types.
-  A_NOPE: -4,
-  A_SKIP: -3,
-  A_EXCL: -2,       //  No match
-  A_ABORT: -1,
+  NOT_YET: -4,      //  Possibly partial match, keep trying
+  NO_MATCH: -3,     //  Discard all matches
+  DO_SKIP: -2,      //  Ignore this directory entry
+  DO_ABORT: -1,     //  Ignore all, jump one level up
 
   /* eslint-disable */
   S_BLOCK, S_CHAR, S_DIR, S_FIFO, S_FILE, S_SOCKET, S_SYMLINK,
