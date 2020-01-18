@@ -24,7 +24,7 @@ const rxBraces = /(?<!\\){[^}]+(?<!\\)}/g   //  Detect non-escaped {...}
  *
  * @param {string} string
  * @param {Object=} options
- * @returns {*[]} = the first entry is flags object
+ * @returns {Array<*>} = the first entry is flags object
  */
 exports = module.exports = (string, options = undefined) => {
   const check = (cond) => assert(cond, `invalid pattern '${string}'`)

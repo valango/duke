@@ -20,8 +20,8 @@ const load = (env) => {
   Sincere = require(path)
 
   Derived = class D extends Sincere {
-    get sincereName () {
-      return super.sincereName + '!'
+    get sincereId () {
+      return super.sincereId + '!'
     }
   }
 }
@@ -39,18 +39,18 @@ describe(ME, () => {
     before(() => load('production'))
 
     it('should construct', () => {
-      expect(o.sincereName).to.equal('D#0!')
-      expect(new Sincere().sincereName).to.equal('Sincere#1')
+      expect(o.sincereId).to.equal('D#0!')
+      expect(new Sincere().sincereId).to.equal('Sincere#1')
       Sincere.sincereReset()  //  Should have no effect.
-      expect(new Sincere().sincereName).to.equal('Sincere#2')
+      expect(new Sincere().sincereId).to.equal('Sincere#2')
     })
 
     it('should assert', () => {
       const old = Sincere.sincereHook()
       expect(Sincere.sincereHook(hook)).to.equal(old)
       expect(o.assert('data', 'never')).to.equal('data')
-      expect(() => o.assert(0, 'test', 'M/%i', 1, 2)).to.throw(
-        AssertionError, 'D.test: M/1 2')
+      expect(() => o.assert(0, 'test', 'M%i', 1, 2)).to.throw(
+        AssertionError, /D#\d+!\.test: M1 2$/)
       expect(trace).to.eql([])
     })
   })
@@ -64,11 +64,12 @@ describe(ME, () => {
       Derived.sincereReset()
       const c = new Derived()
       const d = new Sincere()
-      expect(o.sincereName).to.equal('D#0!')
-      expect(a.sincereName).to.equal('Sincere#1')
-      expect(b.sincereName).to.equal('D#2!')
-      expect(c.sincereName).to.equal('D#0!')
-      expect(d.sincereName).to.equal('Sincere#1')
+      expect(o.className).to.equal('D')
+      expect(o.sincereId).to.equal('D#0!')
+      expect(a.sincereId).to.equal('Sincere#1')
+      expect(b.sincereId).to.equal('D#2!')
+      expect(c.sincereId).to.equal('D#0!')
+      expect(d.sincereId).to.equal('Sincere#1')
     })
 
     it('should assert', () => {
@@ -76,11 +77,11 @@ describe(ME, () => {
       expect(o.assert('data', 'never')).to.equal('data')
       expect(trace).to.eql([])
       expect(() => o.assert(0, 'test', 'M/%i', 1, 2)).to.throw(
-        AssertionError, 'D.test: M/1 2')
+        AssertionError, 'D#2!.test: M/1 2')
       expect(trace).to.eql([{ o, loc: 'test', args: ['M/%i', 1, 2] }])
       Sincere.sincereHook(false)
       expect(() => o.assert(0, 'test', 'M/%i', 1, 2)).to.throw(
-        AssertionError, 'D.test: M/1 2')
+        AssertionError, 'D#2!.test: M/1 2')
       expect(trace).to.eql([{ o, loc: 'test', args: ['M/%i', 1, 2] }])
     })
   })

@@ -1,46 +1,71 @@
-/**
- * @module RuleTree
- */
 'use strict'
 
 const { NO_MATCH, NOT_YET, GLOB, NIL } = require('./definitions')
 const parse = require('./parse')
-const Assertive = require('./Assertive')
+const Sincere = require('./Sincere')
 const PAR = 0
 const RUL = 1
 const ACT = 2
 const IDX = 3
 
-class RuleTree extends Assertive {
-  constructor (rules = undefined, forAction = undefined) {
+/** @typedef TNode {Array<*>} */
+
+/**
+ * Rule tree and intermediate state of searches.
+ */
+class RuleTree extends Sincere {
+  /**
+   * @param {Array<*>=} rules
+   * @param {number=} defaultAction
+   */
+  constructor (rules = undefined, defaultAction = undefined) {
     super()
-    this.tree = []          //  Every node is an array [parenIndex, rule, action].
+    /**
+     * @type {Array<TNode>}
+     * @private
+     */
+    this._tree = []          //  Every node is an array [parenIndex, rule, action].
     /**
      * Used by test() method.
-     * @type {*[] | undefined}
+     * @type {Array<*> | undefined}
      */
     this.lastMatches = undefined
-    this.defaultAction = forAction
-    if (rules) this.add(rules, forAction)
+    this.defaultAction = defaultAction === undefined ? 0 : defaultAction
+    if (rules) this.add(rules)
   }
 
-  add (rules, action = undefined) {
+  /**
+   * Add new rules.
+   *
+   * @param {string | string[]} definition - slash-delimited expression[s]
+   * @param {number=} action
+   * @returns {RuleTree}
+   */
+  add (definition, action = undefined) {
     this.assert('add', 'no rules')
-    if (typeof rules === 'string') {
-      this.addPath(rules, action)
-    } else if (Array.isArray(rules)) {
-      rules.forEach((rule) => this.add(rule, action))
+    if (typeof definition === 'string') {
+      this.addPath_(definition, action)
+    } else if (Array.isArray(definition)) {
+      definition.forEach((rule) => this.add(rule, action))
     } else {
-      throw new TypeError(this.diagnosticMessage('add', ['bad rules']))
+      throw new TypeError(this.sincereMessage(
+        'add', ['bad definition', definition]))
     }
     return this
   }
 
-  addPath (path, forAction = undefined, parentIndex = undefined) {
-    const rules = parse(path), flags = rules.shift(), L = 'addPath'
+  /**
+   * @param {string} path
+   * @param {number=} forAction
+   * @param {number=} parentIndex
+   * @returns {RuleTree}
+   * @private
+   */
+  addPath_ (path, forAction = undefined, parentIndex = undefined) {
+    const rules = parse(path), flags = rules.shift(), L = 'addPath_'
 
     this.assert(rules.length, L, 'no rules')
-    const tree = this.tree, last = rules.length - 1
+    const tree = this._tree, last = rules.length - 1
     let action = flags.isExclusion ? NO_MATCH : forAction
     if (action === undefined) action = this.defaultAction
     this.assert(action > NOT_YET, L, 'illegal action value \'%i\'', action)
@@ -77,20 +102,29 @@ class RuleTree extends Assertive {
   }
 
   /**
-   * Match the `string` against rules.
+   * Clone of actual rule tree.
+   * @type {Array<TNode>}
+   */
+  get rules () {
+    return this._tree.map((node) => node.slice())
+  }
+
+  /**
+   * Match the `string` against rules, without mutating object state.
    *
-   * The results array will be sorted: TERM_EX, TERM, non-GLOB, GLOB
+   * The results array will be sorted by action code, higher first.
+   * A GLOB rule node is returned only if this is the only match.
    *
    * @param {string} string to match
-   * @param {number[]=} ancestors
-   * @returns {number[][]} array of [iAnc, rule, bDir, action, index]
+   * @param {Array<*>=} ancestors - may be return value from previous call.
+   * @returns {Array<TNode>} array of [iAnc, rule, action, index]
    */
   match (string, ancestors = undefined) {
     let ancs = (ancestors || [NIL]).slice(), res = []
     if (ancs.length && typeof ancs[0] !== 'number') {
       ancs = ancs.map((r) => r[IDX])
     }
-    const lowest = Math.min.apply(undefined, ancs), tree = this.tree
+    const lowest = Math.min.apply(undefined, ancs), tree = this._tree
 
     if (lowest !== Infinity) {
       // Scan the three for nodes matching any of the ancestors.
@@ -143,10 +177,11 @@ class RuleTree extends Assertive {
    * NB: this method uses and affects the `lastMatches` property!
    *
    * @param {string} string
-   * @param {*[]=} ancestors
-   * @returns {number}            action code
+   * @param {Array<*>=} ancestors - from earlier match().
+   * @returns {number}            - action code.
    */
   test (string, ancestors = undefined) {
+    if (this._tree.length === 0) return NOT_YET
     const res = this.match(string, ancestors || this.lastMatches)
     if (res.length) this.lastMatches = res
     return res.length ? res[0][ACT] : NO_MATCH

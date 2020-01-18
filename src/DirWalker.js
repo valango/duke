@@ -1,11 +1,6 @@
-/**
- * @module DirWalker
- */
 'use strict'
 const ME = 'DirWalker'
 
-const assert = require('assert').strict
-const { EventEmitter } = require('events')
 const { opendirSync } = require('fs')
 const { join } = require('path')
 const { inspect } = require('util')
@@ -37,46 +32,39 @@ const getType = (entry) => {
   }
 }
 
-class DirWalker extends EventEmitter {
-  constructor (opt = {}) {
-    super()
-    this.failures = null
-    this.paths = []
-    this.rules = opt.rules === undefined ? new RuleTree() : opt.rules
+/**
+ * @typedef TDirWalkerOptions {Object}
+ * @member {number} [defaultAction]
+ * @member {*} [rules]
+ * @member {function():number} [processor] will be called on every dir-entry
+ */
+
+/**
+ *  Walks a directory tree according to rules.
+ */
+class DirWalker extends RuleTree {
+  /**
+   * @param {TDirWalkerOptions=} options - can be overridden later.
+   */
+  constructor (options = undefined) {
+    const opts = options || {}
+    super(opts.rules, opts.defaultAction)
+    this.failures = []
     this.directory = undefined
     //  This method can be dynamically changed.
-    this.process = opt.processor || function (entryContext) {
-      return this.processEntry(entryContext)
-    }
+    this.process = opts.processor ||
+      ((entryContext) => this.processEntry(entryContext))
   }
 
-  add (rules, action = undefined) {
-    this.rules.add(rules, action)
-    return this
-  }
-
-  closeDir () {
-    if (this.directory) {
-      this.directory.closeSync()
-      this.directory = undefined
-    }
-    return this
-  }
-
-  handleError (error, context = undefined) {
+  handleError_ (error, context = undefined) {
     const d = { context, instance: this }
-    this.emit(ErrorEvent, error, d)
+    // this.emit(ErrorEvent, error, d)
     if (d.action !== undefined) {
       return d.action === DO_SKIP ? undefined : d.action
     }
     const comment = context &&
       (typeof context === 'string' ? context : inspect(context))
     this.registerFailure(error.message, comment)
-  }
-
-  match (type, name, parents) {
-    if (!this.rules) return NOT_YET
-    return this.rules.test(name, parents)
   }
 
   /**
@@ -104,17 +92,24 @@ class DirWalker extends EventEmitter {
    * @returns {DirWalker}
    */
   walk (rootDir) {
-    const paths = this.paths
-    assert(paths.length === 0, ME + '.walk() is not re-enterable')
+    const paths = []
+    let directory
     this.failures = []
     paths.push({ parents: [NIL], depth: 0, dir: '' })
+
+    const close = () => {
+      if (!directory) return
+      directory.closeSync()
+      directory = undefined
+    }
 
     while (paths.length) {
       const { parents, depth, dir } = paths.shift(), length = paths.length
       try {
         this.directory = opendirSync(join(rootDir, dir))
       } catch (error) {
-        const r = this.handleError(error)
+        close()
+        const r = this.handleError_(error)
         if (r === DO_ABORT || r === DO_SKIP) return this
       }
 
@@ -128,9 +123,9 @@ class DirWalker extends EventEmitter {
         const name = entry.name
         const type = getType(entry)
 
-        const action = this.match(type, name, parents)
+        const action = this.test(name, parents)
         const ultimate = this.process(
-          { action, depth, dir, name, rootDir, type })
+          { action, depth, dir, name, rootDir, type, parents })
 
         if (ultimate === DO_ABORT) {
           paths.splice(length, length)
@@ -143,7 +138,7 @@ class DirWalker extends EventEmitter {
           })
         }
       }
-      this.closeDir()
+      close()
     }
     return this
   }

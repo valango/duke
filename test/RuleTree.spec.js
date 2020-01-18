@@ -1,6 +1,7 @@
 'use strict'
 const ME = 'RuleTree'
 
+const { AssertionError } = require('assert')
 const { expect } = require('chai')
 const { inspect } = require('util')
 const { NO_MATCH, NOT_YET, GLOB, NIL } = require('../src/definitions')
@@ -9,17 +10,17 @@ const RuleTree = require('../src/' + ME)
 
 const T1 = ['a/b', 'a/c/', 'f*', '!file', '/z/y']
 const D1 = [
-  [NIL, GLOB, NOT_YET],
+  [NIL, GLOB, NOT_YET],     //  0
   [0, /^a$/, NOT_YET],
-  [1, /^b$/, YES],
+  [1, /^b$/, YES],          //  2
   [1, /^c$/, YES],
-  [0, /^f/, YES],
+  [0, /^f/, YES],           //  4
   [0, /^file$/, NO_MATCH],
-  [NIL, /^z$/, NOT_YET],
+  [NIL, /^z$/, NOT_YET],    //  6
   [6, /^y$/, YES]
 ]
 
-const t = new RuleTree(T1, YES)
+let t = new RuleTree(T1, YES)
 
 // const idx = (a) => a.map((r) => r[0])
 let n = 0
@@ -39,14 +40,15 @@ const test = (str, exp, prev) => {
 
 describe(ME, () => {
   beforeEach(() => {
+    t = new RuleTree(T1, YES)
     n = 0
     t.lastIndex = NIL
     t.lastMatches = undefined
   })
 
   it('should construct', () => {
-    // console.log('DUMP', t.tree)
-    expect(t.tree).to.eql(D1)
+    // console.log('DUMP', t.rules)
+    expect(t.rules).to.eql(D1)
   })
 
   it('should match', () => {
@@ -59,6 +61,7 @@ describe(ME, () => {
     match('b', [2], a)
     match('b', [2], a)
     match('c', [3], a)
+    match('c', [3], [3, 1, 7])
     expect(t.lastMatches).to.eql(undefined, 'lastMatches')
   })
 
@@ -77,5 +80,16 @@ describe(ME, () => {
     test('c', YES, [1])
     test('nope', NOT_YET, [0])
     test('nope', NOT_YET, [NIL])
+  })
+
+  it('should throw on bad rule', () => {
+    expect(() => t.add({})).to.throw(TypeError, 'bad definition {}')
+  })
+
+  it('should check rule conflicts', () => {
+    const old = t.rules
+    t.add('a/b', YES)
+    expect(() => t.add('a/b', 1)).to.throw(AssertionError, 'conflict @2')
+    expect(t.rules).to.eql(old)
   })
 })
