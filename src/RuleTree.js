@@ -105,7 +105,7 @@ class RuleTree extends Sincere {
    * Clone of actual rule tree.
    * @type {Array<TNode>}
    */
-  get rules () {
+  get tree () {
     return this._tree.map((node) => node.slice())
   }
 

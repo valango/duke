@@ -23,13 +23,13 @@ describe(ME, () => {
     w2 = new W2(options)
     w.add(['/node_modules', '.*'], W.DO_SKIP)
     w2.add(['/node_modules', '.*'], W.DO_SKIP)
-    // console.log('TREE', w.rules)
+    // console.log('TREE', w.tree)
     context = undefined
     count = 0
   })
 
   it('should construct w defaults', () => {
-    expect(w.rules && typeof w.rules).to.equal('object')
+    expect(w.tree && typeof w.tree).to.equal('object')
   })
 
   it('should visit and register failure', () => {

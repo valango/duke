@@ -47,8 +47,8 @@ describe(ME, () => {
   })
 
   it('should construct', () => {
-    // console.log('DUMP', t.rules)
-    expect(t.rules).to.eql(D1)
+    // console.log('DUMP', t.tree)
+    expect(t.tree).to.eql(D1)
   })
 
   it('should match', () => {
@@ -87,9 +87,9 @@ describe(ME, () => {
   })
 
   it('should check rule conflicts', () => {
-    const old = t.rules
+    const old = t.tree
     t.add('a/b', YES)
     expect(() => t.add('a/b', 1)).to.throw(AssertionError, 'conflict @2')
-    expect(t.rules).to.eql(old)
+    expect(t.tree).to.eql(old)
   })
 })

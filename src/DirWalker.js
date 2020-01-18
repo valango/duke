@@ -134,7 +134,7 @@ class DirWalker extends RuleTree {
           paths.push({
             depth: depth + 1,
             dir: join(dir, name),
-            parents: this.rules && this.rules.lastMatches
+            parents: this.lastMatches
           })
         }
       }
