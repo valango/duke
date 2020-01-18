@@ -56,17 +56,6 @@ class DirWalker extends RuleTree {
       ((entryContext) => this.processEntry(entryContext))
   }
 
-  handleError_ (error, context = undefined) {
-    const d = { context, instance: this }
-    // this.emit(ErrorEvent, error, d)
-    if (d.action !== undefined) {
-      return d.action === DO_SKIP ? undefined : d.action
-    }
-    const comment = context &&
-      (typeof context === 'string' ? context : inspect(context))
-    this.registerFailure(error.message, comment)
-  }
-
   /**
    * To be overridden in derived classes.
    * @param entryContext
@@ -88,10 +77,14 @@ class DirWalker extends RuleTree {
    *  If `rules` are defined, test these for ever directory entry
    *  and invoke `process` method.
    *
-   * @param rootDir
+   * @param {string} rootDir
+   * @param {Object} options
    * @returns {DirWalker}
    */
-  walk (rootDir) {
+  walk (rootDir, options = undefined) {
+    const opts = options || {}
+    const process = opts.process || this.process
+    const onError = opts.onError || (() => 0)
     const paths = []
     let directory
     this.failures = []
@@ -109,8 +102,11 @@ class DirWalker extends RuleTree {
         this.directory = opendirSync(join(rootDir, dir))
       } catch (error) {
         close()
-        const r = this.handleError_(error)
-        if (r === DO_ABORT || r === DO_SKIP) return this
+        //  To retry, the handler must just path.unshift() and return falsy.
+        const r = onError.call(this, { depth, dir, error, rootDir, paths })
+        if (r === DO_SKIP) continue
+        if (error) this.registerFailure(error)
+        if (r === DO_ABORT) return this
       }
 
       //  istanbul ignore next
@@ -124,7 +120,7 @@ class DirWalker extends RuleTree {
         const type = getType(entry)
 
         const action = this.test(name, parents)
-        const ultimate = this.process(
+        const ultimate = process.call(this,
           { action, depth, dir, name, rootDir, type, parents })
 
         if (ultimate === DO_ABORT) {

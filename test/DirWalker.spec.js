@@ -4,6 +4,7 @@ const ME = 'DirWalker'
 const { expect } = require('chai')
 const _ = require('lodash')
 const W = require('../src/' + ME)
+const { DO_SKIP } = W
 
 let w, w2, options, context, count
 
@@ -68,20 +69,28 @@ describe(ME, () => {
       .eql({ action: W.DO_SKIP, dir: '', name: 'node_modules' })
   })
 
-  xit('should register exceptions', () => {
+  it('should register exceptions', () => {
     let data
-    w.once(W.ErrorEvent, (e, d) => (data = d))
-    w.walk(process.cwd() + '/nope')
+    w.walk(process.cwd() + '/nope', {
+      onError: function (d) {
+        data = d
+        data.instance = this
+      }
+    })
     expect(data && data.instance).to.equal(w)
     expect(w.failures.length).to.eql(1)
     expect(w.failures[0]).to.match(/^ENOENT/)
   })
 
-  xit('should intercept exceptions', () => {
+  it('should intercept exceptions', () => {
     let data
-    w.once(W.ErrorEvent, (e, d) => (d.action = W.DO_ABORT) && (data = d))
-    w.walk(process.cwd() + '/nope')
-    expect(data && data.instance).to.equal(w)
+    w.walk(process.cwd() + '/nope', {
+      onError: (d) => {
+        data = d
+        return DO_SKIP
+      }
+    })
+    expect(data && data.dir).to.equal('')
     expect(w.failures).to.eql([])
   })
 })
