@@ -1,20 +1,16 @@
 'use strict'
-const ME = 'DirWalker'
 
 const { opendirSync } = require('fs')
 const { join } = require('path')
-const { inspect } = require('util')
 const definitions = require('./definitions')
 const RuleTree = require('./RuleTree')
 /* eslint-disable */
 const {
-        DO_ABORT, NOT_YET, DO_SKIP,
+        DO_ABORT, DO_SKIP,
         NIL,
         T_BLOCK, T_CHAR, T_DIR, T_FIFO, T_FILE, T_SOCKET, T_SYMLINK
       } = definitions
 /* eslint-enable */
-
-const ErrorEvent = ME + '-error'
 
 const types = {
   isBlockDevice: T_BLOCK,
@@ -50,7 +46,6 @@ class DirWalker extends RuleTree {
     const opts = options || {}
     super(opts.rules, opts.defaultAction)
     this.failures = []
-    this.directory = undefined
     //  This method can be dynamically changed.
     this.process = opts.processor ||
       ((entryContext) => this.processEntry(entryContext))
@@ -86,36 +81,26 @@ class DirWalker extends RuleTree {
     const process = opts.process || this.process
     const onError = opts.onError || (() => 0)
     const paths = []
-    let directory
+    let directory, entry
     this.failures = []
     paths.push({ parents: [NIL], depth: 0, dir: '' })
-
-    const close = () => {
-      if (!directory) return
-      directory.closeSync()
-      directory = undefined
-    }
 
     while (paths.length) {
       const { parents, depth, dir } = paths.shift(), length = paths.length
       try {
-        this.directory = opendirSync(join(rootDir, dir))
+        directory = opendirSync(join(rootDir, dir))
       } catch (error) {
-        close()
         //  To retry, the handler must just path.unshift() and return falsy.
         const r = onError.call(this, { depth, dir, error, rootDir, paths })
         if (r === DO_SKIP) continue
         if (error) this.registerFailure(error)
         if (r === DO_ABORT) return this
       }
-
-      //  istanbul ignore next
-      if (!this.directory) {
-        continue                        //  There was an error.
+      if (!directory) {
+        continue                        //  Failed to open.
       }
-      let entry
 
-      while ((entry = this.directory.readSync())) {
+      while ((entry = directory.readSync())) {
         const name = entry.name
         const type = getType(entry)
 
@@ -134,11 +119,12 @@ class DirWalker extends RuleTree {
           })
         }
       }
-      close()
+      directory.closeSync()
+      directory = undefined
     }
     return this
   }
 }
 
-Object.assign(DirWalker, { ErrorEvent, RuleTree, ...definitions })
+Object.assign(DirWalker, { RuleTree, ...definitions })
 module.exports = DirWalker
