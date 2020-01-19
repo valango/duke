@@ -3,52 +3,36 @@
  */
 'use strict'
 
-const { format } = require('util')
 const Walker = require('../src/DirWalker')
-const { A_SKIP } = Walker
+const { dump, measure, print } = require('./util')
+const { A_SKIP, typename } = Walker
 
-const print = (...args) => process.stdout.write(format.apply(null, args) + '\n')
-
-const rootDir = process.argv[2] || process.cwd()
-const counts = {}
-let depth = 0, total = 1, w
+const counts = {}, dirs = process.argv.slice(2)
+let deepest = '', maxDepth = 0, total = 1
 
 const add = (key) => {
   if (!counts[key]) counts[key] = 0
-  counts[key] += 1
-  total += 1
+  ++counts[key] && ++total
 }
 
 //  Application-specific code.
-const processor = function processor ({ action, type }) {
-  if (action !== A_SKIP) {
-    add(type)
-  }
-  if (w.paths.length > depth) {
-    depth = w.paths.length
-  }
-  depth = Math.max(w.paths.length, depth)
+const processor = function processor ({ action, depth, dir, rootDir, type }) {
+  if (action !== A_SKIP) add(type)
+  if (depth > maxDepth) (deepest = rootDir + '/' + dir) && (maxDepth = depth)
   return action
 }
+if (dirs.length === 0) dirs.push('.')
 
-w = new Walker({ processor, rules: null })
-const t0 = process.hrtime()
+const w = new Walker({ processor, rules: null })
+const t = measure(() => dirs.forEach((dir) => w.walk(dir))) / 1000
 
-w.walk(rootDir)
+dump(w.failures, 'Total %i failures.', w.failures.length)
 
-const t1 = process.hrtime(t0)
-const t = t1[0] * 1e9 + t1[1], v = Math.floor(t / total)
+print('Results from \'%s\':', dirs.join('\', \''))
 
-print('Results from \'%s\':', rootDir)
-
-Object.keys(counts).forEach((k) => print(k.padStart(16, ' ') + ':', counts[k]))
-
-if (w.failures.length) {
-  print('Total %i failures:', w.failures.length)
-  for (const e of w.failures) {
-    print(e)
-  }
+for (const k of Object.keys(counts)) {
+  print(typename(k).padStart(16, ' ') + ':', counts[k])
 }
-
-print('Total %i nanoseconds (%i ns per item), maximum directory depth: %i\n',
-  t, v, depth)
+print('Total %i ms (%i µs per item), max directory depth: %i.',
+  t / 1000, t / total, maxDepth)
+print('The deepest directory:\n%s', deepest)
