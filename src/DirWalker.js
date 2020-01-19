@@ -97,7 +97,7 @@ class DirWalker extends RuleTree {
         if (r === DO_ABORT) return this
       }
       if (!directory) {
-        continue                        //  Failed to open.
+        continue                        //  Failed to open directory.
       }
 
       while ((entry = directory.readSync())) {
@@ -106,7 +106,7 @@ class DirWalker extends RuleTree {
 
         const action = this.test(name, parents)
         const ultimate = process.call(this,
-          { action, depth, dir, name, rootDir, type, parents })
+          { action, depth, dir, name, parents, paths, rootDir, type })
 
         if (ultimate === DO_ABORT) {
           paths.splice(length, length)
