@@ -52,7 +52,9 @@
   "nyc": {
     "all": true,
     "check-coverage": true,
-    "exclude": [],
+    "exclude": [
+      "src/definitions.js"
+    ],
     "include": [
       "src/**/*.js"
     ],
