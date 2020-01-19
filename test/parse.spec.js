@@ -1,5 +1,6 @@
 'use strict'
 const ME = 'parse'
+process.env.NODE_MODULES = 'test'
 
 const { AssertionError } = require('assert')
 const { expect } = require('chai')

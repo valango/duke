@@ -1,5 +1,6 @@
 'use strict'
 const ME = 'DirWalker'
+process.env.NODE_MODULES = 'test'
 
 const { expect } = require('chai')
 const _ = require('lodash')

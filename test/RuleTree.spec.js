@@ -1,5 +1,6 @@
 'use strict'
 const ME = 'RuleTree'
+process.env.NODE_MODULES = 'test'
 
 const { AssertionError } = require('assert')
 const { expect } = require('chai')
