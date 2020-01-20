@@ -24,20 +24,31 @@ class RuleTree extends Sincere {
      * @type {Array<TNode>}
      * @private
      */
-    this._tree = []          //  Every node is an array [parenIndex, rule, action].
+    this._tree = []          //  Every node is an array [parentIndex, rule, action].
+    /**
+     * Upper limit for rules to be matched/tested against.
+     * @type {number}
+     */
+    this.treeTop = 0
     /**
      * Used by test() method.
      * @type {Array<*> | undefined}
      */
     this.lastMatches = undefined
+    /**
+     * Action to be bound to new rule.
+     * @type {number}
+     */
     this.defaultAction = defaultAction === undefined ? 0 : defaultAction
     if (rules) this.add(rules)
   }
 
   /**
-   * Add new rules.
+   * Add new rules. If the first item in definitions array is not string,
+   * it will be treated as action code, which will prevail over default action.
+   * Affects `treeTop` property.
    *
-   * @param {string | string[]} definition - slash-delimited expression[s]
+   * @param {string | Array<*>} definition - slash-delimited expression[s]
    * @param {number=} action
    * @returns {RuleTree}
    */
@@ -46,7 +57,15 @@ class RuleTree extends Sincere {
     if (typeof definition === 'string') {
       this.addPath_(definition, action)
     } else if (Array.isArray(definition)) {
-      definition.forEach((rule) => this.add(rule, action))
+      let act = definition[0], def = definition
+      if (typeof act === 'string') {
+        act = action
+      } else {
+        this.assert(action === act || action === undefined,
+          'add', 'action (%i) conflict with %O', action, def)
+        def = def.slice(1)
+      }
+      def.forEach((rule) => this.add(rule, act))
     } else {
       throw new TypeError(this.sincereMessage(
         'add', ['bad definition', definition]))
@@ -88,6 +107,7 @@ class RuleTree extends Sincere {
       parent = index
     }
     this.assert(index >= 0, L, 'no node created')
+    this.treeTop = index + 1
     const node = tree[index], [p, r, a] = node
 
     if (a !== action) {
@@ -128,7 +148,7 @@ class RuleTree extends Sincere {
 
     if (lowest !== Infinity) {
       // Scan the three for nodes matching any of the ancestors.
-      for (let i = tree.length; --i > lowest;) {
+      for (let i = this.treeTop; --i > lowest;) {
         const [par, rule, act] = tree[i]
 
         //  Ancestors list is always smaller than tree ;)

@@ -9,7 +9,7 @@ const { NO_MATCH, NOT_YET, GLOB, NIL } = require('../src/definitions')
 const YES = 0
 const RuleTree = require('../src/' + ME)
 
-const T1 = ['a/b', 'a/c/', 'f*', '!file', '/z/y']
+const T1 = [YES, 'a/b', 'a/c/', 'f*', '!file', '/z/y']
 const D1 = [
   [NIL, GLOB, NOT_YET],     //  0
   [0, /^a$/, NOT_YET],
