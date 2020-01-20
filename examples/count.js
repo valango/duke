@@ -3,11 +3,12 @@
  */
 'use strict'
 
+const HELP = 'Count all files and subdirectories, excluding nothing.'
 const Walker = require('../src/DirWalker')
-const { dump, measure, print } = require('./util')
+const { dump, measure, parseCl, print } = require('./util')
 const { A_SKIP, typename } = Walker
 
-const counts = {}, dirs = process.argv.slice(2)
+const counts = {}, {args} =parseCl({}, HELP)
 let deepest = '', maxDepth = 0, total = 1
 
 const add = (key) => {
@@ -24,7 +25,7 @@ const processor = function processor ({ action, depth, dir, rootDir, type }) {
 if (dirs.length === 0) dirs.push('.')
 
 const w = new Walker({ processor, rules: null })
-const t = measure(() => dirs.forEach((dir) => w.walk(dir))) / 1000
+const t = measure(() => dirs.forEach((dir) => w.walk(dir)))
 
 dump(w.failures, 'Total %i failures.', w.failures.length)
 
