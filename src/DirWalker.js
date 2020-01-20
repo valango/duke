@@ -3,10 +3,11 @@
 const { opendirSync } = require('fs')
 const { join } = require('path')
 const definitions = require('./definitions')
+const loadJSON = require('./load-json')
 const RuleTree = require('./RuleTree')
 /* eslint-disable */
 const {
-        DO_ABORT, DO_SKIP,
+        BEGIN_DIR, END_DIR, DO_ABORT, DO_SKIP,
         NIL,
         T_BLOCK, T_CHAR, T_DIR, T_FIFO, T_FILE, T_SOCKET, T_SYMLINK
       } = definitions
@@ -68,30 +69,39 @@ class DirWalker extends RuleTree {
   }
 
   /**
-   *  Process directory tree width-first starting from `rootDir`.
+   *  Process directory tree width-first starting from `root`.
    *  If `rules` are defined, test these for ever directory entry
    *  and invoke `process` method.
    *
-   * @param {string} rootDir
+   * @param {string} root
    * @param {Object} options
    * @returns {DirWalker}
    */
-  walk (rootDir, options = undefined) {
+  walk (root, options = undefined) {
     const opts = options || {}
     const process = opts.process || this.process
     const onError = opts.onError || (() => 0)
-    const paths = []
-    let directory, entry
+    const locals = {}, paths = []
+    let absDir, action, directory, entry
     this.failures = []
     paths.push({ parents: [NIL], depth: 0, dir: '' })
 
     while (paths.length) {
       const { parents, depth, dir } = paths.shift(), length = paths.length
+
+      absDir = join(root, dir)
+      //  Todo: here we can set parents or even the tree!
+      action = process.call(this,
+        { absDir, action: BEGIN_DIR, depth, dir, locals, paths, parents, root })
+      if (action === DO_ABORT) return this
+      if (action === DO_SKIP) continue
+
       try {
-        directory = opendirSync(join(rootDir, dir))
+        directory = opendirSync(join(root, dir))
       } catch (error) {
         //  To retry, the handler must just path.unshift() and return falsy.
-        const r = onError.call(this, { depth, dir, error, rootDir, paths })
+        const r = onError.call(this,
+          { absDir, depth, dir, error, locals, root, paths })
         if (r === DO_SKIP) continue
         if (error) this.registerFailure(error)
         if (r === DO_ABORT) return this
@@ -106,7 +116,7 @@ class DirWalker extends RuleTree {
 
         const action = this.test(name, parents)
         const ultimate = process.call(this,
-          { action, depth, dir, name, parents, paths, rootDir, type })
+          { absDir, action, depth, dir, locals, name, parents, paths, root, type })
 
         if (ultimate === DO_ABORT) {
           paths.splice(length, length)
@@ -121,10 +131,15 @@ class DirWalker extends RuleTree {
       }
       directory.closeSync()
       directory = undefined
+
+      if (process.call(this,
+        { absDir, action: END_DIR, depth, dir, locals, paths, root }) === DO_ABORT) {
+        return this
+      }
     }
     return this
   }
 }
 
-Object.assign(DirWalker, { RuleTree, ...definitions })
+Object.assign(DirWalker, { loadJSON, RuleTree, ...definitions })
 module.exports = DirWalker

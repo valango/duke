@@ -7,5 +7,6 @@ module.exports = {
   dump: require('./dump'),
   measure: require('./measure'),
   parseCl: require('./parse-cl'),
-  print: require('./print')
+  print: require('./print'),
+  relativePath: require('./relative-path')
 }

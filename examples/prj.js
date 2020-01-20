@@ -1,63 +1,91 @@
-/**
- * Find and process Node.js projects
- */
+//  Demoing some power of Duke.
 'use strict'
 
-const { actionName, DO_ABORT, DO_SKIP } = require('../src/definitions')
-const DirWalker = require('../src/DirWalker')
+const Duke = require('../src/DirWalker')
+const { actionName, loadJSON, relativePath, BEGIN_DIR, END_DIR, DO_ABORT, DO_SKIP } = Duke
+
+const HELP =
+        `Scan directories for Node.js projects, sorting output by actual project names.
+        Counting .js files will ignore those in '/test' or 'vendor' directories or in
+        directories containing .html files (like code coverage report).
+        Projects containing '/test' directory will be flagged by 'T'.`
+const OPTS = { nested: ['n', 'allow nested projects'] }
+const DO_PROJ = 0
+const DO_COUNT = 1    //  Add file to count.
+const DO_PROMOTE = 2  //  Found test support.
+
+const commonRules = [
+  [DO_SKIP, 'node_modules', '.*']
+]
+
+const projectRules = [
+  [DO_COUNT, '*.js'],
+  [DO_PROMOTE, '/test/'],
+  [DO_SKIP, 'vendor/']
+]
+
+// Todo: we must swap the whole t
+
 const pt = require('path')
-const { format } = require('util')
-const print = (...args) => process.stdout.write(format.apply(null, args) + '\n')
+const { dump, measure, parseCl, print } = require('./util')
+const { args, options } = parseCl(OPTS, HELP)
 
-const actions = ['ADD_PROJECT']
-const ADD_PROJECT = 0
-
-const args = process.argv.slice(2)
 const projects = []
-let nEntries = 0, maxDepth = 0
-let bAllowHierarchy = false
 
-if (args[0] === '-h') {
-  print('node examples/prj [-a] [directory...]\n -a enables nested projects detection')
-  process.exit(0)
-}
-if (args[0] === '-a') (bAllowHierarchy = true) && args.shift()
+const findMaster = (dir) =>
+  projects.find((p) => dir.indexOf(p.full) === 0 && dir !== p.full)
 
-const roots = process.argv.slice(2)
+const findThis = (dir) => projects.find((p) => p.full === dir)
+
+let commonRulesTop, projectRulesTop, count, flag, full, name
 
 //  Application-specific operations.
-const processor = ({ action, depth, dir, name, rootDir, type }) => {
-  ++nEntries && (maxDepth = Math.max(depth, maxDepth))
-  if (action === ADD_PROJECT) {
-    // print('FOUND:', pt.join(rootDir, dir))
-    projects.push(pt.join(rootDir, dir))
-    return bAllowHierarchy ? DO_SKIP : DO_ABORT
-  }
-  if (action >= 0) {
-    print(actionName(action) || actions[action], dir, name, type)
+const processor = ({ absDir, action, dir, locals, name, type }) => {
+  // ++nEntries && (maxDepth = Math.max(depth, maxDepth))
+  switch (action) {
+    case BEGIN_DIR:
+      if (!options.nested && findMaster(absDir)) break
+
+      const pkg = loadJSON(pt.join(absDir, 'package.json'))
+      if (pkg) {
+        const full = relativePath(absDir, './')
+        const name = pkg.name || '<NO-NAME>'
+        this.treeTop = projectRulesTop
+      }
+      break
+    case END_DIR:
+      if (locals.name) projects.push(locals)
+      this.treeTop = commonRulesTop
+      break
+    case DO_PROJ:
+      if (!projectPath) {
+        projectPath = absDir
+        locals.treeTop = this.tree.length
+      } else if (!options.nested) return DO_ABORT
+      locals.full = relativePath(absDir, './')
+      locals.name = loadJSON(pt.join(absDir, name)).name || '<NO-NAME>'
+      break
+    case DO_PROMOTE:
+      locals.promotion = 'T'
+      return DO_SKIP
+    case DO_COUNT:
+      locals.count += 1
+      break
   }
   return action
 }
 
-const walker = new DirWalker({ processor })
-walker.add(['node_modules', '.*'], DO_SKIP).add('package.json', ADD_PROJECT)
+const walker = new Duke({ processor, commonRules })
 
-if (!roots.length) roots.push('.')
+commonRulesTop = walker.treeTop
+projectRulesTop = walker.add(projectRules)
+walker.treeTop = commonRulesTop
 
-const t0 = process.hrtime()
+const t = measure(() => args.forEach((dir) => walker.walk(pt.resolve(dir))))
 
-for (const root of roots) {
-  walker.walk(pt.resolve(root))
-}
-const t1 = process.hrtime(t0)
-const t = t1[0] * 1e9 + t1[1], v = Math.floor(t / nEntries)
-
-if (walker.failures.length) {
-  walker.failures.forEach((f) => print(f))
-  print('Total %i failures', walker.failures.length)
-}
+dump(walker.failures, 'Total %i failures.', walker.failures.length)
 
 print('Total %i projects', projects.length)
 print(
-  'Total %i nanoseconds (%i ns per item) spent on %i entries, maximum directory depth: %i',
-  t, v, nEntries, maxDepth)
+  'Total %i ms (%i µs per item) on %i entries, maximum directory depth: %i',
+  t / 1000, t / nEntries, nEntries, maxDepth)

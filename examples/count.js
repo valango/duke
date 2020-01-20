@@ -8,7 +8,7 @@ const Walker = require('../src/DirWalker')
 const { dump, measure, parseCl, print } = require('./util')
 const { A_SKIP, typename } = Walker
 
-const counts = {}, {args} =parseCl({}, HELP)
+const counts = {}, { args } = parseCl({}, HELP)
 let deepest = '', maxDepth = 0, total = 1
 
 const add = (key) => {
@@ -22,14 +22,13 @@ const processor = function processor ({ action, depth, dir, rootDir, type }) {
   if (depth > maxDepth) (deepest = rootDir + '/' + dir) && (maxDepth = depth)
   return action
 }
-if (dirs.length === 0) dirs.push('.')
 
 const w = new Walker({ processor, rules: null })
-const t = measure(() => dirs.forEach((dir) => w.walk(dir)))
+const t = measure(() => args.forEach((dir) => w.walk(dir)))
 
 dump(w.failures, 'Total %i failures.', w.failures.length)
 
-print('Results from \'%s\':', dirs.join('\', \''))
+print('Results from \'%s\':', args.join('\', \''))
 
 for (const k of Object.keys(counts)) {
   print(typename(k).padStart(16, ' ') + ':', counts[k])
