@@ -2,13 +2,12 @@
 
 const { opendirSync } = require('fs')
 const { join } = require('path')
+const Sincere = require('sincere')
 const definitions = require('./definitions')
-const loadJSON = require('./load-json')
-const RuleTree = require('./RuleTree')
+
 /* eslint-disable */
 const {
         BEGIN_DIR, END_DIR, DO_ABORT, DO_SKIP,
-        NIL,
         T_BLOCK, T_CHAR, T_DIR, T_FIFO, T_FILE, T_SOCKET, T_SYMLINK
       } = definitions
 /* eslint-enable */
@@ -22,6 +21,8 @@ const types = {
   isSocket: T_SOCKET,
   isSymbolicLink: T_SYMLINK
 }
+
+const noop = () => undefined
 
 const getType = (entry) => {
   for (const test of Object.keys(types)) {
@@ -39,13 +40,14 @@ const getType = (entry) => {
 /**
  *  Walks a directory tree according to rules.
  */
-class DirWalker extends RuleTree {
+class DirWalker extends Sincere {
   /**
    * @param {TDirWalkerOptions=} options - can be overridden later.
    */
   constructor (options = undefined) {
     const opts = options || {}
-    super(opts.rules, opts.defaultAction)
+    super()
+    // super(opts.rules, opts.defaultAction)
     this.failures = []
     //  This method can be dynamically changed.
     this.process = opts.processor ||
@@ -69,25 +71,20 @@ class DirWalker extends RuleTree {
   }
 
   /**
-   * @typedef TWalkOptions {Object}
-   * @property {object} locals
-   * @property {function()} onError
-   * @property {function()} process
-   */
-
-  /**
    *  Process directory tree width-first starting from `root`.
    *  If `rules` are defined, test these for ever directory entry
    *  and invoke `process` method.
    *
    * @param {string} root
-   * @param {TWalkOptions=} options
+   * @param {Object=} options
    * @returns {DirWalker}
    */
   walk (root, options = undefined) {
     const opts = options || {}
-    const process = opts.process || this.process
-    const onError = opts.onError || (() => 0)
+    const onBegin = opts.onBegin || noop
+    const onEnd = opts.onEnd || noop
+    const onEntry = opts.onEntry || noop
+    const onError = opts.onError || noop
     const paths = []
     let absDir, action, directory, entry
     this.failures = []
@@ -96,9 +93,9 @@ class DirWalker extends RuleTree {
     while (paths.length) {
       const { depth, dir, locals } = paths.shift(), length = paths.length
 
-      ; (absDir = join(root, dir)) && (action = BEGIN_DIR)
+      ;(absDir = join(root, dir)) && (action = BEGIN_DIR)
 
-      action = process.call(this, { absDir, action, depth, dir, locals, root })
+      action = onBegin.call(this, { absDir, action, depth, dir, locals, root })
       if (action === DO_ABORT) return this
       if (action === DO_SKIP) continue
 
@@ -120,18 +117,17 @@ class DirWalker extends RuleTree {
         const name = entry.name
         const type = getType(entry)
 
-        // const action = this.test(name, parents)
-        const ultimate = process.call(this,
+        action = onEntry.call(this,
           { absDir, depth, dir, locals, name, root, type })
 
-        if (ultimate === DO_ABORT) {
+        if (action === DO_ABORT) {
           paths.splice(length, length)
           break
-        } else if (type === T_DIR && ultimate !== DO_SKIP) {
+        } else if (type === T_DIR && action !== DO_SKIP) {
           paths.push({
             depth: depth + 1,
             dir: join(dir, name),
-            parents: this.lastMatches
+            locals
           })
         }
       }
@@ -139,7 +135,7 @@ class DirWalker extends RuleTree {
       directory = undefined
       action = END_DIR
 
-      if (process.call(this, { absDir, action, depth, dir, locals, root }
+      if (onEnd.call(this, { absDir, action, depth, dir, locals, root }
       ) === DO_ABORT) {
         return this
       }
@@ -148,5 +144,7 @@ class DirWalker extends RuleTree {
   }
 }
 
-Object.assign(DirWalker, { loadJSON, RuleTree, ...definitions })
-module.exports = DirWalker
+exports = module.exports = (options = undefined) => (new DirWalker(options))
+exports.DirWalker = DirWalker
+
+Object.assign(exports, definitions)

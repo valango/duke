@@ -26,16 +26,6 @@ class RuleTree extends Sincere {
      */
     this._tree = []          //  Every node is an array [parentIndex, rule, action].
     /**
-     * Upper limit for rules to be matched/tested against.
-     * @type {number}
-     */
-    this.treeTop = 0
-    /**
-     * Used by test() method.
-     * @type {Array<*> | undefined}
-     */
-    this.lastMatches = undefined
-    /**
      * Action to be bound to new rule.
      * @type {number}
      */
@@ -54,18 +44,22 @@ class RuleTree extends Sincere {
    */
   add (definition, action = undefined) {
     this.assert('add', 'no rules')
+
+    //  Todo: sanitize the code
     if (typeof definition === 'string') {
       this.addPath_(definition, action)
     } else if (Array.isArray(definition)) {
-      let act = definition[0], def = definition
+      const act = definition[0]
       if (typeof act === 'string') {
-        act = action
-      } else {
+        definition.forEach((rule) => this.add(rule, action))
+      } else if (typeof act === 'number') {
         this.assert(action === act || action === undefined,
-          'add', 'action (%i) conflict with %O', action, def)
-        def = def.slice(1)
+          'add', 'action (%i) conflict with %O; tree:\n%O',
+          action, definition)
+        this.add(definition.slice(1), act)
+      } else {
+        definition.forEach((rule) => this.add(rule, action))
       }
-      def.forEach((rule) => this.add(rule, act))
     } else {
       throw new TypeError(this.sincereMessage(
         'add', ['bad definition', definition]))
@@ -119,14 +113,6 @@ class RuleTree extends Sincere {
     }
 
     return this
-  }
-
-  /**
-   * Clone of actual rule tree.
-   * @type {Array<TNode>}
-   */
-  get tree () {
-    return this._tree.map((node) => node.slice())
   }
 
   /**
@@ -194,17 +180,16 @@ class RuleTree extends Sincere {
 
   /**
    * Rigid version of match().
-   * NB: this method uses and affects the `lastMatches` property!
    *
    * @param {string} string
    * @param {Array<*>=} ancestors - from earlier match().
-   * @returns {number}            - action code.
+   * @returns {Array<number>}     - [action code, ancestors].
    */
   test (string, ancestors = undefined) {
-    if (this._tree.length === 0) return NOT_YET
-    const res = this.match(string, ancestors || this.lastMatches)
-    if (res.length) this.lastMatches = res
-    return res.length ? res[0][ACT] : NO_MATCH
+    if (this._tree.length === 0) return NOT_YET   //  Todo: what's this?
+    const res = this.match(string, ancestors || [NIL])
+    if (res.length === 0) return [NO_MATCH, ancestors]
+    return [res[0][ACT], res]
   }
 }
 

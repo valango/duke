@@ -4,9 +4,9 @@
 'use strict'
 
 const HELP = 'Count all files and subdirectories, excluding nothing.'
-const Walker = require('../src/DirWalker')
+const duke = require('../src/DirWalker')
 const { dump, measure, parseCl, print } = require('./util')
-const { A_SKIP, BEGIN_DIR, typename } = Walker
+const { typename } = duke
 
 const counts = {}, { args } = parseCl({}, HELP)
 let deepest = '', maxDepth = 0, total = 1
@@ -17,18 +17,16 @@ const add = (key) => {
 }
 
 //  Application-specific code.
-const processor = function processor ({ action, depth, dir, rootDir, type }) {
-  if (type) {
-    //  Only dir-entry calls have `type`.
-    if (action !== A_SKIP) add(type)
-  } else if (action === BEGIN_DIR && depth > maxDepth) {
-    (deepest = rootDir + '/' + dir) && (maxDepth = depth)
-  }
-  return action
+const onBegin = ({ absDir, depth }) => {
+  if (depth <= maxDepth) return
+  (deepest = absDir) && (maxDepth = depth)
 }
+const onEntry = ({ type }) => add(type)
 
-const w = new Walker({ processor, rules: null })
-const t = measure(() => args.forEach((dir) => w.walk(dir)))
+const w = duke()
+const t = measure(
+  () => args.forEach((dir) => w.walk(dir, { onBegin, onEntry }))
+)
 
 dump(w.failures, 'Total %i failures.', w.failures.length)
 

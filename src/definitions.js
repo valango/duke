@@ -56,5 +56,8 @@ exports = module.exports = {
    * @param {string} type
    * @returns {string}
    */
-  typename: (type) => ts[type]
+  typename: (type) => {
+    if (ts[type]) return ts[type]
+    throw new Error('typename(\'' + type + '\') failed')
+  }
 }
