@@ -3,7 +3,7 @@
 const { NO_MATCH, NOT_YET, GLOB, NIL } = require('./definitions')
 const parse = require('./parse')
 const Sincere = require('sincere')
-const PAR = 0
+// const PAR = 0
 const RUL = 1
 const ACT = 2
 const IDX = 3

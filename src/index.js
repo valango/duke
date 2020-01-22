@@ -9,4 +9,3 @@ module.exports = {
   loadFile: require('./load-file'),
   ...require('./definitions')
 }
-

@@ -3,7 +3,7 @@
 
 const
   {
-    DO_ABORT, DO_SKIP, NOT_YET, T_FILE, T_DIR,
+    DO_ABORT, DO_SKIP, NOT_YET, T_FILE, T_DIR, TERMINATE,
     DirWalker, RuleTree, loadFile
   } = require('../src')
 
@@ -13,7 +13,8 @@ const HELP = `Scan directories for Node.js projects, sorting output by actual pr
   Projects containing '/test' directory will be flagged by 'T'.`
 const OPTS = {
   nested: ['n', 'allow nested projects'],
-  verbose: ['V', 'talk a *lot*']
+  verbose: ['V', 'talk a *lot*'],
+  single: ['s', 'do not use multi-threading']
 }
 const DO_COUNT = 1    //  Add file to count.
 const DO_PROMOTE = 2  //  Found test support.
@@ -41,6 +42,7 @@ const { args, options } = parseCl(OPTS, HELP)
 const relativePath = require('./util/relative-path')
 const talk = options.verbose
   ? print.bind(print, color.green) : () => undefined
+const guard = new Set()
 
 const projects = []
 
@@ -50,21 +52,28 @@ const findMaster = (dir) =>
 const findThis = (dir) => projects.find((p) => p.absDir === dir)
 
 let pkg, dirLength = 0, nameLength = 10, nItems = 0
+let debugAbs
 
 const onBegin = ({ absDir, dir, locals }) => {
   let v
+
   if (findThis(absDir)) return DO_SKIP  //  Already done - multi-threading.
+  debugAbs = absDir
   //  Here we have locals from processing the entry in parent dir.
   //  Here we can set locals for all the following calls.
   if ((v = findMaster(absDir))) {
     locals.master = v
     locals.project = clone(v)
-    if (!options.nested) return talk('  DIR', dir)
+    if (!options.nested) return talk('  DIR', absDir, dir)
+  } else {
+    if (locals.project) {
+      delete locals.project
+    }
   }
   if ((pkg = loadFile(pt.join(absDir, 'package.json')))) {
     pkg = JSON.parse(pkg.toString())
     const name = pkg.name || '<NO-NAME>'
-    talk('PROJECT', dir)
+    talk('PROJECT', absDir, dir)
     locals.project = { absDir, count: 0, name, promo: ' ' }
     ;(locals.rules = projectRules) && (locals.ancs = undefined)
   }
@@ -82,6 +91,10 @@ const onEnd = ({ absDir, dir, locals }) => {
   if (master) {
     (master.promo = project.promo) && (master.count = project.count)
   } else {
+    if (guard.has(project.absDir)) {
+      throw Error(`re-added:\n'${project.absDir}'\n'${debugAbs}'`)
+    }
+    guard.add(project.absDir)
     projects.push(project)
     nameLength = Math.max(project.name.length, nameLength)
   }
@@ -98,7 +111,9 @@ const onEntry = ({ absDir, dir, locals, name, type }) => {
       break
     case NOT_YET:
       //  Forward our rule parsing context to subdirectory.
-      if (type === T_DIR) locals.ancs = ancs
+      if (type === T_DIR) {
+        return { ancs, rules: locals.rules }
+      }
       break
     case DO_COUNT:
       if (type !== T_FILE) break
@@ -118,24 +133,40 @@ const onEntry = ({ absDir, dir, locals, name, type }) => {
   return action
 }
 
+const onError = (error) => {
+  if (!error.code) {
+    return TERMINATE    //  Unexpected code failure
+  }
+  if (error.code === 'ENOTDIR') {
+    return DO_ABORT
+  }
+  if (error.code !== 'EPERM') return DO_ABORT
+  return 0
+}
+
+const callbacks = { onBegin, onEnd, onEntry, onError }
 const walker = new DirWalker()
+const walk = (dir) => walker.walk(pt.resolve(dir), callbacks)
+let threads = args.length > 1 && !options.single
+const task = threads
+  ? () => Promise.all(args.map(walk)) : () => args.forEach(walk)
 
-const t = measure(() => args.forEach((dir) =>
-  walker.walk(pt.resolve(dir), { onBegin, onEnd, onEntry })))
+measure(task).then((t) => {
+  dump(walker.failures, color.redBright, 'Total %i failures.',
+    walker.failures.length)
 
-dump(walker.failures, color.redBright, 'Total %i failures.',
-  walker.failures.length)
+  projects.sort((a, b) => a.name === b.name ? 0 : (a.name > b.name ? 1 : -1))
 
-projects.sort((a, b) => a.name === b.name ? 0 : (a.name > b.name ? 1 : -1))
-
-projects.forEach((p) => {
-  const dir = relativePath(p.absDir, './')
-  dirLength = Math.max(dir.length, dirLength)
-  print('%s %s %s:', p.name.padEnd(nameLength), p.promo,
-    (p.count + '').padStart(5), dir)
+  projects.forEach((p) => {
+    const dir = relativePath(p.absDir, './')
+    dirLength = Math.max(dir.length, dirLength)
+    print('%s %s %s:', p.name.padEnd(nameLength), p.promo,
+      (p.count + '').padStart(5), dir)
+  })
+  print('- name '.padEnd(nameLength, '-'),
+    '? - cnt:', '- directory '.padEnd(dirLength, '-'))
+  print('Total %i projects', projects.length)
+  threads = threads ? 'in ' + args.length + ' threads' : ''
+  print('Total %i ms (%i µs/item) on %i items', t / 1000, t / nItems, nItems,
+    threads)
 })
-print('- name '.padEnd(nameLength, '-'),
-  '? - cnt:', '- directory '.padEnd(dirLength, '-'))
-print('Total %i projects', projects.length)
-
-print('Total %i ms (%i µs/item) on %i items', t / 1000, t / nItems, nItems)

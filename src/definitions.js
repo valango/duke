@@ -36,9 +36,8 @@ exports = module.exports = {
 
   NIL: -1,
 
-  BEGIN_DIR: NaN,     //  Action code for process() method before the 1-st dir entry.
-  END_DIR: Infinity,  //  Action code for process() method when directory is finished.
   //  Action types.
+  TERMINATE: -5,      //  Terminate any walking
   NOT_YET: -4,        //  Possibly partial match, keep trying
   NO_MATCH: -3,       //  Discard all matches
   DO_SKIP: -2,        //  Ignore this directory entry
