@@ -1,5 +1,6 @@
 'use strict'
 
+const clone = require('lodash.clone')
 const { opendirSync } = require('fs')
 const { join } = require('path')
 const Sincere = require('sincere')
@@ -22,7 +23,6 @@ const types = {
   isSymbolicLink: T_SYMLINK
 }
 
-const abort = () => DO_ABORT
 const noop = () => undefined
 
 const getType = (entry) => {
@@ -49,7 +49,7 @@ class DirWalker extends Sincere {
     super()
     /**
      * Diagnostic messages.
-     * @type {*[]}
+     * @type {Array<string>}
      */
     this.failures = []
     /**
@@ -68,6 +68,28 @@ class DirWalker extends Sincere {
     return this
   }
 
+  safely_ (opts, func, args) {
+    let r
+
+    try {
+      delete opts.error
+      r = func.call(this, args)
+    } catch (error) {
+      opts.error = error
+      if (opts.onError) r = opts.onError.call(this, error, args)
+      if (r === undefined) {
+        if (error.code === 'ENOTDIR') {
+          r = DO_SKIP
+        } else if (error.code !== 'EPERM') r = DO_ABORT
+      }
+      if (r !== DO_SKIP) this.registerFailure(error)
+    }
+    if (r === TERMINATE) {
+      this.terminate = true
+    }
+    return r
+  }
+
   /**
    *  Process directory tree width-first starting from `root`.
    *  If `rules` are defined, test these for ever directory entry
@@ -78,68 +100,41 @@ class DirWalker extends Sincere {
    * @returns {DirWalker}
    */
   walk (root, options = undefined) {
-    const opts = options || {}
+    const opts = clone(options || {})
     const onBegin = opts.onBegin || noop
     const onEnd = opts.onEnd || noop
     const onEntry = opts.onEntry || noop
-    const onError = opts.onError
     const paths = []
-    let absDir, action, directory, entry, trapped
+    let action, directory, entry
 
     paths.push({ locals: opts.locals || {}, depth: 0, dir: '' })
 
-    const safely = (func, args) => {
-      let r
-      try {
-        trapped = undefined
-        r = func.call(this, args)
-      } catch (error) {
-        trapped = error
-        if (onError) r = onError.call(this, error, args)
-        if (r === undefined) {
-          if (error.code === 'ENOTDIR') {
-            r = DO_SKIP
-          } else if (error.code !== 'EPERM') r = DO_ABORT
-        }
-        if (r !== DO_SKIP) this.registerFailure(error)
-      }
-      if (r === TERMINATE) {
-        this.terminate = true
-      }
-      return r
-    }
-
     while (paths.length && !this.terminate) {
-      const { depth, dir, locals } = paths.shift(), length = paths.length
+      const { depth, dir, locals } = paths.shift()
+      const absDir = join(root, dir), length = paths.length
 
-      absDir = join(root, dir)
-
-      if (absDir === '/Users/villema/settings170429.jar') {
-        absDir = join(root, dir)
-      }
-      action = safely(onBegin, { absDir, depth, dir, locals, root })
+      action = this.safely_(opts, onBegin, { absDir, depth, dir, locals, root })
       if (action === DO_ABORT) return this
       if (action === DO_SKIP) continue
 
-      directory = safely(opendirSync, join(root, dir))
+      directory = this.safely_(opts, opendirSync, join(root, dir))
 
-      if (trapped) {
+      if (opts.error) {
         if (directory === DO_ABORT) return this
         continue
       }
 
       while ((entry = directory.readSync())) {
-        const name = entry.name
-        const type = getType(entry)
+        const name = entry.name, type = getType(entry)
 
-        action = safely(onEntry,
+        action = this.safely_(opts, onEntry,
           { absDir, depth, dir, locals, name, root, type })
 
         if (action === DO_ABORT) {
           paths.splice(length, length)
           break
         } else if (type === T_DIR && action !== DO_SKIP) {
-          if (trapped) break
+          if (opts.error) break
           paths.push({
             depth: depth + 1,
             dir: join(dir, name),
@@ -149,8 +144,9 @@ class DirWalker extends Sincere {
       }
       directory.closeSync()
 
-      if ((action = safely(onEnd, { absDir, depth, dir, locals, root })) ===
-        DO_ABORT || (trapped && action !== DO_SKIP)) {
+      action = this.safely_(opts, onEnd, { absDir, depth, dir, locals, root })
+
+      if (action === DO_ABORT || (opts.error && action !== DO_SKIP)) {
         return this
       }
     }

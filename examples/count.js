@@ -5,7 +5,7 @@
 
 const HELP = 'Count all files and subdirectories, excluding nothing.'
 const color = require('chalk')
-const { DO_ABORT, DirWalker, typename } = require('../src')
+const { DirWalker, typename } = require('../src')
 const { dump, measure, parseCl, print } = require('./util')
 
 const counts = {}, { args } = parseCl({}, HELP)
@@ -23,16 +23,13 @@ const onBegin = ({ absDir, depth }) => {
 }
 const onEntry = ({ type }) => add(type)
 
-const onError = (error) => {
-  if (!error.code) return   //  Default handling.
-  if (error.code !== 'EPERM') return DO_ABORT
-}
+const walker = new DirWalker()
 
-const w = new DirWalker()
 measure(
-  () => args.forEach((dir) => w.walk(dir, { onBegin, onEntry }))
+  () => args.forEach((dir) => walker.walk(dir, { onBegin, onEntry }))
 ).then((t) => {
-  dump(w.failures, color.redBright, 'Total %i failures.', w.failures.length)
+  dump(walker.failures, color.redBright,
+    'Total %i failures.', walker.failures.length)
 
   for (const k of Object.keys(counts)) {
     print(typename(k).padStart(16, ' ') + ':', counts[k])

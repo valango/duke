@@ -3,7 +3,7 @@
 
 const
   {
-    DO_ABORT, DO_SKIP, NOT_YET, T_FILE, T_DIR, TERMINATE,
+    DO_ABORT, DO_SKIP, NOT_YET, T_FILE, T_DIR,
     DirWalker, RuleTree, loadFile
   } = require('../src')
 
@@ -42,7 +42,6 @@ const { args, options } = parseCl(OPTS, HELP)
 const relativePath = require('./util/relative-path')
 const talk = options.verbose
   ? print.bind(print, color.green) : () => undefined
-const guard = new Set()
 
 const projects = []
 
@@ -52,13 +51,11 @@ const findMaster = (dir) =>
 const findThis = (dir) => projects.find((p) => p.absDir === dir)
 
 let pkg, dirLength = 0, nameLength = 10, nItems = 0
-let debugAbs
 
 const onBegin = ({ absDir, dir, locals }) => {
   let v
 
   if (findThis(absDir)) return DO_SKIP  //  Already done - multi-threading.
-  debugAbs = absDir
   //  Here we have locals from processing the entry in parent dir.
   //  Here we can set locals for all the following calls.
   if ((v = findMaster(absDir))) {
@@ -97,10 +94,6 @@ const onEnd = ({ absDir, dir, locals }) => {
   if (master) {
     (master.promo = project.promo) && (master.count = project.count)
   } else {
-    if (guard.has(project.absDir)) {
-      throw Error(`re-added:\n'${project.absDir}'\n'${debugAbs}'`)
-    }
-    guard.add(project.absDir)
     projects.push(project)
     nameLength = Math.max(project.name.length, nameLength)
   }
@@ -108,11 +101,7 @@ const onEnd = ({ absDir, dir, locals }) => {
 }
 
 //  Application-specific operations.
-const onEntry = ({ absDir, dir, locals, name, type }) => {
-  if (name === 'settings170429.jar') {
-    print('onEntry \'%s\' %s %s %O', dir, name, type, locals, absDir)
-    process.exit(1)
-  }
+const onEntry = ({ dir, locals, name, type }) => {
   const [action, ancs] = locals.rules.test(name, locals.ancs, name)
 
   switch (action) {
@@ -143,12 +132,12 @@ const onEntry = ({ absDir, dir, locals, name, type }) => {
   return action
 }
 
-const onError = (error) => {
-  if (!error.code) return   //  Default handling.
-  if (error.code !== 'EPERM') return DO_ABORT
-}
+// const onError = (error) => {
+//   if (!error.code) return   //  Default handling.
+//   if (error.code !== 'EPERM') return DO_ABORT
+// }
 
-const callbacks = { onBegin, onEnd, onEntry, onError }
+const callbacks = { onBegin, onEnd, onEntry }
 const walker = new DirWalker()
 const walk = (dir) => walker.walk(pt.resolve(dir), callbacks)
 let threads = args.length > 1 && !options.single
