@@ -8,6 +8,7 @@ const DEF_OPTS = { help: ['h', 'display help information'] }
 
 const defaults = require('lodash.defaults')
 const dump = require('./dump')
+const expand = require('./expand')
 const print = require('./print')
 
 /**
@@ -54,5 +55,5 @@ module.exports = (availableOptions, help, input = process.argv) => {
   }
   if (args.length === 0) args.push(DEF_ARG)
 
-  return { args, options }
+  return { args: expand(args), options }
 }
