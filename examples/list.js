@@ -1,10 +1,11 @@
-//  Demoing some power of duke.
+//  Demoing some of the power of Duke.
 'use strict'
 
-const duke = require('../src/DirWalker')
-const { DO_ABORT, DO_SKIP, NOT_YET, T_FILE, T_DIR } = duke
-const RuleTree = require('../src/RuleTree')
-const loadJSON = require('../src/load-json')
+const
+  {
+    DO_ABORT, DO_SKIP, NOT_YET, T_FILE, T_DIR,
+    DirWalker, RuleTree, loadFile
+  } = require('../src')
 
 const HELP = `Scan directories for Node.js projects, sorting output by actual project names.
   Counting .js files will ignore those in '/test' or 'vendor' directories or in
@@ -60,7 +61,8 @@ const onBegin = ({ absDir, dir, locals }) => {
     locals.project = clone(v)
     if (!options.nested) return talk('  DIR', dir)
   }
-  if ((pkg = loadJSON(pt.join(absDir, 'package.json')))) {
+  if ((pkg = loadFile(pt.join(absDir, 'package.json')))) {
+    pkg = JSON.parse(pkg.toString())
     const name = pkg.name || '<NO-NAME>'
     talk('PROJECT', dir)
     locals.project = { absDir, count: 0, name, promo: ' ' }
@@ -116,7 +118,7 @@ const onEntry = ({ absDir, dir, locals, name, type }) => {
   return action
 }
 
-const walker = duke()
+const walker = new DirWalker()
 
 const t = measure(() => args.forEach((dir) =>
   walker.walk(pt.resolve(dir), { onBegin, onEnd, onEntry })))

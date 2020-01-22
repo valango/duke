@@ -1,10 +1,10 @@
 /**
- * Simple driver for debugging.
+ * Simple driver for debugging - not much a demo.
  */
 'use strict'
 
 const parse = require('../src/parse')
-const {print} = require('./util')
+const { print } = require('./util')
 // const { DO_SKIP } = require('../src/definitions')
 
 let res = parse(process.argv[2] || '/a/**/*')

@@ -144,7 +144,4 @@ class DirWalker extends Sincere {
   }
 }
 
-exports = module.exports = (options = undefined) => (new DirWalker(options))
-exports.DirWalker = DirWalker
-
-Object.assign(exports, definitions)
+module.exports = DirWalker

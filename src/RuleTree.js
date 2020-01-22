@@ -193,6 +193,4 @@ class RuleTree extends Sincere {
   }
 }
 
-exports = module.exports = RuleTree
-
-Object.assign(exports, { ACT, GLOB, IDX, NIL, PAR, RUL })
+module.exports = RuleTree

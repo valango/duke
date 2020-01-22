@@ -4,9 +4,9 @@
 'use strict'
 
 const HELP = 'Count all files and subdirectories, excluding nothing.'
-const duke = require('../src/DirWalker')
+const color = require('chalk')
+const { DirWalker, typename } = require('../src')
 const { dump, measure, parseCl, print } = require('./util')
-const { typename } = duke
 
 const counts = {}, { args } = parseCl({}, HELP)
 let deepest = '', maxDepth = 0, total = 1
@@ -23,12 +23,12 @@ const onBegin = ({ absDir, depth }) => {
 }
 const onEntry = ({ type }) => add(type)
 
-const w = duke()
+const w = new DirWalker()
 const t = measure(
   () => args.forEach((dir) => w.walk(dir, { onBegin, onEntry }))
 )
 
-dump(w.failures, 'Total %i failures.', w.failures.length)
+dump(w.failures, color.redBright, 'Total %i failures.', w.failures.length)
 
 print('Results from \'%s\':', args.join('\', \''))
 
