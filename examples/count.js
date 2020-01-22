@@ -6,7 +6,7 @@
 const HELP = 'Count all files and subdirectories, excluding nothing.'
 const Walker = require('../src/DirWalker')
 const { dump, measure, parseCl, print } = require('./util')
-const { A_SKIP, typename } = Walker
+const { A_SKIP, BEGIN_DIR, typename } = Walker
 
 const counts = {}, { args } = parseCl({}, HELP)
 let deepest = '', maxDepth = 0, total = 1
@@ -18,8 +18,12 @@ const add = (key) => {
 
 //  Application-specific code.
 const processor = function processor ({ action, depth, dir, rootDir, type }) {
-  if (action !== A_SKIP) add(type)
-  if (depth > maxDepth) (deepest = rootDir + '/' + dir) && (maxDepth = depth)
+  if (type) {
+    //  Only dir-entry calls have `type`.
+    if (action !== A_SKIP) add(type)
+  } else if (action === BEGIN_DIR && depth > maxDepth) {
+    (deepest = rootDir + '/' + dir) && (maxDepth = depth)
+  }
   return action
 }
 

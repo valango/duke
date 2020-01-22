@@ -69,30 +69,36 @@ class DirWalker extends RuleTree {
   }
 
   /**
+   * @typedef TWalkOptions {Object}
+   * @property {object} locals
+   * @property {function()} onError
+   * @property {function()} process
+   */
+
+  /**
    *  Process directory tree width-first starting from `root`.
    *  If `rules` are defined, test these for ever directory entry
    *  and invoke `process` method.
    *
    * @param {string} root
-   * @param {Object} options
+   * @param {TWalkOptions=} options
    * @returns {DirWalker}
    */
   walk (root, options = undefined) {
     const opts = options || {}
     const process = opts.process || this.process
     const onError = opts.onError || (() => 0)
-    const locals = {}, paths = []
+    const paths = []
     let absDir, action, directory, entry
     this.failures = []
-    paths.push({ parents: [NIL], depth: 0, dir: '' })
+    paths.push({ locals: opts.locals || {}, depth: 0, dir: '' })
 
     while (paths.length) {
-      const { parents, depth, dir } = paths.shift(), length = paths.length
+      const { depth, dir, locals } = paths.shift(), length = paths.length
 
-      absDir = join(root, dir)
-      //  Todo: here we can set parents or even the tree!
-      action = process.call(this,
-        { absDir, action: BEGIN_DIR, depth, dir, locals, paths, parents, root })
+      ; (absDir = join(root, dir)) && (action = BEGIN_DIR)
+
+      action = process.call(this, { absDir, action, depth, dir, locals, root })
       if (action === DO_ABORT) return this
       if (action === DO_SKIP) continue
 
@@ -101,7 +107,7 @@ class DirWalker extends RuleTree {
       } catch (error) {
         //  To retry, the handler must just path.unshift() and return falsy.
         const r = onError.call(this,
-          { absDir, depth, dir, error, locals, root, paths })
+          { absDir, depth, dir, error, locals, root })
         if (r === DO_SKIP) continue
         if (error) this.registerFailure(error)
         if (r === DO_ABORT) return this
@@ -114,9 +120,9 @@ class DirWalker extends RuleTree {
         const name = entry.name
         const type = getType(entry)
 
-        const action = this.test(name, parents)
+        // const action = this.test(name, parents)
         const ultimate = process.call(this,
-          { absDir, action, depth, dir, locals, name, parents, paths, root, type })
+          { absDir, depth, dir, locals, name, root, type })
 
         if (ultimate === DO_ABORT) {
           paths.splice(length, length)
@@ -131,9 +137,10 @@ class DirWalker extends RuleTree {
       }
       directory.closeSync()
       directory = undefined
+      action = END_DIR
 
-      if (process.call(this,
-        { absDir, action: END_DIR, depth, dir, locals, paths, root }) === DO_ABORT) {
+      if (process.call(this, { absDir, action, depth, dir, locals, root }
+      ) === DO_ABORT) {
         return this
       }
     }
