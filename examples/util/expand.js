@@ -22,7 +22,8 @@ module.exports = (args) => {
     const p = path.substring(0, path.length - 2), dir = opendirSync(p)
     let entry
     while ((entry = dir.readSync())) {
-      if (entry.isDirectory()) res.push(join(p, entry.name))
+      if (!entry.isDirectory()) continue
+      if (entry.name[0] !== '.') res.push(join(p, entry.name))
     }
     dir.closeSync()
   }

@@ -45,24 +45,18 @@ class DirWalker extends Sincere {
   /**
    * @param {TDirWalkerOptions=} options - can be overridden later.
    */
-  constructor (options = undefined) {
-    const opts = options || {}
+  constructor () {
     super()
-    // super(opts.rules, opts.defaultAction)
+    /**
+     * Diagnostic messages.
+     * @type {*[]}
+     */
     this.failures = []
-    //  This method can be dynamically changed.
-    this.process = opts.processor ||
-      ((entryContext) => this.processEntry(entryContext))
+    /**
+     * When true, walking will terminate immediately.
+     * @type {boolean}
+     */
     this.terminate = false
-  }
-
-  /**
-   * To be overridden in derived classes.
-   * @param entryContext
-   * @returns {*}
-   */
-  processEntry ({ action }) {
-    return action
   }
 
   registerFailure (failure, comment = '') {
@@ -77,35 +71,42 @@ class DirWalker extends Sincere {
   /**
    *  Process directory tree width-first starting from `root`.
    *  If `rules` are defined, test these for ever directory entry
-   *  and invoke `process` method.
+   *  and invoke appropriate method.
    *
    * @param {string} root
    * @param {Object=} options
    * @returns {DirWalker}
    */
   walk (root, options = undefined) {
-    const guard = new Set()
     const opts = options || {}
     const onBegin = opts.onBegin || noop
     const onEnd = opts.onEnd || noop
     const onEntry = opts.onEntry || noop
-    const onError = opts.onError || abort
+    const onError = opts.onError
     const paths = []
     let absDir, action, directory, entry, trapped
 
     paths.push({ locals: opts.locals || {}, depth: 0, dir: '' })
 
     const safely = (func, args) => {
+      let r
       try {
         trapped = undefined
-        return func.call(this, args)
+        r = func.call(this, args)
       } catch (error) {
         trapped = error
-        const r = onError.call(this, error, args)
+        if (onError) r = onError.call(this, error, args)
+        if (r === undefined) {
+          if (error.code === 'ENOTDIR') {
+            r = DO_SKIP
+          } else if (error.code !== 'EPERM') r = DO_ABORT
+        }
         if (r !== DO_SKIP) this.registerFailure(error)
-        if (r === TERMINATE) this.terminate = true
-        return r
       }
+      if (r === TERMINATE) {
+        this.terminate = true
+      }
+      return r
     }
 
     while (paths.length && !this.terminate) {
@@ -113,6 +114,9 @@ class DirWalker extends Sincere {
 
       absDir = join(root, dir)
 
+      if (absDir === '/Users/villema/settings170429.jar') {
+        absDir = join(root, dir)
+      }
       action = safely(onBegin, { absDir, depth, dir, locals, root })
       if (action === DO_ABORT) return this
       if (action === DO_SKIP) continue
@@ -136,23 +140,17 @@ class DirWalker extends Sincere {
           break
         } else if (type === T_DIR && action !== DO_SKIP) {
           if (trapped) break
-          const d = join(dir, name)
-          if (guard.has(d)) {
-            throw Error(`re-listed: '${d}'`)
-          }
           paths.push({
             depth: depth + 1,
-            dir: d,
+            dir: join(dir, name),
             locals: typeof action === 'object' ? action : {}
           })
-          guard.add(d)
         }
       }
       directory.closeSync()
-      directory = undefined
 
-      action = safely(onEnd, { absDir, depth, dir, locals, root })
-      if (action === DO_ABORT || (trapped && action !== DO_SKIP)) {
+      if ((action = safely(onEnd, { absDir, depth, dir, locals, root })) ===
+        DO_ABORT || (trapped && action !== DO_SKIP)) {
         return this
       }
     }

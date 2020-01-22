@@ -5,7 +5,7 @@
 
 const HELP = 'Count all files and subdirectories, excluding nothing.'
 const color = require('chalk')
-const { DirWalker, typename } = require('../src')
+const { DO_ABORT, DirWalker, typename } = require('../src')
 const { dump, measure, parseCl, print } = require('./util')
 
 const counts = {}, { args } = parseCl({}, HELP)
@@ -23,18 +23,21 @@ const onBegin = ({ absDir, depth }) => {
 }
 const onEntry = ({ type }) => add(type)
 
-const w = new DirWalker()
-const t = measure(
-  () => args.forEach((dir) => w.walk(dir, { onBegin, onEntry }))
-)
-
-dump(w.failures, color.redBright, 'Total %i failures.', w.failures.length)
-
-print('Results from \'%s\':', args.join('\', \''))
-
-for (const k of Object.keys(counts)) {
-  print(typename(k).padStart(16, ' ') + ':', counts[k])
+const onError = (error) => {
+  if (!error.code) return   //  Default handling.
+  if (error.code !== 'EPERM') return DO_ABORT
 }
-print('Total %i ms (%i µs per item), max directory depth: %i.',
-  t / 1000, t / total, maxDepth)
-print('The deepest directory:\n%s', deepest)
+
+const w = new DirWalker()
+measure(
+  () => args.forEach((dir) => w.walk(dir, { onBegin, onEntry }))
+).then((t) => {
+  dump(w.failures, color.redBright, 'Total %i failures.', w.failures.length)
+
+  for (const k of Object.keys(counts)) {
+    print(typename(k).padStart(16, ' ') + ':', counts[k])
+  }
+  print('Total %i ms (%i µs per item), max directory depth: %i.',
+    t / 1000, t / total, maxDepth)
+  print('The deepest directory:\n%s', deepest)
+})

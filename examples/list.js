@@ -70,7 +70,13 @@ const onBegin = ({ absDir, dir, locals }) => {
       delete locals.project
     }
   }
-  if ((pkg = loadFile(pt.join(absDir, 'package.json')))) {
+
+  if ((pkg = loadFile(pt.join(absDir, 'package.json'), true))) {
+    if (pkg instanceof Error) {
+      //  This happens when `root` argument of walk() is not a directory.
+      if (pkg.code === 'ENOTDIR') return DO_SKIP
+      throw pkg
+    }
     pkg = JSON.parse(pkg.toString())
     const name = pkg.name || '<NO-NAME>'
     talk('PROJECT', absDir, dir)
@@ -103,6 +109,10 @@ const onEnd = ({ absDir, dir, locals }) => {
 
 //  Application-specific operations.
 const onEntry = ({ absDir, dir, locals, name, type }) => {
+  if (name === 'settings170429.jar') {
+    print('onEntry \'%s\' %s %s %O', dir, name, type, locals, absDir)
+    process.exit(1)
+  }
   const [action, ancs] = locals.rules.test(name, locals.ancs, name)
 
   switch (action) {
@@ -134,14 +144,8 @@ const onEntry = ({ absDir, dir, locals, name, type }) => {
 }
 
 const onError = (error) => {
-  if (!error.code) {
-    return TERMINATE    //  Unexpected code failure
-  }
-  if (error.code === 'ENOTDIR') {
-    return DO_ABORT
-  }
+  if (!error.code) return   //  Default handling.
   if (error.code !== 'EPERM') return DO_ABORT
-  return 0
 }
 
 const callbacks = { onBegin, onEnd, onEntry, onError }
