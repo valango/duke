@@ -124,8 +124,8 @@ action code for following rule(s). Array may be nested.
 Example (two lines below have the same effect):
 
 ```javascript
-o.add(DO_SKIP, 'node_modules', '.*', DO_DEFAULT, '*.js', 'test/*spec.js')
-o.add([DO_SKIP, 'node_modules', '.*']).add([DO_DEFAULT, '*.js', 'test/*spec.js'])
+o.add([DO_SKIP, 'node_modules', '.*', DO_DEFAULT, '*.js', 'test/*spec.js'])
+o.add(['node_modules', '.*'], DO_SKIP).add([DO_DEFAULT, '*.js', 'test/*spec.js'])
 ```
 
 **_`dump`_**_`(): Array<Array>`_ method
