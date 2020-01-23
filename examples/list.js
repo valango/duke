@@ -1,11 +1,5 @@
-//  Demoing some of the power of Duke.
+#!/usr/bin/env node
 'use strict'
-
-const
-  {
-    DO_ABORT, DO_SKIP, NOT_YET, T_FILE, T_DIR,
-    DirWalker, RuleTree, loadFile
-  } = require('../src')
 
 const HELP = `Scan directories for Node.js projects, sorting output by actual project names.
   Counting .js files will ignore those in '/test' or 'vendor' directories or in
@@ -16,6 +10,12 @@ const OPTS = {
   verbose: ['V', 'talk a *lot*'],
   single: ['s', 'do not use multi-threading']
 }
+const
+  {
+    DO_ABORT, DO_SKIP, NOT_YET, T_FILE, T_DIR,
+    DirWalker, RuleTree, loadFile
+  } = require('../src')
+
 const DO_COUNT = 1    //  Add file to count.
 const DO_PROMOTE = 2  //  Found test support.
 

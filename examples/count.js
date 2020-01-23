@@ -1,6 +1,4 @@
-/**
- * Count all files and subdirectories, w/o applying any rules.
- */
+#!/usr/bin/env node
 'use strict'
 
 const HELP = 'Count all files and subdirectories, excluding nothing.'
