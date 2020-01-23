@@ -4,28 +4,17 @@ process.env.NODE_MODULES = 'test'
 
 const { expect } = require('chai')
 const _ = require('lodash')
-const { DO_ABORT, DO_CONTINUE, DO_DEFAULT, DO_SKIP } = require(
+const { DO_ABORT, DO_SKIP } = require(
   '../src/definitions')
 const RuleTree = require('../src/RuleTree')
 const W = require('../src')[ME]
 
-let w, w2, options, context, count, rules
-
-class W2 extends W {
-  processEntry (d) {
-    const a = super.processEntry(d)
-    if (d.type !== W.T_DIR) return DO_SKIP
-    // console.log(a, d)
-    if (d.name === 'node_modules') (context = d)
-    return ++count > 4 ? W.DO_ABORT : a
-  }
-}
+let w, options, context, count, rules
 
 describe(ME, () => {
   beforeEach(() => {
     rules = new RuleTree([DO_SKIP, '/node_modules', '.*'])
     w = new W(options)
-    w2 = new W2(options)
     context = undefined
     count = 0
   })

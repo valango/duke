@@ -23,7 +23,7 @@ const rxBraces = /(?<!\\){[^}]+(?<!\\)}/g   //  Detect non-escaped {...}
  * Convert `string` parts separated by '/' to array of RegExp instances.
  *
  * @param {string} string
- * @param {Object=} options
+ * @param {Object<{extended, optimize}>} options
  * @returns {Array<*>} = the first entry is flags object
  */
 exports = module.exports = (string, options = undefined) => {

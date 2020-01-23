@@ -1,6 +1,7 @@
 'use strict'
 
-const { DO_DISCARD, DO_CONTINUE, GLOB, NIL } = require('../definitions')
+const { DO_DEFAULT, DO_DISCARD, DO_CONTINUE, GLOB, NIL } = require('../definitions')
+const defaults = require('lodash.defaults')
 const parse = require('./parse')
 const Sincere = require('sincere')
 // const PAR = 0
@@ -14,9 +15,9 @@ const IDX = 3
 class RuleTree extends Sincere {
   /**
    * @param {Array<*>=} rules
-   * @param {number=} defaultAction
+   * @param {Object<{action:number, extended, optimize}>=} options
    */
-  constructor (rules = undefined, defaultAction = undefined) {
+  constructor (rules = undefined, options = undefined) {
     super()
     /**
      * Rule tree of nodes [parentIndex, rule, action].
@@ -37,10 +38,16 @@ class RuleTree extends Sincere {
      */
     this._level = 0
     /**
+     * Options for string parser.
+     * @type {Object}
+     */
+    this.options = defaults({}, options)
+    /**
      * Action to be bound to new rule - used and possibly mutated by add().
      * @type {number}
      */
-    this.defaultAction = defaultAction === undefined ? 0 : defaultAction
+    this.defaultAction = this.options.action === undefined
+      ? DO_DEFAULT : this.options.action
     if (rules) this.add(rules)
   }
 
@@ -88,7 +95,8 @@ class RuleTree extends Sincere {
    * @private
    */
   addPath_ (path, forAction = undefined) {
-    const rules = parse(path), flags = rules.shift(), L = 'addPath_'
+    const rules = parse(path, this.options)
+    const flags = rules.shift(), L = 'addPath_'
 
     this.assert(rules.length, L, 'no rules')
     const tree = this._tree, last = rules.length - 1

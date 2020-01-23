@@ -42,13 +42,13 @@ describe(ME, () => {
   beforeEach(() => {
     t = new RuleTree(T1, YES)
     n = 0
-    t.lastIndex = NIL
-    t.lastMatches = undefined
   })
 
   it('should construct', () => {
     // console.log('DUMP', t.dump())
     expect(t.dump()).to.eql(D1)
+    t = new RuleTree('/a*', { action: 2, optimize: false })
+    expect(t.dump()).to.eql([[NIL, /^a.*$/, 2]])
   })
 
   it('should match', () => {
