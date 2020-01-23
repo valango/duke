@@ -12,7 +12,7 @@ const OPTS = {
 }
 const
   {
-    DO_ABORT, DO_SKIP, NOT_YET, T_FILE, T_DIR,
+    DO_ABORT, DO_SKIP, DO_CONTINUE, T_FILE, T_DIR,
     DirWalker, RuleTree, loadFile
   } = require('../src')
 
@@ -104,7 +104,7 @@ const onEntry = ({ dir, locals, name, type }) => {
     case DO_ABORT:
       talk('ABORT', dir)
       break
-    case NOT_YET:
+    case DO_CONTINUE:
       //  Forward our rule parsing context to subdirectory.
       if (type === T_DIR) {
         return { ancs, rules: locals.rules }
