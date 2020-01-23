@@ -8,7 +8,7 @@ const color = require('chalk')
 const { DirWalker, typename } = require('../src')
 const { dump, measure, parseCl, print } = require('./util')
 
-const counts = {}, { args } = parseCl({}, HELP)
+const counts = {}, { args } = parseCl({}, HELP, true)
 let deepest = '', maxDepth = 0, total = 1
 
 const add = (key) => {
@@ -23,10 +23,10 @@ const onBegin = ({ absDir, depth }) => {
 }
 const onEntry = ({ type }) => add(type)
 
-const walker = new DirWalker()
+const walker = new DirWalker({ onBegin, onEntry })
 
 measure(
-  () => args.forEach((dir) => walker.walk(dir, { onBegin, onEntry }))
+  () => args.forEach((dir) => walker.walk(dir))
 ).then((t) => {
   dump(walker.failures, color.redBright,
     'Total %i failures.', walker.failures.length)

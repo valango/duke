@@ -1,6 +1,6 @@
 'use strict'
 
-const clone = require('lodash.clone')
+const defaults = require('lodash.defaults')
 const { opendirSync } = require('fs')
 const { join } = require('path')
 const Sincere = require('sincere')
@@ -32,26 +32,21 @@ const getType = (entry) => {
 }
 
 /**
- * @typedef TDirWalkerOptions {Object}
- * @member {number} [defaultAction]
- * @member {*} [rules]
- * @member {function():number} [processor] will be called on every dir-entry
- */
-
-/**
  *  Walks a directory tree according to rules.
  */
 class DirWalker extends Sincere {
-  /**
-   * @param {TDirWalkerOptions=} options - can be overridden later.
-   */
-  constructor () {
+  constructor (options) {
     super()
     /**
      * Diagnostic messages.
      * @type {Array<string>}
      */
     this.failures = []
+    /**
+     * Options to be applied to walk() by default.
+     * @type {Object}
+     */
+    this.options = options
     /**
      * When true, walking will terminate immediately.
      * @type {boolean}
@@ -91,16 +86,15 @@ class DirWalker extends Sincere {
   }
 
   /**
-   *  Process directory tree width-first starting from `root`.
-   *  If `rules` are defined, test these for ever directory entry
-   *  and invoke appropriate method.
+   *  Process directory tree width-first starting from `root`
+   *  and invoke appropriate on... method.
    *
    * @param {string} root
-   * @param {Object=} options
+   * @param {Object<{?onBegin, ?onEnd, ?onEntry, ?onError}>} options
    * @returns {DirWalker}
    */
   walk (root, options = undefined) {
-    const opts = clone(options || {})
+    const opts = defaults({}, options, this.options)
     const onBegin = opts.onBegin || noop
     const onEnd = opts.onEnd || noop
     const onEntry = opts.onEntry || noop

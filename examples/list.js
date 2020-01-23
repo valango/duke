@@ -34,11 +34,10 @@ const projectRules = new RuleTree([
 
 // Todo: we must swap the whole t
 
-const { clone } = require('lodash')
 const color = require('chalk')
 const pt = require('path')
 const { dump, measure, parseCl, print } = require('./util')
-const { args, options } = parseCl(OPTS, HELP)
+const { args, options } = parseCl(OPTS, HELP, true)
 const relativePath = require('./util/relative-path')
 const talk = options.verbose
   ? print.bind(print, color.green) : () => undefined
@@ -59,13 +58,10 @@ const onBegin = ({ absDir, dir, locals }) => {
   //  Here we have locals from processing the entry in parent dir.
   //  Here we can set locals for all the following calls.
   if ((v = findMaster(absDir))) {
-    locals.master = v
-    locals.project = clone(v)
+    locals.master = locals.project = v
     if (!options.nested) return talk('  DIR', absDir, dir)
-  } else {
-    if (locals.project) {
-      delete locals.project
-    }
+  } else if (locals.project) {
+    delete locals.project
   }
 
   if ((pkg = loadFile(pt.join(absDir, 'package.json'), true))) {
@@ -78,7 +74,11 @@ const onBegin = ({ absDir, dir, locals }) => {
     const name = pkg.name || '<NO-NAME>'
     talk('PROJECT', absDir, dir)
     locals.project = { absDir, count: 0, name, promo: ' ' }
-    ;(locals.rules = projectRules) && (locals.ancs = undefined)
+    if (locals.master) {
+      delete locals.master
+      locals.project.promo = 'N'
+    }
+    (locals.rules = projectRules) && (locals.ancs = undefined)
   }
   if (!locals.rules) {
     //  This parsing context will be in effect above the first project
@@ -91,9 +91,7 @@ const onBegin = ({ absDir, dir, locals }) => {
 const onEnd = ({ absDir, dir, locals }) => {
   const { master, project } = locals
   if (!project) return
-  if (master) {
-    (master.promo = project.promo) && (master.count = project.count)
-  } else {
+  if (!master) {
     projects.push(project)
     nameLength = Math.max(project.name.length, nameLength)
   }
@@ -132,14 +130,8 @@ const onEntry = ({ dir, locals, name, type }) => {
   return action
 }
 
-// const onError = (error) => {
-//   if (!error.code) return   //  Default handling.
-//   if (error.code !== 'EPERM') return DO_ABORT
-// }
-
-const callbacks = { onBegin, onEnd, onEntry }
-const walker = new DirWalker()
-const walk = (dir) => walker.walk(pt.resolve(dir), callbacks)
+const walker = new DirWalker({ onBegin, onEnd, onEntry })
+const walk = (dir) => walker.walk(pt.resolve(dir))
 let threads = args.length > 1 && !options.single
 const task = threads
   ? () => Promise.all(args.map(walk)) : () => args.forEach(walk)

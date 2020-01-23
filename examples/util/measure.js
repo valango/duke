@@ -1,6 +1,3 @@
-/**
- * @module examples/util/measure
- */
 'use strict'
 
 /**

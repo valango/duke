@@ -30,7 +30,6 @@
   },
   "dependencies": {
     "brace-expansion": "^1.1.11",
-    "lodash.clone": "^4.5.0",
     "lodash.defaults": "^4.2.0"
   },
   "devDependencies": {

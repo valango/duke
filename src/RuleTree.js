@@ -8,8 +8,6 @@ const RUL = 1
 const ACT = 2
 const IDX = 3
 
-/** @typedef TNode {Array<*>} */
-
 /**
  * Rule tree and intermediate state of searches.
  */
@@ -21,7 +19,7 @@ class RuleTree extends Sincere {
   constructor (rules = undefined, defaultAction = undefined) {
     super()
     /**
-     * @type {Array<TNode>}
+     * @type Array<Array<*>>
      * @private
      */
     this._tree = []          //  Every node is an array [parentIndex, rule, action].
@@ -116,6 +114,14 @@ class RuleTree extends Sincere {
   }
 
   /**
+   * Copy the internal rule tree - intended for testing / debugging.
+   * @returns {Array<Array<*>>}
+   */
+  dump () {
+    return this._tree.slice()
+  }
+
+  /**
    * Match the `string` against rules, without mutating object state.
    *
    * The results array will be sorted by action code, higher first.
@@ -156,7 +162,7 @@ class RuleTree extends Sincere {
               continue
             }
           }
-          ///  We got match!
+          //  We got a match!
           res.push([par, rule, act, i])
           if (act === NO_MATCH) break
         }

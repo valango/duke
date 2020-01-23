@@ -1,6 +1,3 @@
-/**
- * @module examples/util/index
- */
 'use strict'
 
 module.exports = {

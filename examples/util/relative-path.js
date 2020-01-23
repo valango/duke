@@ -1,7 +1,3 @@
-/**
- * @module relative-path
- * @version 1.0.0
- */
 'use strict'
 
 /**

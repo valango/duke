@@ -1,6 +1,3 @@
-/**
- * @module example/util/print
- */
 'use strict'
 const { format } = require('util')
 

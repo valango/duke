@@ -1,6 +1,3 @@
-/**
- * @module examples/util/dump
- */
 'use strict'
 
 const print = require('./print')

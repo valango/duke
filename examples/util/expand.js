@@ -1,6 +1,3 @@
-/**
- * @module expand
- */
 'use strict'
 
 const { opendirSync } = require('fs')
