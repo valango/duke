@@ -70,12 +70,13 @@ describe(ME, () => {
   it('should register exceptions', () => {
     let data
     w.walk(process.cwd() + '/nope', {
-      onError: function (d) {
-        data = d
-        data.instance = this
+      onError: function (e, d) {
+        data = {args: d, instance: this}
+        return 0    //  Prevent default error handling
       }
     })
-    expect(data && data.instance).to.equal(w)
+    expect(data.instance).to.equal(w)
+    expect(data.args).to.match(/\/nope$/)
     expect(w.failures.length).to.eql(1)
     expect(w.failures[0]).to.match(/^ENOENT/)
   })

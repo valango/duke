@@ -75,7 +75,7 @@ class DirWalker extends Sincere {
       if (r === undefined) {
         if (error.code === 'ENOTDIR') {
           r = DO_SKIP
-        } else if (error.code !== 'EPERM') r = DO_ABORT
+        } else if (error.code !== 'EPERM') throw error  // r = DO_ABORT
       }
       if (r !== DO_SKIP) this.registerFailure(error)
     }

@@ -24,7 +24,7 @@
   },
   "homepage": "https://github.com/valango/duke",
   "engines": {
-    "node": ">= 12.0.0",
+    "node": ">= 12.12.0",
     "npm": ">= 5.6.0",
     "yarn": ">= 1.6.0"
   },

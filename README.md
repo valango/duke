@@ -20,14 +20,58 @@ How to do this? Just take a look to
 [examples/count.js](examples/count.js) 
 or better yet - clone the project and play around a bit.
 
-```javascript
-
-```
-
 ## Usage
+**NB:** This package needs Node.js v12.12 or higher.
+
 Install with npm
 
 ```
 npm i dwalker
 ```
+
+### How it works
+Class instance of DirWalker exposes **_`walk()`_** method,
+which does most of the job. It traverses directory hierarchy width-first,
+calling application-defined handlers, as it goes. The walk() code
+is re-enterable and it can run in parallel parallel promise instances.
+
+Here is a simplified algorithm:
+```javascript
+function walk (root, {onBegin, onEntry, onEnd}) {
+  let action, context, directory
+  const fifo = [{ dir: '' }]
+
+  while ((context = fifo.shift()) !== undefined) {
+    const { dir } = context
+    if ((action = onBegin(context)) === DO_ABORT) return
+    if (action === DO_SKIP) continue
+
+    directory = fs.opendirSync(join(root, dir))
+
+    while (({ name, type } = directory.readSync())) {
+      action = onEntry({ name, type, ...context })
+      if (action === DO_ABORT) discardPushedEntriesAndBreak()
+      //  The entries pushed here will be processed next.
+      if (action !== DO_SKIP && type === 'dir') fifo.push({dir: join(dir, name)})
+    }
+    directory.closeSync()
+
+    if ((action = onEnd(context)) === DO_ABORT ||
+      wasError() && action !== DO_SKIP) {
+        return
+    }
+  }
+}
+```
+Application - specific handlers _`onBegin`_, _`onEnd`_, _`onEntry`_ and 
+_`onError`_ are all optional but without them,
+DirWalker just won't do anything useful.
+
+## API
+### Class `DirWalker`
+The class instance exposes **_`walk()`_** method, which does all the job.
+
+**_`walk`_**_`(rootDir: string, options=: Object)`_
+
+
 
