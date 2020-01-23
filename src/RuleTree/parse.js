@@ -14,7 +14,7 @@ const SEPARATOR = /(?<!\\)\//     //  Matches '/' only if not escaped.
 
 const assert = require('assert').strict
 const brexIt = require('brace-expansion')
-const { GLOB } = require('./definitions')
+const { GLOB } = require('../definitions')
 const defaults = require('lodash.defaults')
 
 const rxBraces = /(?<!\\){[^}]+(?<!\\)}/g   //  Detect non-escaped {...}

@@ -1,6 +1,6 @@
 'use strict'
 
-const { DO_DISCARD, DO_CONTINUE, GLOB, NIL } = require('./definitions')
+const { DO_DISCARD, DO_CONTINUE, GLOB, NIL } = require('../definitions')
 const parse = require('./parse')
 const Sincere = require('sincere')
 // const PAR = 0
