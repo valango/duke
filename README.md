@@ -70,7 +70,7 @@ _`DirWalker`_ just won't do much useful without them.
 Things really get exciting, when we apply some business logic in our handlers.
 See [another example](examples/list.js)
 
-## API
+## Package exports
 ### Class `DirWalker`
 **_`constructor`_**_`(options=: Object)`_
 The optional _`options`_ argument may contain default handlers for _`walk()`_.
@@ -110,3 +110,26 @@ it will be treated as action code, which will prevail over default action.
 
 If `rule` is an array, then every numeric member will be interpreted as
 action code for following rule(s). Array may be nested.
+
+**_`dump`_**_`(): Array<Array>`_ method
+Returns clone of the internal rule tree - useful for diagnostics and testing.
+
+**_`match`_**_`(string: string, ancestors=: Array): Array<*>`_ method
+The ancestors argument is usually result from another call to _`match()`_.
+In most cases, it is far easier to use _`test()`_ method instead.
+
+**_`test`_**_`(string: string, ancestors=: Array): [action, ancestors]`_ method
+Match the string against rules in given ancestors context. The _`action`_
+part of return value is relevant to business logic; `ancestors` are
+to be used for the next call if action part is _`DO_CONTINUE`_.
+
+## Helper functions
+**_`loadFile`_**_`(path: string, nicely=: false): * | undefined`_ function
+Reads file synchronously and return _`Buffer`_ instance.
+If file is not found, then just return _`undefined`_.
+
+Setting _`nicely`_ argument prevents any exception throwing; just Error instance
+is returned by function.
+
+**_`typeName`_**_`(type: string): string | undefined`_ function
+Translate single-character type id used by _`DirWalker`_ to human-readable string.
