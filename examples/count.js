@@ -9,12 +9,13 @@ const { dump, measure, parseCl, print } = require('./util')
 const counts = {}, { args } = parseCl({}, HELP, true)
 let deepest = '', maxDepth = 0, total = 1
 
+//  =======  Start of application-specific code.
+
 const add = (key) => {
   if (!counts[key]) counts[key] = 0
   ++counts[key] && ++total
 }
 
-//  Application-specific code.
 const onBegin = ({ absDir, depth }) => {
   if (depth <= maxDepth) return
   (deepest = absDir) && (maxDepth = depth)
@@ -26,6 +27,7 @@ const walker = new DirWalker({ onBegin, onEntry })
 measure(
   () => args.forEach((dir) => walker.walk(dir))
 ).then((t) => {
+//  =======  Start of boilerplate code for reporting.
   dump(walker.failures, color.redBright,
     'Total %i failures.', walker.failures.length)
 
