@@ -72,7 +72,7 @@ See [another example](examples/list.js)
 
 ## Package exports
 ### Class `DirWalker`
-**_`constructor`_**_`(options=: Object)`_
+**_`constructor`_**_`(options=: object)`_
 
 The optional _`options`_ argument may contain default handlers for _`walk()`_.
 
@@ -80,7 +80,7 @@ The optional _`options`_ argument may contain default handlers for _`walk()`_.
 
 Can be examined any time.
 
-**_`options`_**_`: Object`_ property
+**_`options`_**_`: object`_ property
 
 Copy of constructor options. _`walk()`_ method looks here for default handlers.
 
@@ -94,7 +94,7 @@ If _`failure`_ is not string, then it's toString() method is used to
 retrieve message text to be pushed into _`failures`_ array.
 If _`comment`_ is supplied, it will be appended to message after `'\n  '` string.
 
-**_`walk`_**_`(rootDir: string, handlers=: Object): DirWalker`_ method
+**_`walk`_**_`(rootDir: string, handlers=: object): DirWalker`_ method
 
 Does the walking from _`rootDir`_ down.
 If no handlers specified, if uses those found in _`options`_ property.
@@ -104,10 +104,12 @@ If no handlers specified, if uses those found in _`options`_ property.
 DirWalker is not directly dependent on this class, but it is designed specially
 to work with it, so enjoy!
 
-**_`constructor`_**_`(rules=: *, defaultAction=: number)`_
+**_`constructor`_**_`(rules=: *, options=: object)`_
 
-Sets _`defaultAction`_ property and
-if _`rules`_ is supplied, then calls _`add()`_ method immediately.
+if _`rules`_ is supplied, then _`add()`_ method is invoked. Available _`options`_ are:
+   * action: number    - initial value for _`defaultAction`_ property.
+   * extended: boolean - enables sets '{a,b}' -> '(a|b)'; default: `true`.
+   * optimize: boolean - enables rule optimization; default: `true`.
 
 **_`defaultAction`_**_`: integer`_ property
 

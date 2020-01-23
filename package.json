@@ -22,12 +22,23 @@
   "bugs": {
     "url": "https://github.com/valango/duke/issues"
   },
-  "homepage": "https://github.com/valango/duke",
+  "homepage": "https://github.com/valango/duke/blob/master/README.md",
   "engines": {
     "node": ">= 12.12.0",
     "npm": ">= 5.6.0",
     "yarn": ">= 1.6.0"
   },
+  "keywords": [
+    "class-based",
+    "glob",
+    "directory",
+    "filesystem",
+    "fs",
+    "rule-based",
+    "traversal",
+    "walking",
+    "non-recursive"
+  ],
   "dependencies": {
     "brace-expansion": "^1.1.11",
     "lodash.defaults": "^4.2.0",
