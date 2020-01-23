@@ -16,7 +16,7 @@ The deepest directory:
 ../sincere/node_modules/resolve/test/resolver/symlinked/_/node_modules
 ```
 
-How to dget there? Just take a look to
+How to get there? Just take a look to
 [examples/count.js](examples/count.js) 
 or better yet - clone the project and play around a bit.
 
