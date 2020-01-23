@@ -48,7 +48,7 @@ module.exports = (
 
   if (options.help) {
     if (help) print(help)
-    print('Usage:\n ', name, '[options] [directory...]')
+    print('Usage:\n ', name, '[options] [argument...]')
     print('Options:')
     Object.keys(opts).forEach((k) =>
       print('  --%s -%s : %s', k.padEnd(10), opts[k][0], opts[k][1]))
