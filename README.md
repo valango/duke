@@ -161,7 +161,8 @@ is returned by function.
 Translate single-character type id used by _`DirWalker`_ to human-readable string.
 
 ## Handler functions
-If handler is not arrow function, it's _`this`_ variable will be set to _`DirWalker`_ instance.
+If handler is not arrow function, it's _`this`_ variable will be set to calling
+_`DirWalker`_ instance.
 
 The context argument contains following properties:
    * `absDir `- absolute path of the directory to be opened;
@@ -171,13 +172,15 @@ The context argument contains following properties:
    * `root   `- _`rootDir`_ argument supplied to _`walk()`_ method.
    
 Common return codes from handler and their effect:
-   * `DO_TERMINATE` - all walking is terminated;
+   * `DO_TERMINATE` - all walking is terminated for this _`DirWalker`_ instance;
    * `DO_ABORT` - discard the current operation, exit to previous level;
    * `DO_SKIP` - skip this item;
 
 **_`onBegin`_**_`(context: object) : *`_
 
-Called before directory is opened.
+Called before directory is opened. Special effects of return codes:
+   * `DO_ABORT` - _walk()_ will return immediately;
+   * `DO_SKIP` - skip this directory without trying to open it;
 
 **_`onEntry`_**_`(context: object) : *`_
 
@@ -197,3 +200,12 @@ Called when all _`onEntry`_ calls are done and the directory is closed.
 Called when exception is caught. The following return values have special effect:
    * `undefined` invokes default error processing;
    * `DO_SKIP` prevents registerFailure() from being called.
+
+### Default error processing
+Depending on error.code value, the following will happen:
+   * `'ENOTDIR'` - error is not logged and DO_SKIP is returned from behalf of failed function;
+   * `'EPERM'` - error is logged and execution continues;
+   * otherwise it is assumed to be unexpected failure and error will be re-thrown.
+   
+If exception originates from _`onEnd`_ handler and final code is not _`DO_SKIP`_,
+then _`walk()`_ will return immediately.
