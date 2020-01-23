@@ -64,14 +64,49 @@ function walk (root, {onBegin, onEntry, onEnd}) {
 }
 ```
 Application - specific handlers _`onBegin`_, _`onEnd`_, _`onEntry`_ and 
-_`onError`_ are all optional but without them,
-DirWalker just won't do anything useful.
+_`onError`_ are all optional, but 
+_`DirWalker`_ just won't do much useful without them.
+
+Things really get exciting, when we apply some business logic in our handlers.
+See [another example](examples/list.js)
 
 ## API
 ### Class `DirWalker`
-The class instance exposes **_`walk()`_** method, which does all the job.
+**_`constructor`_**_`(options=: Object)`_
+The optional _`options`_ argument may contain default handlers for _`walk()`_.
 
-**_`walk`_**_`(rootDir: string, options=: Object)`_
+**_`failures`_**_`: Array<string>`_ property
+Can be examined any time.
 
+**_`options`_**_`: Object`_ property
+Copy of constructor options. _`walk()`_ method looks here for default handlers.
 
+**_`terminate`_**_`: boolean`_ property
+Truey value prevents any further walking.
 
+**_`registerFailure`_**_`(failure: *, comment=: string): DirWalker`_ method
+If _`failure`_ is not string, then it's toString() method is used to
+retrieve message text to be pushed into _`failures`_ array.
+If _`comment`_ is supplied, it will be appended to message after `'\n  '` string.
+
+**_`walk`_**_`(rootDir: string, handlers=: Object): DirWalker`_ method
+Does the walking from _`rootDir`_ down.
+If no handlers specified, if uses those found in _`options`_ property.
+
+### Class `RuleTree`
+DirWalker is not directly dependent on this class, but it is designed specially
+to work with it, so enjoy!
+
+**_`constructor`_**_`(rules=: *, defaultAction=: number)`_
+Sets _`defaultAction`_ property and
+if _`rules`_ is supplied, then calls _`add()`_ method immediately.
+
+**_`defaultAction`_**_`: integer`_ property
+Action to be bound to new rule. This value is used and possibly mutated by _`add()`_.
+
+**_`add`_**_`(rule: *, action=: number): RuleTree`_ method
+Add new rules. If the first item in definitions array is not string,
+it will be treated as action code, which will prevail over default action.
+
+If `rule` is an array, then every numeric member will be interpreted as
+action code for following rule(s). Array may be nested.

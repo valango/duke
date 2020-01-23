@@ -32,8 +32,6 @@ const projectRules = new RuleTree([
   [DO_SKIP, 'vendor/']
 ])
 
-// Todo: we must swap the whole t
-
 const color = require('chalk')
 const pt = require('path')
 const { dump, measure, parseCl, print } = require('./util')

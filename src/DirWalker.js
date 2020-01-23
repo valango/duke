@@ -46,7 +46,7 @@ class DirWalker extends Sincere {
      * Options to be applied to walk() by default.
      * @type {Object}
      */
-    this.options = options
+    this.options = defaults({}, options)
     /**
      * When true, walking will terminate immediately.
      * @type {boolean}
