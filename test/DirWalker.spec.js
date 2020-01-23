@@ -4,15 +4,17 @@ process.env.NODE_MODULES = 'test'
 
 const { expect } = require('chai')
 const _ = require('lodash')
-const W = require('../src/' + ME)
-const { DO_SKIP } = W
+const { DO_ABORT, DO_CONTINUE, DO_DEFAULT, DO_SKIP } = require(
+  '../src/definitions')
+const RuleTree = require('../src/RuleTree')
+const W = require('../src')[ME]
 
-let w, w2, options, context, count
+let w, w2, options, context, count, rules
 
 class W2 extends W {
   processEntry (d) {
     const a = super.processEntry(d)
-    if (d.type !== W.T_DIR) return W.DO_SKIP
+    if (d.type !== W.T_DIR) return DO_SKIP
     // console.log(a, d)
     if (d.name === 'node_modules') (context = d)
     return ++count > 4 ? W.DO_ABORT : a
@@ -21,53 +23,48 @@ class W2 extends W {
 
 describe(ME, () => {
   beforeEach(() => {
+    rules = new RuleTree([DO_SKIP, '/node_modules', '.*'])
     w = new W(options)
     w2 = new W2(options)
-    w.add(['/node_modules', '.*'], W.DO_SKIP)
-    w2.add(['/node_modules', '.*'], W.DO_SKIP)
-    // console.log('TREE', w.tree)
     context = undefined
     count = 0
   })
 
   it('should construct w defaults', () => {
-    expect(w.tree && typeof w.tree).to.equal('object')
+    expect(w.failures).to.eql([])
+    expect(w.terminate).to.equal(false)
   })
 
   it('should visit and register failure', () => {
-    w = new W({ rules: null })
-    w.process = (d) => {
+    const onEntry = (d) => {
       context = d
       ++count
       w.registerFailure('a', 'test')
       w.registerFailure(new Error('b'))
-      return W.DO_ABORT
+      return DO_ABORT
     }
+    w = new W({ onEntry })
     w.walk(process.cwd())
     expect(count).to.equal(1)
-    expect(_.pick(context, ['action', 'dir', 'depth'])).to
-      .eql({ action: W.NOT_YET, depth: 0, dir: '' })
+    expect(_.pick(context, ['dir', 'depth'])).to
+      .eql({ depth: 0, dir: '' })
     expect(w.failures).to.eql(['a\n  test', 'b'])
   })
 
   it('should process rules', () => {
     let cnt = 0
-    w.add('/pack*.json', 0)
-    w.process = ({ action }) => {
-      ++count
+    const onEntry = (d) => {
+      const [action] = rules.test(d.name)
+      if (action <= DO_SKIP) return action
+      if (action === 1) ++count
       if (action === 0) ++cnt
       return action
     }
+    rules.add([0, '/pack*.json', 1, '*.js'])
+    w = new W({ onEntry })
     w.walk(process.cwd())
-    expect(cnt).to.equal(2)
-    expect(count).to.gte(5)
-  })
-
-  it('should support inheritance', () => {
-    w2.walk(process.cwd())
-    expect(count).to.gte(3)
-    expect(_.pick(context, ['action', 'dir', 'name'])).to
-      .eql({ action: W.DO_SKIP, dir: '', name: 'node_modules' })
+    expect(cnt).to.equal(3)
+    expect(count).to.gte(15)
   })
 
   it('should register exceptions', () => {
@@ -84,14 +81,16 @@ describe(ME, () => {
   })
 
   it('should intercept exceptions', () => {
-    let data
+    let data, error
     w.walk(process.cwd() + '/nope', {
-      onError: (d) => {
+      onError: (e, d) => {
+        error = e
         data = d
         return DO_SKIP
       }
     })
-    expect(data && data.dir).to.equal('')
+    expect(error.code).to.eql('ENOENT')
+    expect(data).to.match(/nope$/)
     expect(w.failures).to.eql([])
   })
 })

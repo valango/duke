@@ -8,7 +8,7 @@ const definitions = require('./definitions')
 
 /* eslint-disable */
 const {
-        DO_ABORT, DO_SKIP, TERMINATE,
+        DO_ABORT, DO_SKIP, DO_TERMINATE,
         T_BLOCK, T_CHAR, T_DIR, T_FIFO, T_FILE, T_SOCKET, T_SYMLINK
       } = definitions
 /* eslint-enable */
@@ -79,7 +79,7 @@ class DirWalker extends Sincere {
       }
       if (r !== DO_SKIP) this.registerFailure(error)
     }
-    if (r === TERMINATE) {
+    if (r === DO_TERMINATE) {
       this.terminate = true
     }
     return r

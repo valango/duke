@@ -16,7 +16,7 @@
     "coverage": "nyc report --reporter=text-lcov > coverage.lcov && codecov",
     "lint": "eslint --ext .js .",
     "purge": "npm run clean && rimraf node_modules",
-    "test": "nyc mocha 'test/**/RuleTree.spec.js'"
+    "test": "nyc mocha 'test/**/*.spec.js'"
   },
   "license": "ISC",
   "bugs": {
@@ -52,7 +52,8 @@
     "all": true,
     "check-coverage": true,
     "exclude": [
-      "src/definitions.js"
+      "src/definitions.js",
+      "src/index.js"
     ],
     "include": [
       "src/**/*.js"

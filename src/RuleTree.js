@@ -1,6 +1,6 @@
 'use strict'
 
-const { NO_MATCH, NOT_YET, GLOB, NIL } = require('./definitions')
+const { DO_DISCARD, DO_CONTINUE, GLOB, NIL } = require('./definitions')
 const parse = require('./parse')
 const Sincere = require('sincere')
 // const PAR = 0
@@ -19,12 +19,25 @@ class RuleTree extends Sincere {
   constructor (rules = undefined, defaultAction = undefined) {
     super()
     /**
+     * Rule tree of nodes [parentIndex, rule, action].
      * @type Array<Array<*>>
      * @private
      */
-    this._tree = []          //  Every node is an array [parentIndex, rule, action].
+    this._tree = []
     /**
-     * Action to be bound to new rule.
+     * Used internally by add()
+     * @type {*}
+     * @private
+     */
+    this._lastItem = undefined
+    /**
+     * Used internally by add()
+     * @type {number}
+     * @private
+     */
+    this._level = 0
+    /**
+     * Action to be bound to new rule - used and possibly mutated by add().
      * @type {number}
      */
     this.defaultAction = defaultAction === undefined ? 0 : defaultAction
@@ -34,54 +47,56 @@ class RuleTree extends Sincere {
   /**
    * Add new rules. If the first item in definitions array is not string,
    * it will be treated as action code, which will prevail over default action.
-   * Affects `treeTop` property.
    *
-   * @param {string | Array<*>} definition - slash-delimited expression[s]
+   * If `definition` is an array, then every numeric member will be interpreted as
+   * action code for following rule(s). Array may be nested.
+   *
+   * @param {*} definition
    * @param {number=} action
    * @returns {RuleTree}
    */
   add (definition, action = undefined) {
+    this._level += 1
+    this._lastItem = definition
     this.assert('add', 'no rules')
 
-    //  Todo: sanitize the code
-    if (typeof definition === 'string') {
-      this.addPath_(definition, action)
-    } else if (Array.isArray(definition)) {
-      const act = definition[0]
-      if (typeof act === 'string') {
-        definition.forEach((rule) => this.add(rule, action))
-      } else if (typeof act === 'number') {
-        this.assert(action === act || action === undefined,
-          'add', 'action (%i) conflict with %O; tree:\n%O',
-          action, definition)
-        this.add(definition.slice(1), act)
-      } else {
-        definition.forEach((rule) => this.add(rule, action))
-      }
-    } else {
-      throw new TypeError(this.sincereMessage(
-        'add', ['bad definition', definition]))
+    switch (typeof definition) {
+      case 'number':
+        this.defaultAction = definition
+        break
+      case 'string':
+        this.addPath_(definition, action)
+        break
+      default:
+        if (Array.isArray(definition)) {
+          definition.forEach((item) => this.add(item, action))
+        } else {
+          this.assert(false, 'add', 'bad rule definition < %O >', definition)
+        }
     }
+    this.assert((--this._level > 0) || typeof this._lastItem !== 'number',
+      'add', 'pending action code %i in rule < %O >',
+      this._lastItem, definition)
+
     return this
   }
 
   /**
    * @param {string} path
    * @param {number=} forAction
-   * @param {number=} parentIndex
    * @returns {RuleTree}
    * @private
    */
-  addPath_ (path, forAction = undefined, parentIndex = undefined) {
+  addPath_ (path, forAction = undefined) {
     const rules = parse(path), flags = rules.shift(), L = 'addPath_'
 
     this.assert(rules.length, L, 'no rules')
     const tree = this._tree, last = rules.length - 1
-    let action = flags.isExclusion ? NO_MATCH : forAction
+    let action = flags.isExclusion ? DO_DISCARD : forAction
     if (action === undefined) action = this.defaultAction
-    this.assert(action > NOT_YET, L, 'illegal action value \'%i\'', action)
+    this.assert(action > DO_CONTINUE, L, 'illegal action value \'%i\'', action)
 
-    let index, parent = parentIndex === undefined ? NIL : parentIndex
+    let index, parent = NIL // parentIndex === undefined ? NIL : parentIndex
 
     for (let i = 0; i <= last; i += 1) {
       let rule = rules[i]
@@ -94,7 +109,7 @@ class RuleTree extends Sincere {
         })
       if (index === -1) {
         if (rule) rule = RegExp(rule)
-        index = tree.push([parent, rule, NOT_YET]) - 1
+        index = tree.push([parent, rule, DO_CONTINUE]) - 1
       }
       parent = index
     }
@@ -103,7 +118,7 @@ class RuleTree extends Sincere {
     const node = tree[index], [p, r, a] = node
 
     if (a !== action) {
-      if (a !== NOT_YET) {  //  For debugger breakpoint.
+      if (a !== DO_CONTINUE) {  //  For debugger breakpoint.
         this.assert(false, L, 'action conflict @%i: [%i, %s, %i]',
           index, p, r, a)
       }
@@ -129,7 +144,7 @@ class RuleTree extends Sincere {
    *
    * @param {string} string to match
    * @param {Array<*>=} ancestors - may be return value from previous call.
-   * @returns {Array<TNode>} array of [iAnc, rule, action, index]
+   * @returns {Array<Array<*>>} array of [ancestorIndex, rule, action, ownIndex]
    */
   match (string, ancestors = undefined) {
     let ancs = (ancestors || [NIL]).slice(), res = []
@@ -164,7 +179,7 @@ class RuleTree extends Sincere {
           }
           //  We got a match!
           res.push([par, rule, act, i])
-          if (act === NO_MATCH) break
+          if (act === DO_DISCARD) break
         }
       }
 
@@ -192,9 +207,9 @@ class RuleTree extends Sincere {
    * @returns {Array<number>}     - [action code, ancestors].
    */
   test (string, ancestors = undefined) {
-    if (this._tree.length === 0) return NOT_YET   //  Todo: what's this?
+    if (this._tree.length === 0) return DO_CONTINUE   //  Todo: what's this?
     const res = this.match(string, ancestors || [NIL])
-    if (res.length === 0) return [NO_MATCH, ancestors]
+    if (res.length === 0) return [DO_DISCARD, ancestors]
     return [res[0][ACT], res]
   }
 }

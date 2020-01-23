@@ -3,7 +3,7 @@
  */
 'use strict'
 
-//  DirEntry types.
+//  DirEntry type codes.
 const T_ANY = ''
 const T_BLOCK = 'B'
 const T_CHAR = 'C'
@@ -13,50 +13,50 @@ const T_FILE = 'f'
 const T_SOCKET = 'S'
 const T_SYMLINK = 'L'
 
-const S_BLOCK = 'blockDevice'
-const S_CHAR = 'characterDevice'
-const S_DIR = 'directory'
-const S_FIFO = 'fifo'
-const S_FILE = 'file'
-const S_SOCKET = 'socket'
-const S_SYMLINK = 'symLink'
-
-const ts = {
-  [T_BLOCK]: S_BLOCK,
-  [T_CHAR]: S_CHAR,
-  [T_DIR]: S_DIR,
-  [T_FIFO]: S_FIFO,
-  [T_FILE]: S_FILE,
-  [T_SOCKET]: S_SOCKET,
-  [T_SYMLINK]: S_SYMLINK
+const _ts = {
+  [T_BLOCK]: 'blockDevice',
+  [T_CHAR]: 'characterDevice',
+  [T_DIR]: 'directory',
+  [T_FIFO]: 'fifo',
+  [T_FILE]: 'file',
+  [T_SOCKET]: 'socket',
+  [T_SYMLINK]: 'symLink'
 }
 
+/**
+ * type {Object}
+ */
 exports = module.exports = {
-  GLOB: null,       //  Used in rule tree
-
+  //  Internal constants.
+  /** @member {number} GLOB  Used in rule tree. */
+  GLOB: null,
+  /** @member {number} NIL   Index pointing to nowhere. */
   NIL: -1,
 
-  //  Action types.
-  TERMINATE: -5,      //  Terminate any walking
-  NOT_YET: -4,        //  Possibly partial match, keep trying
-  NO_MATCH: -3,       //  Discard all matches
-  DO_SKIP: -2,        //  Ignore this directory entry
-  DO_ABORT: -1,       //  Ignore all, jump one level up
+  //  Action codes. Negative values are reserved.
+  //  Application may define it's own codes starting from DO_DEFAULT.
+  /** @member {number} DO_TERMINATE Terminate any walking. */
+  DO_TERMINATE: -5,
+  /** @member {number} DO_CONTINUE  Possibly partial match, keep going. */
+  DO_CONTINUE: -4,
+  /** @member {number} DO_DISCARD   Discard all matches. */
+  DO_DISCARD: -3,
+  /** @member {number} DO_SKIP      Ignore this item. */
+  DO_SKIP: -2,
+  /** @member {number} DO_ABORT     Discard all matches, jump one level up. */
+  DO_ABORT: -1,
+  /** @member {number} DO_DEFAULT   Default action (0). */
+  DO_DEFAULT: 0,
 
   /* eslint-disable */
-  S_BLOCK, S_CHAR, S_DIR, S_FIFO, S_FILE, S_SOCKET, S_SYMLINK,
+  //  DirEntry type codes.
   T_ANY, T_BLOCK, T_CHAR, T_DIR, T_FIFO, T_FILE, T_SOCKET, T_SYMLINK,
   /* eslint-enable */
 
-  actionName: (action) =>
-    ['NOT_YET', 'NO_MATCH', 'DO_SKIP', 'DO_ABORT'][action + 4],
   /**
    * Translate DirEntry type to human-readable type name.
    * @param {string} type
-   * @returns {string}
+   * @returns {string | undefined}
    */
-  typename: (type) => {
-    if (ts[type]) return ts[type]
-    throw new Error('typename(\'' + type + '\') failed')
-  }
+  typeName: (type) => _ts[type]
 }

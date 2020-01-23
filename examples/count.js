@@ -3,7 +3,7 @@
 
 const HELP = 'Count all files and subdirectories, excluding nothing.'
 const color = require('chalk')
-const { DirWalker, typename } = require('../src')
+const { DirWalker, typeName } = require('../src')
 const { dump, measure, parseCl, print } = require('./util')
 
 const counts = {}, { args } = parseCl({}, HELP, true)
@@ -30,7 +30,7 @@ measure(
     'Total %i failures.', walker.failures.length)
 
   for (const k of Object.keys(counts)) {
-    print(typename(k).padStart(16, ' ') + ':', counts[k])
+    print(typeName(k).padStart(16, ' ') + ':', counts[k])
   }
   print('Total %i ms (%i µs per item), max directory depth: %i.',
     t / 1000, t / total, maxDepth)

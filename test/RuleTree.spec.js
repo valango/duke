@@ -5,26 +5,24 @@ process.env.NODE_MODULES = 'test'
 const { AssertionError } = require('assert')
 const { expect } = require('chai')
 const { inspect } = require('util')
-const { NO_MATCH, NOT_YET, GLOB, NIL } = require('../src/definitions')
+const { DO_DISCARD, DO_CONTINUE, GLOB, NIL } = require('../src/definitions')
 const YES = 0
-const RuleTree = require('../src/' + ME)
+const RuleTree = require('../src')[ME]
 
 const T1 = [YES, 'a/b', 'a/c/', 'f*', '!file', '/z/y']
 const D1 = [
-  [NIL, GLOB, NOT_YET],     //  0
-  [0, /^a$/, NOT_YET],
+  [NIL, GLOB, DO_CONTINUE],     //  0
+  [0, /^a$/, DO_CONTINUE],
   [1, /^b$/, YES],          //  2
   [1, /^c$/, YES],
   [0, /^f/, YES],           //  4
-  [0, /^file$/, NO_MATCH],
-  [NIL, /^z$/, NOT_YET],    //  6
+  [0, /^file$/, DO_DISCARD],
+  [NIL, /^z$/, DO_CONTINUE],    //  6
   [6, /^y$/, YES]
 ]
 
 let t = new RuleTree(T1, YES)
-
-// const idx = (a) => a.map((r) => r[0])
-let n = 0
+let n = 0, lastAnc
 
 const match = (str, exp, anc = undefined) => {
   const r = t.match(str, anc)
@@ -34,9 +32,10 @@ const match = (str, exp, anc = undefined) => {
   return v
 }
 
-const test = (str, exp, prev) => {
-  const r = t.test(str, prev)
-  expect(r).to.eql(exp, `'${str}' -> ` + inspect(t.lastMatches))
+const test = (str, exp, prev, comm = '') => {
+  const [act, ancs] = t.test(str, prev)
+  lastAnc = ancs
+  expect(act).to.eql(exp, `'${str}' -> ` + inspect(ancs) + ' ' + comm)
 }
 
 describe(ME, () => {
@@ -48,12 +47,12 @@ describe(ME, () => {
   })
 
   it('should construct', () => {
-    // console.log('DUMP', t.tree)
-    expect(t.tree).to.eql(D1)
+    // console.log('DUMP', t.dump())
+    expect(t.dump()).to.eql(D1)
   })
 
   it('should match', () => {
-    expect(t.match('z')).to.eql([[NIL, /^z$/, NOT_YET, 6]], 'z')
+    expect(t.match('z')).to.eql([[NIL, /^z$/, DO_CONTINUE, 6]], 'z')
     let a
     a = match('z', [6])
     match('y', [7], a)
@@ -63,7 +62,7 @@ describe(ME, () => {
     match('b', [2], a)
     match('c', [3], a)
     match('c', [3], [3, 1, 7])
-    expect(t.lastMatches).to.eql(undefined, 'lastMatches')
+    expect(lastAnc).to.eql(undefined, 'lastMatches')
   })
 
   it('should glob', () => {
@@ -73,18 +72,18 @@ describe(ME, () => {
   })
 
   it('should test', () => {
-    test('a', NOT_YET)
-    expect(t.lastMatches).to.eql([[0, /^a$/, NOT_YET, 1]], 'lastMatches 1')
-    test('nope', NO_MATCH)
-    expect(t.lastMatches).to.eql([[0, /^a$/, NOT_YET, 1]], 'lastMatches 2')
-    test('b', YES)
+    test('a', DO_CONTINUE)
+    expect(lastAnc).to.eql([[0, /^a$/, DO_CONTINUE, 1]], 'lastMatches 1')
+    test('nope', DO_CONTINUE)
+    expect(lastAnc).to.eql([[NIL, GLOB, DO_CONTINUE, 0]], 'lastMatches 2')
+    test('b', YES, [1])
     test('c', YES, [1])
-    test('nope', NOT_YET, [0])
-    test('nope', NOT_YET, [NIL])
+    test('nope', DO_CONTINUE, [0], '[0]')
+    test('nope', DO_CONTINUE, [NIL], '[NIL]')
   })
 
   it('should throw on bad rule', () => {
-    expect(() => t.add({})).to.throw(TypeError, 'bad definition {}')
+    expect(() => t.add({})).to.throw(AssertionError, 'bad rule definition')
   })
 
   it('should check rule conflicts', () => {
