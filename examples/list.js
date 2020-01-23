@@ -47,7 +47,11 @@ const findMaster = (dir) =>
 
 const findThis = (dir) => projects.find((p) => p.absDir === dir)
 
-let pkg, dirLength = 0, nameLength = 10, nItems = 0
+//  Statistics
+let dirLength = 0, nameLength = 10, nItems = 0
+
+//  Local variables with effective lifespan from onBegin..onEnd
+let master, project, pkg
 
 const onBegin = ({ absDir, dir, locals }) => {
   let v
@@ -56,10 +60,10 @@ const onBegin = ({ absDir, dir, locals }) => {
   //  Here we have locals from processing the entry in parent dir.
   //  Here we can set locals for all the following calls.
   if ((v = findMaster(absDir))) {
-    locals.master = locals.project = v
+    master = project = v
     if (!options.nested) return talk('  DIR', absDir, dir)
-  } else if (locals.project) {
-    delete locals.project
+  } else if (project) {
+    project = undefined
   }
 
   if ((pkg = loadFile(pt.join(absDir, 'package.json'), true))) {
@@ -71,10 +75,10 @@ const onBegin = ({ absDir, dir, locals }) => {
     pkg = JSON.parse(pkg.toString())
     const name = pkg.name || '<NO-NAME>'
     talk('PROJECT', absDir, dir)
-    locals.project = { absDir, count: 0, name, promo: ' ' }
-    if (locals.master) {
-      delete locals.master
-      locals.project.promo = 'N'
+    project = { absDir, count: 0, name, promo: '' }
+    if (master) {
+      master = undefined
+      project.promo = 'N'
     }
     (locals.rules = projectRules) && (locals.ancs = undefined)
   }
@@ -86,8 +90,8 @@ const onBegin = ({ absDir, dir, locals }) => {
 }
 
 //  If there was DO_ABORT in current dir, we won't get here.
-const onEnd = ({ absDir, dir, locals }) => {
-  const { master, project } = locals
+const onEnd = ({ absDir, dir }) => {
+  // const { master, project } = locals
   if (!project) return
   if (!master) {
     projects.push(project)
@@ -113,11 +117,11 @@ const onEntry = ({ dir, locals, name, type }) => {
     case DO_COUNT:
       if (type !== T_FILE) break
       talk('  CNT: %s @', name.padEnd(16), dir || '.')
-      locals.project.count += 1
+      project.count += 1
       break
     case DO_PROMOTE:
       if (type !== T_DIR) break
-      locals.project.promo = 'T'
+      project.promo = project.promo || 'T'
       return DO_SKIP
     case DO_SKIP:
       return action
@@ -143,7 +147,7 @@ measure(task).then((t) => {
   projects.forEach((p) => {
     const dir = relativePath(p.absDir, './')
     dirLength = Math.max(dir.length, dirLength)
-    print('%s %s %s:', p.name.padEnd(nameLength), p.promo,
+    print('%s %s %s:', p.name.padEnd(nameLength), p.promo || ' ',
       (p.count + '').padStart(5), dir)
   })
   print('- name '.padEnd(nameLength, '-'),
