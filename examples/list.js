@@ -51,6 +51,7 @@ const findThis = (dir) => projects.find((p) => p.absDir === dir)
 let dirLength = 0, nameLength = 10, nItems = 0
 
 //  Local variables with effective lifespan from onBegin..onEnd
+//  Note: with fully asynchronous code it would fail miserably. ;)
 let master, project, pkg
 
 const onBegin = ({ absDir, dir, locals }) => {

@@ -209,3 +209,16 @@ Depending on error.code value, the following will happen:
    
 If exception originates from _`onEnd`_ handler and final code is not _`DO_SKIP`_,
 then _`walk()`_ will return immediately.
+
+## Asynchronous operation
+There is a demo of asynchronous parallel operation in [examples/list.js](examples/list.js).
+It's kinda cool, but on closer look, there is not much benefit - actually -
+async mode performance is no better at all. It is natural, because the `walk()` code
+_is_ synchronous. So all what we'd get from asynchronous operation is a lurking
+EMFILE psycho.
+
+As tempting as writing a fully async version of walk() is, honestly - I can't
+see much practical benefit from it. Traversing file system discussing every
+file with a remote server might be a good candidate, but... what for?
+
+All ideas, cooperation, rage and criticism will be appreciated!
