@@ -1,6 +1,6 @@
 'use strict'
 
-const { DO_DEFAULT, DO_DISCARD, DO_CONTINUE, GLOB, NIL } = require('../definitions')
+const { DO_DEFAULT, DISCLAIM, CONTINUE, GLOB, NIL } = require('../definitions')
 const defaults = require('lodash.defaults')
 const parse = require('./parse')
 const Sincere = require('sincere')
@@ -12,7 +12,7 @@ const IDX = 3
 /**
  * Rule tree and intermediate state of searches.
  */
-class RuleTree extends Sincere {
+class Rules extends Sincere {
   /**
    * @param {Array<*>=} rules
    * @param {Object<{action:number, extended, optimize}>=} options
@@ -60,7 +60,7 @@ class RuleTree extends Sincere {
    *
    * @param {*} definition
    * @param {number=} action
-   * @returns {RuleTree}
+   * @returns {Rules}
    */
   add (definition, action = undefined) {
     this._level += 1
@@ -91,7 +91,7 @@ class RuleTree extends Sincere {
   /**
    * @param {string} path
    * @param {number=} forAction
-   * @returns {RuleTree}
+   * @returns {Rules}
    * @private
    */
   addPath_ (path, forAction = undefined) {
@@ -100,9 +100,9 @@ class RuleTree extends Sincere {
 
     this.assert(rules.length, L, 'no rules')
     const tree = this._tree, last = rules.length - 1
-    let action = flags.isExclusion ? DO_DISCARD : forAction
+    let action = flags.isExclusion ? DISCLAIM : forAction
     if (action === undefined) action = this.defaultAction
-    this.assert(action > DO_CONTINUE, L, 'illegal action value \'%i\'', action)
+    this.assert(action > CONTINUE, L, 'illegal action value \'%i\'', action)
 
     let index, parent = NIL // parentIndex === undefined ? NIL : parentIndex
 
@@ -117,7 +117,7 @@ class RuleTree extends Sincere {
         })
       if (index === -1) {
         if (rule) rule = RegExp(rule)
-        index = tree.push([parent, rule, DO_CONTINUE]) - 1
+        index = tree.push([parent, rule, CONTINUE]) - 1
       }
       parent = index
     }
@@ -126,7 +126,7 @@ class RuleTree extends Sincere {
     const node = tree[index], [p, r, a] = node
 
     if (a !== action) {
-      if (a !== DO_CONTINUE) {  //  For debugger breakpoint.
+      if (a !== CONTINUE) {  //  For debugger breakpoint.
         this.assert(false, L, 'action conflict @%i: [%i, %s, %i]',
           index, p, r, a)
       }
@@ -187,20 +187,23 @@ class RuleTree extends Sincere {
           }
           //  We got a match!
           res.push([par, rule, act, i])
-          if (act === DO_DISCARD) break
+          if (act === DISCLAIM) break
         }
       }
 
       if (!res.length) {
         const a = ancs.findIndex((i) => tree[i] && tree[i][RUL] === GLOB)
         if (a >= 0) {
-          const i = ancs[a]             //  Here for debugging
+          const i = ancs[a]                   //  Here for debugging
           res.push(tree[i].concat(i))
         }
       } else if (res.length > 1) {
         res = res.filter(([, r]) => r !== GLOB)
       }
       if (res.length > 1) {
+        //  Sort by action values descending.
+        //  This may slightly speed uo the next match iteration
+        //  Also, test() method currently relies on this.
         res.sort((a, b) => b[ACT] - a[ACT])
       }
     }
@@ -215,11 +218,11 @@ class RuleTree extends Sincere {
    * @returns {Array<number>}     - [action code, ancestors].
    */
   test (string, ancestors = undefined) {
-    if (this._tree.length === 0) return DO_CONTINUE   //  Todo: what's this?
+    if (this._tree.length === 0) return [DISCLAIM]
     const res = this.match(string, ancestors || [NIL])
-    if (res.length === 0) return [DO_DISCARD, ancestors]
+    if (res.length === 0) return [DISCLAIM, ancestors]
     return [res[0][ACT], res]
   }
 }
 
-module.exports = RuleTree
+module.exports = Rules

@@ -5,19 +5,19 @@ process.env.NODE_MODULES = 'test'
 const { AssertionError } = require('assert')
 const { expect } = require('chai')
 const { inspect } = require('util')
-const { DO_DISCARD, DO_CONTINUE, GLOB, NIL } = require('../src/definitions')
+const { DISCLAIM, CONTINUE, GLOB, NIL } = require('../src/definitions')
 const YES = 0
 const RuleTree = require('../src')[ME]
 
 const T1 = [YES, 'a/b', 'a/c/', 'f*', '!file', '/z/y']
 const D1 = [
-  [NIL, GLOB, DO_CONTINUE],     //  0
-  [0, /^a$/, DO_CONTINUE],
+  [NIL, GLOB, CONTINUE],     //  0
+  [0, /^a$/, CONTINUE],
   [1, /^b$/, YES],          //  2
   [1, /^c$/, YES],
   [0, /^f/, YES],           //  4
-  [0, /^file$/, DO_DISCARD],
-  [NIL, /^z$/, DO_CONTINUE],    //  6
+  [0, /^file$/, DISCLAIM],
+  [NIL, /^z$/, CONTINUE],    //  6
   [6, /^y$/, YES]
 ]
 
@@ -52,7 +52,7 @@ describe(ME, () => {
   })
 
   it('should match', () => {
-    expect(t.match('z')).to.eql([[NIL, /^z$/, DO_CONTINUE, 6]], 'z')
+    expect(t.match('z')).to.eql([[NIL, /^z$/, CONTINUE, 6]], 'z')
     let a
     a = match('z', [6])
     match('y', [7], a)
@@ -72,14 +72,14 @@ describe(ME, () => {
   })
 
   it('should test', () => {
-    test('a', DO_CONTINUE)
-    expect(lastAnc).to.eql([[0, /^a$/, DO_CONTINUE, 1]], 'lastMatches 1')
-    test('nope', DO_CONTINUE)
-    expect(lastAnc).to.eql([[NIL, GLOB, DO_CONTINUE, 0]], 'lastMatches 2')
+    test('a', CONTINUE)
+    expect(lastAnc).to.eql([[0, /^a$/, CONTINUE, 1]], 'lastMatches 1')
+    test('nope', CONTINUE)
+    expect(lastAnc).to.eql([[NIL, GLOB, CONTINUE, 0]], 'lastMatches 2')
     test('b', YES, [1])
     test('c', YES, [1])
-    test('nope', DO_CONTINUE, [0], '[0]')
-    test('nope', DO_CONTINUE, [NIL], '[NIL]')
+    test('nope', CONTINUE, [0], '[0]')
+    test('nope', CONTINUE, [NIL], '[NIL]')
   })
 
   it('should throw on bad rule', () => {

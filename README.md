@@ -141,7 +141,7 @@ In most cases, it is far easier to use _`test()`_ method instead.
 
 Match the string against rules in given ancestors context. The _`action`_
 part of return value is relevant to business logic; `ancestors` are
-to be used for the next call if action part is _`DO_CONTINUE`_.
+to be used for the next call if action part is _`CONTINUE`_.
 
 ### Constants
 See [definitions](src/definitions.js). Action codes defined by application code

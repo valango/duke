@@ -28,25 +28,25 @@ const _ts = {
  */
 exports = module.exports = {
   //  Internal constants.
-  /** @member {number} GLOB  Used in rule tree. */
+  /** @member {number} GLOB  reserved for Rules:  match optional dirs (**). */
   GLOB: null,
   /** @member {number} NIL   Index pointing to nowhere. */
   NIL: -1,
 
   //  Action codes. Negative values are reserved.
-  //  Application may define it's own codes starting from DO_DEFAULT.
-  /** @member {number} DO_TERMINATE Terminate any walking. */
-  DO_TERMINATE: -5,
-  /** @member {number} DO_CONTINUE  Possibly partial match, keep going. */
-  DO_CONTINUE: -4,
-  /** @member {number} DO_DISCARD   Discard all matches. */
-  DO_DISCARD: -3,
+  /** @member {number} CONTINUE  reserved for Rules: partial match. */
+  CONTINUE: -5,
+  /** @member {number} DISCLAIM  reserved for Rules: no match or discard any. */
+  DISCLAIM: -4,
   /** @member {number} DO_SKIP      Ignore this item. */
-  DO_SKIP: -2,
+  DO_SKIP: -3,
   /** @member {number} DO_ABORT     Discard all matches, jump one level up. */
-  DO_ABORT: -1,
-  /** @member {number} DO_DEFAULT   Default action (0). */
+  DO_ABORT: -2,
+  /** @member {number} DO_TERMINATE Terminate any walking. */
+  DO_TERMINATE: -1,
+  /** @member {number} DO_DEFAULT   Default action (0) if nothing specified. */
   DO_DEFAULT: 0,
+  //  Application may define it's own codes starting from DO_DEFAULT.
 
   /* eslint-disable */
   //  DirEntry type codes.

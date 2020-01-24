@@ -34,7 +34,7 @@ const getType = (entry) => {
 /**
  *  Walks a directory tree according to rules.
  */
-class DirWalker extends Sincere {
+class Walker extends Sincere {
   constructor (options) {
     super()
     /**
@@ -91,7 +91,7 @@ class DirWalker extends Sincere {
    *
    * @param {string} root
    * @param {Object<{?onBegin, ?onEnd, ?onEntry, ?onError}>} options
-   * @returns {DirWalker}
+   * @returns {Walker}
    */
   walk (root, options = undefined) {
     const opts = defaults({}, options, this.options)
@@ -148,4 +148,4 @@ class DirWalker extends Sincere {
   }
 }
 
-module.exports = DirWalker
+module.exports = Walker

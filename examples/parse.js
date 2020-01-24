@@ -6,7 +6,7 @@ const HELP = `Construct and dump a RuleTree as defined by command line.
  Example:
    examples/parse "*.js" 2 /nope`
 
-const RuleTree = require('../src/RuleTree')
+const RuleTree = require('../src/Rules')
 const { parseCl, print } = require('./util')
 
 const convert = (str) => {
