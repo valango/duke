@@ -1,6 +1,6 @@
 # dwalker [![Build Status](https://travis-ci.org/valango/duke.svg?branch=master)](https://travis-ci.org/valango/duke) [![Code coverage](https://codecov.io/gh/valango/duke/branch/master/graph/badge.svg)](https://codecov.io/gh/valango/duke)
 
-![](assets/white.png)![](assets/quote.png)
+![](assets/quote800.png)
 
 Rule-based file directory walker - ambitious 
 alternative to globber-based directory walkers.
