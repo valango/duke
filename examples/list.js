@@ -19,7 +19,7 @@ const
 const DO_COUNT = 1    //  Add file to count.
 const DO_PROMOTE = 2  //  Found test support.
 
-RuleTree.sincereHook(() => {
+RuleTree.hook(() => {
   return undefined    //  Breakpoint place.
 })
 
