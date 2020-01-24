@@ -2,7 +2,7 @@
 
 ![](assets/quote.png)
 
-Rule-based file directory walker - fancy 
+Rule-based file directory walker - ambitious 
 alternative to globber-based directory walkers.
 
 Imagine, you want to count all directory entries anywhere below given directory,
@@ -30,7 +30,7 @@ npm i dwalker
 ```
 
 ### How it works
-Class instance of Walker exposes **_`walk()`_** method,
+**`Walker`** class instance has `walk()` method,
 which does most of the job. It traverses directory hierarchy width-first,
 calling application-defined handlers, as it goes. The walk() code
 is re-enterable and it can run in parallel promise instances.
@@ -63,108 +63,94 @@ function walk (root, {onBegin, onEntry, onEnd}) {
   }
 }
 ```
-Application - specific handlers _`onBegin`_, _`onEnd`_, _`onEntry`_ and 
-_`onError`_ are all optional, but 
-_`Walker`_ just won't do much good without them.
+Application - specific handlers `onBegin`, `onEnd`, `onEntry` and 
+`onError` are all optional, but 
+`Walker` just won't do much good without them.
 
 Things really get exciting, when we apply some business logic in our handlers.
 See [another example](examples/list.js).
 
 ## Package exports
 ### Class `Walker`
-**_`constructor`_**_`(options=: object)`_
 
-The optional _`options`_ argument may contain default handlers for _`walk()`_.
+**`constructor([options])`** <br />
+the `options : object` argument may contain default handlers for `walk()`.
 
-**_`failures`_**_`: Array<string>`_ property
-
+**`failures`**: `Array<string>` property <br />
 Can be examined any time.
 
-**_`options`_**_`: object`_ property
+**`options`**: `object` property <br />
+is copy of constructor options. `walk()` method looks here for default handlers.
 
-Copy of constructor options. _`walk()`_ method looks here for default handlers.
+**`terminate`**: `boolean` property <br />
+assigning _Truey_ value prevents any further walking.
 
-**_`terminate`_**_`: boolean`_ property
+**`registerFailure(failure, [comment])`**: `Walker` method<br />
+If `failure` is no string, then it's `toString()` method is used to
+retrieve message text to be pushed into `failures` array.
+If `comment : string` is present, it will be appended to message after `'\n  '` string.
 
-_Truey_ value prevents any further walking.
-
-**_`registerFailure`_**_`(failure: *, comment=: string): Walker`_ method
-
-If _`failure`_ is not string, then it's toString() method is used to
-retrieve message text to be pushed into _`failures`_ array.
-If _`comment`_ is supplied, it will be appended to message after `'\n  '` string.
-
-**_`walk`_**_`(rootDir: string, handlers=: object): Walker`_ method
-
-Does the walking from _`rootDir`_ down.
-If no handlers specified, if uses those found in _`options`_ property.
+**`walk(rootDir, [handlers])`**: `Walker` method<br />
+does the walking from `rootDir` down.
+If no `handlers : object` specified, it uses those found in `options` property.
 
 ### Class `Ruler`
 _`Walker`_ is not directly dependent on this class, but it is designed specially
 to work with it, so enjoy!
 
-**_`constructor`_**_`(rules=: *, options=: object)`_
+**`constructor([options], [...rules])`** <br />
+calls if `rules` are supplied, `add()` method  invoked. Available `options` are:
+   * `action : number   ` - initial value for `defaultAction` property.
+   * `extended : boolean` - enables sets '{a,b}' -> '(a|b)'; default: `true`.
+   * `optimize : boolean` - enables rule optimization; default: `true`.
 
-if _`rules`_ is supplied, then _`add()`_ method is invoked. Available _`options`_ are:
-   * `action: number   ` - initial value for _`defaultAction`_ property.
-   * `extended: boolean` - enables sets '{a,b}' -> '(a|b)'; default: `true`.
-   * `optimize: boolean` - enables rule optimization; default: `true`.
+**`defaultAction`**: `integer` property <br />
+default action to be bound to new rule.
+This value is used and possibly mutated by `add()` method.
 
-**_`defaultAction`_**_`: integer`_ property
-
-Action to be bound to new rule. This value is used and possibly mutated by _`add()`_.
-
-**_`add`_**_`(rule: *, action=: number): Ruler`_ method
-
-Add new rules. If the first item in definitions array is not string,
-it will be treated as action code, which will prevail over default action.
-
-If `rule` is an array, then every numeric member will be interpreted as
-action code for following rule(s). Array may be nested.
-Example (two lines below have the same effect):
-
+**`add(rules, [action])`**: `Ruler` method <br />
+adds new `rules : *`. Any numeric item in rules array
+will be treated as action code for further rules and will override
+the `action : number` argument. Rules array mey be nested for clarity.
+Both code lines in the following example are functionally identical: 
 ```javascript
-o.add([DO_SKIP, 'node_modules', '.*', DO_DEFAULT, '*.js', 'test/*spec.js'])
-o.add(['node_modules', '.*'], DO_SKIP).add([DO_DEFAULT, '*.js', 'test/*spec.js'])
+r.add([DO_SKIP, 'node_modules', '.*', DO_DEFAULT, '*.js', 'test/*spec.js'])
+r.add(['node_modules', '.*'], DO_SKIP).add([DO_DEFAULT, '*.js', 'test/*spec.js'])
 ```
 
-**_`dump`_**_`(): Array<Array>`_ method
+**`dump()`**: `Array<Array>` method <br />
+returns clone of the internal rule tree - useful for diagnostics and testing.
 
-Returns clone of the internal rule tree - useful for diagnostics and testing.
+**`match(string, [ancestors])`**: `Array<*>` method <br />
+does the rule matching using `ancestors : Array<*>` context possibly resulting
+from earlier call to `match()` method.
+In most cases, it's far easier to use `test()` method instead.
 
-**_`match`_**_`(string: string, ancestors=: Array): Array<*>`_ method
-
-The ancestors argument is usually result from another call to _`match()`_.
-In most cases, it is far easier to use _`test()`_ method instead.
-
-**_`test`_**_`(string: string, ancestors=: Array): [action, ancestors]`_ method
-
-Match the string against rules in given ancestors context. The _`action`_
-part of return value is relevant to business logic; `ancestors` are
-to be used for the next call if action part is _`CONTINUE`_.
+**`test(string, [ancestors])`**: `[action, ancestors]` method <br />
+matches the string against existing rules using `ancestors : Array<*>` context. 
+The `action : number` part of return value is relevant to business logic;
+`ancestors` part can be used for the next call if action part is `CONTINUE`.
 
 ### Constants
 See [definitions](src/definitions.js). Action codes defined by application code
 should be non-negative integers - this is important!
 
 ### Helper functions
-**_`loadFile`_**_`(path: string, nicely=: false): * | undefined`_ function
+**`loadFile(filePath, [nicely])`**: `*` function <br />
+reads file synchronously and returns `Buffer` instance.
+Returning `undefined` means the file did not exist.
 
-Reads file synchronously and return _`Buffer`_ instance.
-If file is not found, then just return _`undefined`_.
+Setting `nicely : boolean` to _truey_ value prevents throwing any exception.
+If exception occur, then just `Error` instance is returned by function.
 
-Setting _`nicely`_ argument prevents any exception throwing; just Error instance
-is returned by function.
-
-**_`typeName`_**_`(type: string): string | undefined`_ function
-
-Translate single-character type id used by _`Walker`_ to human-readable string.
+**`typeName(type)`**: `string | undefined` function <br />
+translates single-character type id used by `Walker` to human-readable string.
 
 ## Handler functions
-If handler is not arrow function, it's _`this`_ variable will be set to calling
+If handler is not arrow function, it's `this` variable will be set to calling
 _`Walker`_ instance.
 
-The context argument contains following properties:
+The context argument supplied to handler contains following properties:
    * `absDir `- absolute path of the directory to be opened;
    * `depth  `- dept in directory tree (0 for root);
    * `dir    `- local name the directory to be opened ('' for toot itself);
@@ -176,54 +162,47 @@ Common return codes from handler and their effect:
    * `DO_ABORT` - discard the current operation, exit to previous level;
    * `DO_SKIP` - skip this item;
 
-**_`onBegin`_**_`(context: object) : *`_
+**`onBegin(context)`**: `*` handler <br />
+is called before directory itself is opened. Special effects of return codes:
+   * `DO_ABORT` - `walk()` will return immediately;
+   * `DO_SKIP` - skip this directory without trying to open it later;
 
-Called before directory is opened. Special effects of return codes:
-   * `DO_ABORT` - _walk()_ will return immediately;
-   * `DO_SKIP` - skip this directory without trying to open it;
-
-**_`onEntry`_**_`(context: object) : *`_
-
-Called on every entry in the directory. Context has extra fields:
+**`onEntry(context)`**: `*` handler <br />
+is called for every entry read from the directory. Context has extra fields:
    * `name `- ...of directory entry;
    * `type `- ...of directory entry (one of exported **`T_...`** constants);
 
 If type is `T_DIR`, and handler returns an object, then this object
-will be available on this child directory level via _`context.locals`_.
+will be available on this child directory level via `context.locals`.
 
-**_`onEnd`_**_`(context: object) : *`_
+**`onEnd(context)`**: `*` handler <br />
+is called when all _`onEntry`_ calls are done and the directory is closed.
 
-Called when all _`onEntry`_ calls are done and the directory is closed.
-
-**_`onError`_**_`(error: Error, args: *) : *`_
-
-Called when exception is caught. The following return values have special effect:
+**`onError(error, args)`** : `*` handler <br />
+is called when exception is caught with `args : *` being arguments originally supplied
+to failed function (a handler or `fs.readdirSync`).
+The following return values have special effect:
    * `undefined` invokes default error processing;
-   * `DO_SKIP` prevents registerFailure() from being called.
+   * `DO_SKIP` prevents `registerFailure()` from being called.
 
 ### Default error processing
 Depending on error.code value, the following will happen:
-   * `'ENOTDIR'` - error is not logged and DO_SKIP is returned from behalf of failed function;
+   * `'ENOTDIR'` - error is not logged and `DO_SKIP` is returned from behalf of failed function;
    * `'EPERM'` - error is logged and execution continues;
    * otherwise it is assumed to be unexpected failure and error will be re-thrown.
    
-If exception originates from _`onEnd`_ handler and final code is not _`DO_SKIP`_,
-then _`walk()`_ will return immediately.
+If exception originates from `onEnd` handler and final code is not `DO_SKIP`,
+then `walk()` will return immediately.
 
 ## Asynchronous operation
 There is a demo of asynchronous parallel operation in [examples/list.js](examples/list.js).
 It's kinda cool, but in closer look, there is not much benefit - actually -
 async mode performance is no better at all. It is natural, because the `walk()` code
 _is_ synchronous. So all we'd get from asynchronous operation is being challenged
-by lurking _EMFILE_ psycho.
-
-As tempting as writing a fully async version of walk() is, honestly - I can't
-see much practical benefit from it. Traversing file system discussing every
-file with a remote server might be a good candidate, but... what for?
-
-All ideas, cooperation, rage and criticism will be appreciated!
+by lurking `EMFILE` psycho. There is
+a [ticket](https://github.com/valango/duke/issues/3) open for discussions on this topic.
 
 Be sure to check for this README sometimes via 
 [npm](https://www.npmjs.com/package/dwalker) _homepage_ link or directly in github.
-I'll restrain myself to
+I'll try to
 not update [npmjs.com](https://www.npmjs.com) too often. ;)
