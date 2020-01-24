@@ -12,8 +12,8 @@ const OPTS = {
 }
 const
   {
-    DO_ABORT, DO_SKIP, DO_CONTINUE, T_FILE, T_DIR,
-    Walker, Ruler, loadFile
+    DO_ABORT, DO_SKIP, CONTINUE, T_FILE, T_DIR,
+    actionName, Walker, Ruler, loadFile
   } = require('../src')
 
 const DO_COUNT = 1    //  Add file to count.
@@ -104,12 +104,13 @@ const onEnd = ({ absDir, dir }) => {
 //  Application-specific operations.
 const onEntry = ({ dir, locals, name, type }) => {
   const [action, ancs] = locals.rules.test(name, locals.ancs, name)
+  const actName = actionName(action)   //  For verbose output.
 
   switch (action) {
     case DO_ABORT:
-      talk('ABORT', dir)
+      talk('  DO_ABORT', dir)
       break
-    case DO_CONTINUE:
+    case CONTINUE:
       //  Forward our rule parsing context to subdirectory.
       if (type === T_DIR) {
         return { ancs, rules: locals.rules }
@@ -117,7 +118,7 @@ const onEntry = ({ dir, locals, name, type }) => {
       break
     case DO_COUNT:
       if (type !== T_FILE) break
-      talk('  CNT: %s @', name.padEnd(16), dir || '.')
+      talk('  DO_COUNT: %s @', name.padEnd(16), dir || '.')
       project.count += 1
       break
     case DO_PROMOTE:
@@ -127,7 +128,7 @@ const onEntry = ({ dir, locals, name, type }) => {
     case DO_SKIP:
       return action
     default:
-      if (type === T_DIR) talk('DEFAULT', action, name, ancs)
+      if (type === T_DIR) talk('default', actName, name, ancs)
   }
   ++nItems
   return action
