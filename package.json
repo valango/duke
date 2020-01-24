@@ -4,7 +4,7 @@
     "email": "villem.alango@gmail.com"
   },
   "name": "dwalker",
-  "version": "0.8.3",
+  "version": "1.0.0",
   "description": "A rules-based file directory walker",
   "repository": {
     "type": "git",
