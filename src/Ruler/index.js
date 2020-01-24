@@ -14,10 +14,19 @@ const IDX = 3
  */
 class Rules extends Sincere {
   /**
-   * @param {Array<*>=} rules
    * @param {Object<{action:number, extended, optimize}>=} options
+   * @param {...*} definitions
    */
-  constructor (rules = undefined, options = undefined) {
+  constructor (options = undefined, ...definitions) {
+    const rules = definitions.slice(), o = {}
+    let opts = options
+
+    if (opts !== undefined) {
+      if ((typeof opts === 'object' && opts.constructor !== o.constructor) ||
+        typeof opts !== 'object') {
+        rules.unshift(opts) && (opts = o)
+      }
+    }
     super()
     /**
      * Rule tree of nodes [parentIndex, rule, action].
@@ -41,7 +50,7 @@ class Rules extends Sincere {
      * Options for string parser.
      * @type {Object}
      */
-    this.options = defaults({}, options)
+    this.options = defaults({}, opts)
     /**
      * Action to be bound to new rule - used and possibly mutated by add().
      * @type {number}

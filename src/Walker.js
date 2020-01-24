@@ -3,6 +3,7 @@
 const defaults = require('lodash.defaults')
 const { opendirSync } = require('fs')
 const { join } = require('path')
+const { format } = require('util')
 const Sincere = require('sincere')
 const definitions = require('./definitions')
 
@@ -75,7 +76,12 @@ class Walker extends Sincere {
       if (r === undefined) {
         if (error.code === 'ENOTDIR') {
           r = DO_SKIP
-        } else if (error.code !== 'EPERM') throw error  // r = DO_ABORT
+        } else if (error.code !== 'EPERM') {
+          this.registerFailure(error)
+          this.registerFailure(format('args: %O', args))
+          this.registerFailure(error.stack)
+          r = DO_TERMINATE
+        }
       }
       if (r !== DO_SKIP) this.registerFailure(error)
     }

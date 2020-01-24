@@ -13,18 +13,18 @@ const OPTS = {
 const
   {
     DO_ABORT, DO_SKIP, DO_CONTINUE, T_FILE, T_DIR,
-    DirWalker, RuleTree, loadFile
+    Walker, Ruler, loadFile
   } = require('../src')
 
 const DO_COUNT = 1    //  Add file to count.
 const DO_PROMOTE = 2  //  Found test support.
 
-RuleTree.hook(() => {
+Ruler.hook(() => {
   return undefined    //  Breakpoint place.
 })
 
-const commonRules = new RuleTree([DO_SKIP, 'node_modules', '.*'])
-const projectRules = new RuleTree([
+const commonRules = new Ruler([DO_SKIP, 'node_modules', '.*'])
+const projectRules = new Ruler([
   [DO_SKIP, 'node_modules', '.*'],
   [DO_ABORT, '*.html'],
   [DO_COUNT, '*.js'],
@@ -133,7 +133,7 @@ const onEntry = ({ dir, locals, name, type }) => {
   return action
 }
 
-const walker = new DirWalker({ onBegin, onEnd, onEntry })
+const walker = new Walker({ onBegin, onEnd, onEntry })
 const walk = (dir) => walker.walk(pt.resolve(dir))
 let threads = args.length > 1 && !options.single
 const task = threads

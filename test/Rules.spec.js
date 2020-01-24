@@ -1,5 +1,5 @@
 'use strict'
-const ME = 'RuleTree'
+const ME = 'Ruler'
 process.env.NODE_MODULES = 'test'
 
 const { AssertionError } = require('assert')
@@ -7,7 +7,7 @@ const { expect } = require('chai')
 const { inspect } = require('util')
 const { DISCLAIM, CONTINUE, GLOB, NIL } = require('../src/definitions')
 const YES = 0
-const RuleTree = require('../src')[ME]
+const Ruler = require('../src')[ME]
 
 const T1 = [YES, 'a/b', 'a/c/', 'f*', '!file', '/z/y']
 const D1 = [
@@ -21,7 +21,7 @@ const D1 = [
   [6, /^y$/, YES]
 ]
 
-let t = new RuleTree(T1, YES)
+let t = new Ruler([YES, T1])
 let n = 0, lastAnc
 
 const match = (str, exp, anc = undefined) => {
@@ -40,14 +40,14 @@ const test = (str, exp, prev, comm = '') => {
 
 describe(ME, () => {
   beforeEach(() => {
-    t = new RuleTree(T1, YES)
+    t = new Ruler(YES, T1)
     n = 0
   })
 
   it('should construct', () => {
     // console.log('DUMP', t.dump())
     expect(t.dump()).to.eql(D1)
-    t = new RuleTree('/a*', { action: 2, optimize: false })
+    t = new Ruler({ action: 2, optimize: false }, '/a*')
     expect(t.dump()).to.eql([[NIL, /^a.*$/, 2]])
   })
 
@@ -80,6 +80,7 @@ describe(ME, () => {
     test('c', YES, [1])
     test('nope', CONTINUE, [0], '[0]')
     test('nope', CONTINUE, [NIL], '[NIL]')
+    expect(new Ruler().test('a')).to.eql([DISCLAIM])
   })
 
   it('should throw on bad rule', () => {

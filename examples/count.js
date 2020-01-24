@@ -3,7 +3,7 @@
 
 const HELP = 'Count all files and subdirectories, excluding nothing.'
 const color = require('chalk')
-const { DirWalker, typeName } = require('../src')
+const { Walker, typeName } = require('../src')
 const { dump, measure, parseCl, print } = require('./util')
 
 const counts = {}, { args } = parseCl({}, HELP, true)
@@ -22,7 +22,7 @@ const onBegin = ({ absDir, depth }) => {
 }
 const onEntry = ({ type }) => add(type)
 
-const walker = new DirWalker({ onBegin, onEntry })
+const walker = new Walker({ onBegin, onEntry })
 
 measure(
   () => args.forEach((dir) => walker.walk(dir))

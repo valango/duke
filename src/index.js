@@ -7,8 +7,8 @@
  * @type {Object}
  */
 module.exports = {
-  DirWalker: require('./Walker'),
-  RuleTree: require('./Ruler'),
+  Walker: require('./Walker'),
+  Ruler: require('./Ruler'),
   loadFile: require('./load-file'),
   ...require('./definitions')
 }

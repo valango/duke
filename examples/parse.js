@@ -1,12 +1,12 @@
 #!/usr/bin/env node
 'use strict'
 
-const HELP = `Construct and dump a RuleTree as defined by command line.
+const HELP = `Construct and dump a rule tree as defined by command line.
  Argument containing non-screened commas, will be turned into array.
  Example:
    examples/parse "*.js" 2 /nope`
 
-const RuleTree = require('../src/Ruler')
+const Ruler = require('../src/Ruler')
 const { parseCl, print } = require('./util')
 
 const convert = (str) => {
@@ -22,6 +22,6 @@ args.forEach((s) => {
 })
 
 print('DEFS:\n', defs, '\nTREE:')
-const tree = new RuleTree(defs).dump()
+const tree = new Ruler(defs).dump()
 
 tree.forEach((node, i) => print('%s: %O', (i + '').padStart(2), node))

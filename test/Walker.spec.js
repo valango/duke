@@ -1,19 +1,19 @@
 'use strict'
-const ME = 'DirWalker'
+const ME = 'Walker'
 process.env.NODE_MODULES = 'test'
 
 const { expect } = require('chai')
 const _ = require('lodash')
 const { DO_ABORT, DO_SKIP } = require(
   '../src/definitions')
-const RuleTree = require('../src/Ruler')
+const Ruler = require('../src').Ruler
 const W = require('../src')[ME]
 
 let w, options, context, count, rules
 
 describe(ME, () => {
   beforeEach(() => {
-    rules = new RuleTree([DO_SKIP, '/node_modules', '.*'])
+    rules = new Ruler([DO_SKIP, '/node_modules', '.*'])
     w = new W(options)
     context = undefined
     count = 0
