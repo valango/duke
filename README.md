@@ -86,8 +86,8 @@ is copy of constructor options. `walk()` method looks here for default handlers.
 assigning _Truey_ value prevents any further walking.
 
 **`registerFailure(failure, [comment])`**: `Walker` method<br />
-If `failure` is no string, then it's `toString()` method is used to
-retrieve message text to be pushed into `failures` array.
+The `failure` should have `stack` or `message` property or default conversion to string.
+The resulting string is pushed to `failures` property.
 If `comment : string` is present, it will be appended to message after `'\n  '` string.
 
 **`walk(rootDir, [handlers])`**: `Walker` method<br />
