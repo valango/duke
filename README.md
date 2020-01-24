@@ -1,6 +1,6 @@
 # dwalker [![Build Status](https://travis-ci.org/valango/duke.svg?branch=master)](https://travis-ci.org/valango/duke) [![Code coverage](https://codecov.io/gh/valango/duke/branch/master/graph/badge.svg)](https://codecov.io/gh/valango/duke)
 
-![](assets/quote800.png)
+![](assets/quote.png)
 
 Rule-based file directory walker - ambitious 
 alternative to globber-based directory walkers.
@@ -217,3 +217,7 @@ Be sure to check for this README sometimes via
 [npm](https://www.npmjs.com/package/dwalker) _homepage_ link or directly in github.
 I'll try to
 not update [npmjs.com](https://www.npmjs.com) too often. ;)
+
+## Versions history
+* v1.0.0 @200124: Lots of improvements + **breaking changes**: class names, action codes.
+* v0.8.3 @200123: first airworthy version.
