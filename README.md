@@ -1,6 +1,6 @@
 # dwalker [![Build Status](https://travis-ci.org/valango/duke.svg?branch=master)](https://travis-ci.org/valango/duke) [![Code coverage](https://codecov.io/gh/valango/duke/branch/master/graph/badge.svg)](https://codecov.io/gh/valango/duke)
 
-![](assets/quote.png)
+![](assets/white.png)![](assets/quote.png)
 
 Rule-based file directory walker - ambitious 
 alternative to globber-based directory walkers.
@@ -94,6 +94,23 @@ If `comment : string` is present, it will be appended to message after `'\n  '` 
 does the walking from `rootDir` down.
 If no `handlers : object` specified, it uses those found in `options` property.
 
+### Default error processing
+It may make sense to read about [handlers](#handlers) first and then continue from here.
+
+Depending on `error.code` value, the following will happen:
+   * `'ENOTDIR'` - error is not logged and `DO_SKIP` is returned from behalf of failed function;
+   * `'EPERM'` - error is logged and execution continues;
+   * otherwise it is assumed to be unexpected failure and then:
+      * registerFailure() is applied to original arguments of the failed call and then
+      to the error instance;
+      * DO_ABORT will be returned so this Walker instance finishes walking.
+      
+Resulting dump of failures property will look something like this:
+![](assets/errdump.png)
+   
+If exception originates from `onEnd` handler and final code is not `DO_SKIP`,
+then `walk()` will return immediately.
+
 ### Class `Ruler`
 _`Walker`_ is not directly dependent on this class, but it is designed specially
 to work with it, so enjoy!
@@ -146,7 +163,10 @@ If exception occur, then just `Error` instance is returned by function.
 **`typeName(type)`**: `string | undefined` function <br />
 translates single-character type id used by `Walker` to human-readable string.
 
-## Handler functions
+## Handlers
+Handlers are application-provided callback functions doing the actual work,
+leaving just walking to Walker. Handlers van be functions or even class methods.
+
 If handler is not arrow function, it's `this` variable will be set to calling
 _`Walker`_ instance.
 
@@ -184,21 +204,6 @@ to failed function (a handler or `fs.readdirSync`).
 The following return values have special effect:
    * `undefined` invokes default error processing;
    * `DO_SKIP` prevents `registerFailure()` from being called.
-
-### Default error processing
-Depending on `error.code` value, the following will happen:
-   * `'ENOTDIR'` - error is not logged and `DO_SKIP` is returned from behalf of failed function;
-   * `'EPERM'` - error is logged and execution continues;
-   * otherwise it is assumed to be unexpected failure and then:
-      * registerFailure() is applied to original arguments of the failed call and then
-      to the error instance;
-      * DO_ABORT will be returned so this Walker instance finishes walking.
-      
-Resulting dump of failures property will look something like this:
-![](assets/errdump.png)
-   
-If exception originates from `onEnd` handler and final code is not `DO_SKIP`,
-then `walk()` will return immediately.
 
 ## Asynchronous operation
 There is a demo of asynchronous parallel operation in [examples/list.js](examples/list.js).
