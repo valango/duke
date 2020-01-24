@@ -23,6 +23,10 @@ const _ts = {
   [T_SYMLINK]: 'symLink'
 }
 
+const _actions = [
+  'DO_TERMINATE', 'DO_ABORT', 'DO_SKIP', 'DISCLAIM', 'CONTINUE'
+]
+
 /**
  * type {Object}
  */
@@ -53,6 +57,15 @@ exports = module.exports = {
   T_ANY, T_BLOCK, T_CHAR, T_DIR, T_FIFO, T_FILE, T_SOCKET, T_SYMLINK,
   /* eslint-enable */
 
+  /**
+   * Translate action code to human-readable string. For diagnostics only.
+   * @param {number} action
+   * @returns {string}
+   */
+  actionName: (action) => {
+    const s = action < 0 ? _actions[-1 - action] : 'ACTION_' + action
+    return s || `DO_???_(${action})`
+  },
   /**
    * Translate DirEntry type to human-readable type name.
    * @param {string} type

@@ -55,15 +55,24 @@ class Walker extends Sincere {
     this.terminate = false
   }
 
+  /**
+   * Accumulate all kind of stuff into `failures` array to be enjoyed
+   * when the walk is over.
+   *
+   * @param {*} failure - presumably error instance or string.
+   * @param {string=} comment - if present, will be added with newline.
+   * @returns {Walker}
+   */
   registerFailure (failure, comment = '') {
-    let msg = typeof failure === 'string' ? failure : failure.message
-    // console.log('REG', msg)
+    let msg = failure.stack || failure.message || failure + ''
+
     if (comment) msg += '\n  ' + comment
     this.failures.push(msg)
-    // console.log(this.sincereMessage('registerFailure', [this.failures.length]))
     return this
   }
 
+  //  Execute a function or handler, catching possible errors.
+  //  Do default error handling.
   safely_ (opts, func, args) {
     let r
 
@@ -77,9 +86,7 @@ class Walker extends Sincere {
         if (error.code === 'ENOTDIR') {
           r = DO_SKIP
         } else if (error.code !== 'EPERM') {
-          this.registerFailure(error)
-          this.registerFailure(format('args: %O', args))
-          this.registerFailure(error.stack)
+          this.registerFailure(format('Failed with args: %O', args))
           r = DO_TERMINATE
         }
       }

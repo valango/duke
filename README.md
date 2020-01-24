@@ -186,10 +186,16 @@ The following return values have special effect:
    * `DO_SKIP` prevents `registerFailure()` from being called.
 
 ### Default error processing
-Depending on error.code value, the following will happen:
+Depending on `error.code` value, the following will happen:
    * `'ENOTDIR'` - error is not logged and `DO_SKIP` is returned from behalf of failed function;
    * `'EPERM'` - error is logged and execution continues;
-   * otherwise it is assumed to be unexpected failure and error will be re-thrown.
+   * otherwise it is assumed to be unexpected failure and then:
+      * registerFailure() is applied to original arguments of the failed call and then
+      to the error instance;
+      * DO_ABORT will be returned so this Walker instance finishes walking.
+      
+Resulting dump of failures property will look something like this:
+![](assets/errdump.png)
    
 If exception originates from `onEnd` handler and final code is not `DO_SKIP`,
 then `walk()` will return immediately.

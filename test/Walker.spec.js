@@ -37,7 +37,8 @@ describe(ME, () => {
     expect(count).to.equal(1)
     expect(_.pick(context, ['dir', 'depth'])).to
       .eql({ depth: 0, dir: '' })
-    expect(w.failures).to.eql(['a\n  test', 'b'])
+    expect(w.failures[0]).to.eql('a\n  test')
+    expect(w.failures.length).to.equal(2)
   })
 
   it('should process rules', () => {
@@ -60,14 +61,14 @@ describe(ME, () => {
     let data
     w.walk(process.cwd() + '/nope', {
       onError: function (e, d) {
-        data = {args: d, instance: this}
+        data = { args: d, instance: this }
         return 0    //  Prevent default error handling
       }
     })
-    expect(data.instance).to.equal(w)
-    expect(data.args).to.match(/\/nope$/)
-    expect(w.failures.length).to.eql(1)
-    expect(w.failures[0]).to.match(/^ENOENT/)
+    expect(data.instance).to.equal(w, 'instance')
+    expect(data.args).to.match(/\/nope$/, 'args')
+    expect(w.failures.length).to.eql(1, 'length')
+    expect(w.failures[0]).to.match(/^Error: ENOENT/, '[0]')
   })
 
   it('should intercept exceptions', () => {
