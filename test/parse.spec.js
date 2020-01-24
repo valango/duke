@@ -4,7 +4,7 @@ process.env.NODE_MODULES = 'test'
 
 const { AssertionError } = require('assert')
 const { expect } = require('chai')
-const p = require('../src/Rules/' + ME)
+const p = require('../src/Ruler/' + ME)
 const { ANY, GLOB } = p
 const DIR = { isDirectory: true, isExclusion: false }
 const SOME = { isDirectory: false, isExclusion: false }

@@ -30,7 +30,7 @@ npm i dwalker
 ```
 
 ### How it works
-Class instance of DirWalker exposes **_`walk()`_** method,
+Class instance of Walker exposes **_`walk()`_** method,
 which does most of the job. It traverses directory hierarchy width-first,
 calling application-defined handlers, as it goes. The walk() code
 is re-enterable and it can run in parallel promise instances.
@@ -65,13 +65,13 @@ function walk (root, {onBegin, onEntry, onEnd}) {
 ```
 Application - specific handlers _`onBegin`_, _`onEnd`_, _`onEntry`_ and 
 _`onError`_ are all optional, but 
-_`DirWalker`_ just won't do much good without them.
+_`Walker`_ just won't do much good without them.
 
 Things really get exciting, when we apply some business logic in our handlers.
 See [another example](examples/list.js).
 
 ## Package exports
-### Class `DirWalker`
+### Class `Walker`
 **_`constructor`_**_`(options=: object)`_
 
 The optional _`options`_ argument may contain default handlers for _`walk()`_.
@@ -88,19 +88,19 @@ Copy of constructor options. _`walk()`_ method looks here for default handlers.
 
 _Truey_ value prevents any further walking.
 
-**_`registerFailure`_**_`(failure: *, comment=: string): DirWalker`_ method
+**_`registerFailure`_**_`(failure: *, comment=: string): Walker`_ method
 
 If _`failure`_ is not string, then it's toString() method is used to
 retrieve message text to be pushed into _`failures`_ array.
 If _`comment`_ is supplied, it will be appended to message after `'\n  '` string.
 
-**_`walk`_**_`(rootDir: string, handlers=: object): DirWalker`_ method
+**_`walk`_**_`(rootDir: string, handlers=: object): Walker`_ method
 
 Does the walking from _`rootDir`_ down.
 If no handlers specified, if uses those found in _`options`_ property.
 
-### Class `RuleTree`
-_`DirWalker`_ is not directly dependent on this class, but it is designed specially
+### Class `Ruler`
+_`Walker`_ is not directly dependent on this class, but it is designed specially
 to work with it, so enjoy!
 
 **_`constructor`_**_`(rules=: *, options=: object)`_
@@ -114,7 +114,7 @@ if _`rules`_ is supplied, then _`add()`_ method is invoked. Available _`options`
 
 Action to be bound to new rule. This value is used and possibly mutated by _`add()`_.
 
-**_`add`_**_`(rule: *, action=: number): RuleTree`_ method
+**_`add`_**_`(rule: *, action=: number): Ruler`_ method
 
 Add new rules. If the first item in definitions array is not string,
 it will be treated as action code, which will prevail over default action.
@@ -158,11 +158,11 @@ is returned by function.
 
 **_`typeName`_**_`(type: string): string | undefined`_ function
 
-Translate single-character type id used by _`DirWalker`_ to human-readable string.
+Translate single-character type id used by _`Walker`_ to human-readable string.
 
 ## Handler functions
 If handler is not arrow function, it's _`this`_ variable will be set to calling
-_`DirWalker`_ instance.
+_`Walker`_ instance.
 
 The context argument contains following properties:
    * `absDir `- absolute path of the directory to be opened;
@@ -172,7 +172,7 @@ The context argument contains following properties:
    * `root   `- _`rootDir`_ argument supplied to _`walk()`_ method.
    
 Common return codes from handler and their effect:
-   * `DO_TERMINATE` - all walking is terminated for this _`DirWalker`_ instance;
+   * `DO_TERMINATE` - all walking is terminated for this _`Walker`_ instance;
    * `DO_ABORT` - discard the current operation, exit to previous level;
    * `DO_SKIP` - skip this item;
 

@@ -6,7 +6,7 @@ const { expect } = require('chai')
 const _ = require('lodash')
 const { DO_ABORT, DO_SKIP } = require(
   '../src/definitions')
-const RuleTree = require('../src/Rules')
+const RuleTree = require('../src/Ruler')
 const W = require('../src')[ME]
 
 let w, options, context, count, rules

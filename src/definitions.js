@@ -28,15 +28,15 @@ const _ts = {
  */
 exports = module.exports = {
   //  Internal constants.
-  /** @member {number} GLOB  reserved for Rules:  match optional dirs (**). */
+  /** @member {number} GLOB  reserved for Ruler:  match optional dirs (**). */
   GLOB: null,
   /** @member {number} NIL   Index pointing to nowhere. */
   NIL: -1,
 
   //  Action codes. Negative values are reserved.
-  /** @member {number} CONTINUE  reserved for Rules: partial match. */
+  /** @member {number} CONTINUE  reserved for Ruler: partial match. */
   CONTINUE: -5,
-  /** @member {number} DISCLAIM  reserved for Rules: no match or discard any. */
+  /** @member {number} DISCLAIM  reserved for Ruler: no match or discard any. */
   DISCLAIM: -4,
   /** @member {number} DO_SKIP      Ignore this item. */
   DO_SKIP: -3,
