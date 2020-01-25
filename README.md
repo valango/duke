@@ -136,7 +136,7 @@ r.add(DO_SKIP, 'node_modules', '.*', DO_DEFAULT, '*.js', 'test/*spec.js')
 r.add([DO_SKIP, 'node_modules', '.*', DO_DEFAULT, '*.js', 'test/*spec.js'])
 r.add(['node_modules', '.*'], DO_SKIP).add([DO_DEFAULT, '*.js', 'test/*spec.js'])
 ```
-The v1.0 syntax add(definition, action) is deprectated
+The v1.0 syntax `add(definition, action)` is deprectated
 
 **`dump()`**: `Array<Array>` method <br />
 returns clone of the internal rule tree - useful for diagnostics and testing.
