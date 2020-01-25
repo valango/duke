@@ -22,7 +22,12 @@ const D1 = [
 ]
 
 let t = new Ruler([YES, T1])
-let n = 0, lastAnc
+let n = 0, lastAnc, wCount = 0
+
+const hook = (warning) => {
+  wCount += 1
+  process.stderr.write('This warning was part of test.\n')
+}
 
 const match = (str, exp, anc = undefined) => {
   const r = t.match(str, anc)
@@ -39,7 +44,10 @@ const test = (str, exp, prev, comm = '') => {
 }
 
 describe(ME, () => {
+  before(() => process.on('warning', hook))
+  after(() => process.off('warning', hook))
   beforeEach(() => {
+    // warnings = []
     t = new Ruler(YES, T1)
     n = 0
   })
@@ -49,6 +57,26 @@ describe(ME, () => {
     expect(t.dump()).to.eql(D1)
     t = new Ruler({ action: 2, optimize: false }, '/a*')
     expect(t.dump()).to.eql([[NIL, /^a.*$/, 2]])
+  })
+
+  it('should warn about deprecated API', (done) => {
+    let a = new Ruler().add(['a/b', 'a/c/', 'f*', '!file', '/z/y'], YES)
+    expect(a.dump()).to.eql(t.dump(), 'old API')
+    process.nextTick(() => {
+      expect(wCount).to.equal(1, 'old API')
+      a = new Ruler().add(YES, 'a/b', 'a/c/', 'f*', '!file', '/z/y')
+      expect(a.dump()).to.eql(t.dump(), 'new API')
+      process.nextTick(() => {
+        expect(wCount).to.equal(1, 'new API')
+        done()
+      })
+    })
+  })
+
+  it('should clone', () => {
+    const c = t.clone().add(2, '/two')
+    expect(c.test('two')[0]).to.equal(2, 1)
+    expect(t.test('two')[0]).to.equal(CONTINUE, 2)
   })
 
   it('should match', () => {
@@ -89,14 +117,9 @@ describe(ME, () => {
 
   it('should check rule conflicts', () => {
     const old = t.tree
-    t.add('a/b', YES)
-    expect(() => t.add('a/b', 1)).to.throw(AssertionError, 'conflict @2')
+    t.add(YES, 'a/b')
+    expect(() => t.add(1, 'a/b')).to.throw(AssertionError, 'conflict @2')
     expect(t.tree).to.eql(old)
-  })
-
-  it('should clone', () => {
-    const c = t.clone().add([2, '/two'])
-    expect(c.test('two')[0]).to.equal(2, 1)
-    expect(t.test('two')[0]).to.equal(CONTINUE, 2)
+    expect(wCount).to.eql(1)
   })
 })

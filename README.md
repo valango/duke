@@ -125,15 +125,18 @@ calls if `rules` are supplied, `add()` method  invoked. Available `options` are:
 default action to be bound to new rule.
 This value is used and possibly mutated by `add()` method.
 
-**`add(rules, [action])`**: `Ruler` method <br />
-adds new `rules : *`. Any numeric item in rules array
-will be treated as action code for further rules and will override
-the `action : number` argument. Rules array mey be nested for clarity.
-Both code lines in the following example are functionally identical: 
+**`add(...args)`**: `Ruler` method <br />
+adds new rules. Any numeric item in `args` array
+will be treated as action code for further rules and will also
+mutate `defaultAction` property.
+Rules array may be nested for clarity.
+All code lines following example are functionally identical: 
 ```javascript
+r.add(DO_SKIP, 'node_modules', '.*', DO_DEFAULT, '*.js', 'test/*spec.js')
 r.add([DO_SKIP, 'node_modules', '.*', DO_DEFAULT, '*.js', 'test/*spec.js'])
 r.add(['node_modules', '.*'], DO_SKIP).add([DO_DEFAULT, '*.js', 'test/*spec.js'])
 ```
+The v1.0 syntax add(definition, action) is deprectated
 
 **`dump()`**: `Array<Array>` method <br />
 returns clone of the internal rule tree - useful for diagnostics and testing.

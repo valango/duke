@@ -1,5 +1,8 @@
 'use strict'
 
+const DEPR = 'Ruler.add(definition, action) syntax is deprecated.' +
+  ' Use `.add(action, {rule}, {action, {rule...}...)` instead.'
+
 const { DO_DEFAULT, DISCLAIM, CONTINUE, GLOB, NIL } = require('../definitions')
 const defaults = require('lodash.defaults')
 const parse = require('./parse')
@@ -67,11 +70,18 @@ class Ruler extends Sincere {
    * If `definition` is an array, then every numeric member will be interpreted as
    * action code for following rule(s). Array may be nested.
    *
-   * @param {*} definition
-   * @param {number=} action
-   * @returns {Rules}
+   * @param {...*} args
+   * @returns {Ruler}
    */
-  add (definition, action = undefined) {
+  add (...args) {
+    if (args.length === 2 && typeof args[1] === 'number') {
+      process.emitWarning(DEPR, 'DeprecationWarning')
+      return this.add_(args[0], args[1])  //  v1.0.1 API
+    }
+    return this.add_(args)
+  }
+
+  add_ (definition, action) {
     this._level += 1
     this._lastItem = definition
 
@@ -84,7 +94,7 @@ class Ruler extends Sincere {
         break
       default:
         if (Array.isArray(definition)) {
-          definition.forEach((item) => this.add(item, action))
+          definition.forEach((item) => this.add_(item, action))
         } else {
           this.assert(false, 'add', 'bad rule definition < %O >', definition)
         }
@@ -96,7 +106,7 @@ class Ruler extends Sincere {
   /**
    * @param {string} path
    * @param {number=} forAction
-   * @returns {Rules}
+   * @returns {Ruler}
    * @private
    */
   addPath_ (path, forAction = undefined) {
