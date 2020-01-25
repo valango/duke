@@ -61,8 +61,12 @@ exports = module.exports = {
    * Translate action code to human-readable string. For diagnostics only.
    * @param {number} action
    * @returns {string}
+   * @throws {TypeError}
    */
   actionName: (action) => {
+    if (typeof action !== 'number') {
+      throw TypeError('actionName(): bad argument type')
+    }
     const s = action < 0 ? _actions[-1 - action] : 'ACTION_' + action
     return s || `DO_???_(${action})`
   },

@@ -7,7 +7,7 @@ const _ = require('lodash')
 const { DO_ABORT, DO_SKIP } = require(
   '../src/definitions')
 const Ruler = require('../src').Ruler
-const W = require('../src')[ME]
+const W = require('..')[ME]
 
 let w, options, context, count, rules
 

@@ -7,7 +7,7 @@ const { expect } = require('chai')
 const { inspect } = require('util')
 const { DISCLAIM, CONTINUE, GLOB, NIL } = require('../src/definitions')
 const YES = 0
-const Ruler = require('../src')[ME]
+const Ruler = require('..')[ME]
 
 const T1 = [YES, 'a/b', 'a/c/', 'f*', '!file', '/z/y']
 const D1 = [

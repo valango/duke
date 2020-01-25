@@ -4,7 +4,7 @@
 'use strict'
 
 /**
- * @type {Object}
+ * @type {Object<{Ruler, Walker, actionName:function(), typeName:function()}>}
  */
 module.exports = {
   Walker: require('./Walker'),

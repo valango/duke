@@ -63,8 +63,6 @@
     "all": true,
     "check-coverage": true,
     "exclude": [
-      "src/definitions.js",
-      "src/index.js"
     ],
     "include": [
       "src/**/*.js"
