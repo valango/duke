@@ -1,6 +1,6 @@
 'use strict'
 
-const { DO_DEFAULT, DISCLAIM, CONTINUE, GLOB, NIL } = require('../definitions')
+const { DO_DEFAULT, DISCLAIM, CONTINUE, GLOB, NIL, actionName } = require('../definitions')
 const defaults = require('lodash.defaults')
 const parse = require('./parse')
 const Sincere = require('sincere')
@@ -74,7 +74,6 @@ class Rules extends Sincere {
   add (definition, action = undefined) {
     this._level += 1
     this._lastItem = definition
-    this.assert('add', 'no rules')
 
     switch (typeof definition) {
       case 'number':
@@ -90,9 +89,6 @@ class Rules extends Sincere {
           this.assert(false, 'add', 'bad rule definition < %O >', definition)
         }
     }
-    this.assert((--this._level > 0) || typeof this._lastItem !== 'number',
-      'add', 'pending action code %i in rule < %O >',
-      this._lastItem, definition)
 
     return this
   }
