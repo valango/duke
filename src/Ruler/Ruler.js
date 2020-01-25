@@ -1,6 +1,6 @@
 'use strict'
 
-const { DO_DEFAULT, DISCLAIM, CONTINUE, GLOB, NIL, actionName } = require('../definitions')
+const { DO_DEFAULT, DISCLAIM, CONTINUE, GLOB, NIL } = require('../definitions')
 const defaults = require('lodash.defaults')
 const parse = require('./parse')
 const Sincere = require('sincere')

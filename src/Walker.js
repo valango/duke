@@ -85,12 +85,13 @@ class Walker extends Sincere {
       if (r === undefined) {
         if (error.code === 'ENOTDIR') {
           r = DO_SKIP
-        } else if (error.code !== 'EPERM') {
-          this.registerFailure(format('Failed with args: %O', args))
+        } else if (error.code === 'EPERM') {
+          this.registerFailure(error.message)
+        } else {
+          this.registerFailure(error, format('arguments: %O', args))
           r = DO_TERMINATE
         }
-      }
-      if (r !== DO_SKIP) this.registerFailure(error)
+      } else if (r !== DO_SKIP) this.registerFailure(error)
     }
     if (r === DO_TERMINATE) {
       this.terminate = true

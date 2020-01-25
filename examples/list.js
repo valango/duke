@@ -50,36 +50,31 @@ const findThis = (dir) => projects.find((p) => p.absDir === dir)
 //  Statistics
 let dirLength = 0, nameLength = 10, nItems = 0
 
-//  Local variables with effective lifespan from onBegin..onEnd
-//  Note: with fully asynchronous code it would fail miserably. ;)
-let master, project, pkg
-
 const onBegin = ({ absDir, dir, locals }) => {
-  let v
+  if (findThis(absDir)) return DO_SKIP  //  Already done - multi-threading?
 
-  if (findThis(absDir)) return DO_SKIP  //  Already done - multi-threading.
-  //  Here we have locals from processing the entry in parent dir.
-  //  Here we can set locals for all the following calls.
-  if ((v = findMaster(absDir))) {
-    master = project = v
+  if (locals.master) throw Error('master')
+  if (locals.project) throw Error('project')
+  let v = locals.master = findMaster(absDir)
+
+  if (v) {
+    locals.project = v
     if (!options.nested) return talk('  DIR', absDir, dir)
-  } else if (project) {
-    project = undefined
   }
 
-  if ((pkg = loadFile(pt.join(absDir, 'package.json'), true))) {
-    if (pkg instanceof Error) {
+  if ((v = loadFile(pt.join(absDir, 'package.json'), true))) {
+    if (v instanceof Error) {
       //  This happens when `root` argument of walk() is not a directory.
-      if (pkg.code === 'ENOTDIR') return DO_SKIP
-      throw pkg
+      if (v.code === 'ENOTDIR') return DO_SKIP
+      throw v
     }
-    pkg = JSON.parse(pkg.toString())
-    const name = pkg.name || '<NO-NAME>'
+    v = JSON.parse(v.toString())
+    const name = v.name || '<NO-NAME>'
     talk('PROJECT', absDir, dir)
-    project = { absDir, count: 0, name, promo: '' }
-    if (master) {
-      master = undefined
-      project.promo = 'N'
+    locals.project = { absDir, count: 0, name, promo: '' }
+    if (locals.master) {
+      locals.master = undefined
+      locals.project.promo = 'N'
     }
     (locals.rules = projectRules) && (locals.ancs = undefined)
   }
@@ -91,12 +86,12 @@ const onBegin = ({ absDir, dir, locals }) => {
 }
 
 //  If there was DO_ABORT in current dir, we won't get here.
-const onEnd = ({ absDir, dir }) => {
+const onEnd = ({ absDir, dir, locals }) => {
   // const { master, project } = locals
-  if (!project) return
-  if (!master) {
-    projects.push(project)
-    nameLength = Math.max(project.name.length, nameLength)
+  if (!locals.project) return
+  if (!locals.master) {
+    projects.push(locals.project)
+    nameLength = Math.max(locals.project.name.length, nameLength)
   }
   if (findThis(absDir)) talk('END', dir)
 }
@@ -119,11 +114,11 @@ const onEntry = ({ dir, locals, name, type }) => {
     case DO_COUNT:
       if (type !== T_FILE) break
       talk('  DO_COUNT: %s @', name.padEnd(16), dir || '.')
-      project.count += 1
+      locals.project.count += 1
       break
     case DO_PROMOTE:
       if (type !== T_DIR) break
-      project.promo = project.promo || 'T'
+      locals.project.promo = locals.project.promo || 'T'
       return DO_SKIP
     case DO_SKIP:
       return action
