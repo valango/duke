@@ -93,4 +93,10 @@ describe(ME, () => {
     expect(() => t.add('a/b', 1)).to.throw(AssertionError, 'conflict @2')
     expect(t.tree).to.eql(old)
   })
+
+  it('should clone', () => {
+    const c = t.clone().add([2, '/two'])
+    expect(c.test('two')[0]).to.equal(2, 1)
+    expect(t.test('two')[0]).to.equal(CONTINUE, 2)
+  })
 })

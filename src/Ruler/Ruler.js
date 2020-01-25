@@ -12,7 +12,7 @@ const IDX = 3
 /**
  * Rule tree and intermediate state of searches.
  */
-class Rules extends Sincere {
+class Ruler extends Sincere {
   /**
    * @param {Object<{action:number, extended, optimize}>=} options
    * @param {...*} definitions
@@ -142,6 +142,18 @@ class Rules extends Sincere {
   }
 
   /**
+   * Create copy of the instance.
+   * @returns {Ruler}
+   */
+  clone () {
+    const c = new Ruler(this.options)
+    c.defaultAction = this.defaultAction
+    c._tree = this.dump()
+
+    return c
+  }
+
+  /**
    * Copy the internal rule tree - intended for testing / debugging.
    * @returns {Array<Array<*>>}
    */
@@ -230,4 +242,4 @@ class Rules extends Sincere {
   }
 }
 
-module.exports = Rules
+module.exports = Ruler
