@@ -4,7 +4,7 @@
     "email": "villem.alango@gmail.com"
   },
   "name": "dwalker",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "A rules-based file directory walker",
   "repository": {
     "type": "git",
@@ -62,8 +62,7 @@
   "nyc": {
     "all": true,
     "check-coverage": true,
-    "exclude": [
-    ],
+    "exclude": [],
     "include": [
       "src/**/*.js"
     ],
