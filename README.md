@@ -153,6 +153,10 @@ See [definitions](src/definitions.js). Action codes defined by application code
 should be non-negative integers - this is important!
 
 ### Helper functions
+**`actionName(action)`**: `string` function <br />
+returns human-readable action name for diagnostics.
+Throws `TypeError` if action is not a number.
+
 **`loadFile(filePath, [nicely])`**: `*` function <br />
 reads file synchronously and returns `Buffer` instance.
 Returning `undefined` means the file did not exist.
