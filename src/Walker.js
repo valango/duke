@@ -35,7 +35,7 @@ const getType = (entry) => {
  */
 class Walker extends Sincere {
   /**
-   * @param {Object<{tick,interval}>} options
+   * @param {Object<{tick,interval}>} options may also contain on...() plugins.
    * @param {*=} sharedData - may be used by derived classes.
    */
   constructor (options, sharedData = undefined) {
@@ -267,7 +267,13 @@ class Walker extends Sincere {
     return res
   }
 
-  walk_ (rootPath, options = undefined) {
+  /**
+   * @param {string} rootPath
+   * @param {Object} options
+   * @returns {Object<{?error: Error}>}
+   * @private
+   */
+  walk_ (rootPath, options) {
     const closure = defaults({}, options, this.options)
     const paths = [], root = resolve(rootPath)
     let action, directory, entry, t

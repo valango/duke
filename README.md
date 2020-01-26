@@ -35,18 +35,19 @@ which does most of the job. It traverses directory hierarchy width-first,
 calling application-defined handlers, as it goes. The walk() code
 is re-enterable and it can run in parallel promise instances.
 
-Simplified algorithm:
+Simplified internal algorithm use by `walk()` and `walkSync()` methods:
 ```javascript
-function walk (root, {onBegin, onEntry, onEnd}) {
+function walk_ (root, options) {
   let action, context, directory
-  const fifo = [{ dir: '' }]
+  const walkContext = defaults({}, options, this.options)
+  const fifo = [{ dir: '', locals: walkContext.locals || {} }]
 
-  while ((context = fifo.shift()) !== undefined) {
+  while (!this.terminate && (context = fifo.shift()) !== undefined) {
     const { dir } = context
-    if ((action = onBegin(context)) === DO_ABORT) return
-    if (action === DO_SKIP) continue
 
     directory = fs.opendirSync(join(root, dir))
+    if ((action = onBegin(context)) === DO_ABORT) break
+    if (action === DO_SKIP) continue
 
     while (({ name, type } = directory.readSync())) {
       action = onEntry({ name, type, ...context })
@@ -56,11 +57,9 @@ function walk (root, {onBegin, onEntry, onEnd}) {
     }
     directory.closeSync()
 
-    if ((action = onEnd(context)) === DO_ABORT ||
-      wasError() && action !== DO_SKIP) {
-        return
-    }
+    if ((action = onEnd({action, ...context})) === DO_ABORT) break
   }
+  return walkContext.error ? walkContext.error : walkContext
 }
 ```
 Application - specific handlers `onBegin`, `onEnd`, `onEntry` and 
@@ -72,27 +71,68 @@ See [another example](examples/list.js).
 
 ## Package exports
 ### Class `Walker`
+For flexibility, `Walker` supports overriding some it's instance methods
+by plug-ins. Maybe it will be strictened in future releases as
+usage patterns will stabilize, but until then... enjoy!
 
-**`constructor([options])`** <br />
-the `options : object` argument may contain default handlers for `walk()`.
+**`constructor([options], [sharedData])`** <br />
+`sharedData={} : *` initial value assigned (not copied) to `data`.<br />
+`Walker` recognizes the following `options : object`:
+   * `interval=200 : number` milliseconds between `tick()` plug-in calls.
+   * `detect : function()` plug-in override for `detect` method.
+   * `tick : function()` plug-in to be repeatedly called during walking.
+   * `onBegin | onEnd | onEntry | onError' | function(*):*` - handler plug-ins.
+
+**`data`**: `*` property <br />
+is not used by `Walker`, 
+but can be used by plug-ins or derived classes.
+This property set to `sharedData` or `{}` by constructor.
 
 **`failures`**: `Array<string>` property <br />
-Can be examined any time.
+Soft error messages; can be examined any time.
 
 **`options`**: `object` property <br />
-is copy of constructor options. `walk()` method looks here for default handlers.
+is copy of constructor options. `walk()` some methods look here for plug-ins.
 
 **`terminate`**: `boolean` property <br />
-assigning _Truey_ value prevents any further walking.
+assigning _Truey_ value prevents any further walking. 
+`Walker` sets it `true`, when any `onXXX` handler returns `DO_TERMINATE`.
+
+**`tree`**: `object[]` property <br />
+list of recognized subtrees, e.g. Node.js projects. get... methods assume
+array members having `absDir : string` property.
+
+**`detect(context)`**  method<br />
+called by onBegin method.
+If no `handlers : object` specified, it uses those found in `options` property.
+
+**`getCurrent(path)`**`object`  method<br />
+returns `tree` instance property member with `dirPath === path` or `undefined`.
+Called by `Walker.onBegin()` method.
+
+**`getMaster(path)`**`object`  method<br />
+returns `tree` instance property member with `dirPath` shorter than `path`
+and matching it's beginning, or `undefined`.
+Called by `Walker.onBegin()` method.
+
+**`onBegin | onEnd | onEntry | onError`**: `*` method <br />
+Baseclass methods check for plug-in with the same name and if it exists,
+it will run and method quits. Both plug-ins and methods semantics is described
+in [handlers](#handlers) chapter.
 
 **`registerFailure(failure, [comment])`**: `Walker` method<br />
 The `failure` should have `stack` or `message` property or default conversion to string.
 The resulting string is pushed to `failures` property.
 If `comment : string` is present, it will be appended to message after `'\n  '` string.
 
-**`walk(rootDir, [handlers])`**: `Walker` method<br />
-does the walking from `rootDir` down.
-If no `handlers : object` specified, it uses those found in `options` property.
+**`walk(rootDir, [options])`**: `Promise` method<br />
+walks the directory tree asynchronously starting from `rootDir` down.
+If `options.locals` is present then it will be assigned to `locals` property of the _top context_.
+Returns a promise resolving to _walk context_ or rejecting to un-handled `Error` instance.
+
+**`walkSync(rootDir, [options])`**: `Promise` method<br />
+Synchronous version of `walk()` method.
+Returns _walk context_ or throws `Error`.
 
 ### Default error processing
 It may make sense to read about [handlers](#handlers) first and then continue from here.
@@ -207,9 +247,11 @@ will be available on this child directory level via `context.locals`.
 **`onEnd(context)`**: `*` handler <br />
 is called when all _`onEntry`_ calls are done and the directory is closed.
 
-**`onError(error, args)`** : `*` handler <br />
+**`onError(error, args, expected)`** : `*` handler <br />
 is called when exception is caught with `args : *` being arguments originally supplied
-to failed function (a handler or `fs.readdirSync`).
+to failed function. If error.code is one of `expected : string[]` then
+`registerFailure()` is called and `DO_SKIP` is returned; otherwise the error will
+be thrown, which terminates walking for this instance.
 The following return values have special effect:
    * `undefined` invokes default error processing;
    * `DO_SKIP` prevents `registerFailure()` from being called.
