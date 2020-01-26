@@ -35,8 +35,13 @@ const getType = (entry) => {
  *  Walks a directory tree according to rules.
  */
 class Walker extends Sincere {
-  constructor (options) {
+  constructor (options, data) {
     super()
+    /**
+     * Shared (not copied) data space - may be used by derived classes.
+     * @type {*|Object}
+     */
+    this.data = data || {}
     /**
      * Diagnostic messages.
      * @type {Array<string>}
@@ -99,7 +104,7 @@ class Walker extends Sincere {
     if ((locals.master = this.getMaster(absDir))) {
       locals.current = locals.master
       if (!this.options.nested) {
-        return this.options.talk('  DIR', ctx.absDir, ctx.dir)
+        return this.talk('  DIR', ctx.absDir, ctx.dir)
       }
     }
 
@@ -120,7 +125,7 @@ class Walker extends Sincere {
       if (!locals.master) {
         this.trees.push(locals.current)
       }
-      if (this.getCurrent(ctx.absDir)) this.options.talk('END', ctx.dir)
+      if (this.getCurrent(ctx.absDir)) this.talk('END', ctx.dir)
     }
     return locals.current
   }
@@ -143,13 +148,13 @@ class Walker extends Sincere {
         }
         break
       case DO_ABORT:
-        this.options.talk('  DO_ABORT', ctx.dir)
+        this.talk('  DO_ABORT', ctx.dir)
         break
       case DO_SKIP:
         break
       default:
         if (type === T_DIR) {
-          this.options.talk('default', actionName(action), name)
+          this.talk('default', actionName(action), name)
         }
     }
     return action
@@ -204,6 +209,10 @@ class Walker extends Sincere {
       this.terminate = true
     }
     return r
+  }
+
+  talk (...args) {
+    if (this.options.talk) this.options.talk.apply(this, args)
   }
 
   /**
