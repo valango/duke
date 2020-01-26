@@ -40,9 +40,6 @@ const relativePath = require('./util/relative-path')
 const talk = options.verbose
   ? print.bind(print, color.green) : () => undefined
 
-//  Statistics
-let dirLength = 0, nameLength = 10, nItems = 0
-
 class ProWalker extends Walker {
   /**
    * @param {string} absDir
@@ -55,7 +52,7 @@ class ProWalker extends Walker {
     if (v) {
       v = JSON.parse(v.toString())
       const name = v.name || '', funny = !name
-      nameLength = Math.max(name.length, nameLength)
+      this.data.nameLength = Math.max(name.length, this.data.nameLength)
       talk('PROJECT', absDir, dir)
       locals.current = { absDir, count: 0, funny, name, promo: '' }
       if (locals.master) {
@@ -81,12 +78,14 @@ class ProWalker extends Walker {
         locals.current.promo = locals.current.promo || 'T'
         return DO_SKIP
     }
-    ++nItems
+    ++this.data.nItems
     return action
   }
 }
 
-const walker = new ProWalker({ defaultRules, nested: options.nested, talk })
+const stats = { dirLength: 0, nameLength: 10, nItems: 0 }
+const walker = new ProWalker(
+  { defaultRules, nested: options.nested, talk }, stats)
 const walk = (dir) => walker.walk(pt.resolve(dir))
 let threads = args.length > 1 && !options.single
 const task = threads
@@ -101,17 +100,17 @@ measure(task).then((t) => {
 
   walker.trees.forEach((p) => {
     const dir = relativePath(p.absDir, './')
-    dirLength = Math.max(dir.length, dirLength)
-    const d = ['%s %s %s:', p.name.padEnd(nameLength), p.promo || ' ',
-      (p.count + '').padStart(5), dir]
+    stats.dirLength = Math.max(dir.length, stats.dirLength)
+    const d = ['%s %s %s:', p.name.padEnd(stats.nameLength),
+      p.promo || ' ', (p.count + '').padStart(5), dir]
     if (p.count === 0) p.funny = true
     if (p.funny) d.unshift(color.redBright)
     print.apply(undefined, d)
   })
-  print('- name '.padEnd(nameLength, '-'),
-    '? - cnt:', '- directory '.padEnd(dirLength, '-'))
+  print('- name '.padEnd(stats.nameLength, '-'),
+    '? - cnt:', '- directory '.padEnd(stats.dirLength, '-'))
   print('Total %i projects', walker.trees.length)
   threads = threads ? 'in ' + args.length + ' threads' : ''
-  print('Total %i ms (%i µs/item) on %i items', t / 1000, t / nItems, nItems,
-    threads)
+  print('Total %i ms (%i µs/item) on %i items',
+    t / 1000, t / stats.nItems, stats.nItems, threads)
 })
