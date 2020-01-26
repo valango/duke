@@ -30,39 +30,51 @@ const getType = (entry) => {
   }
 }
 
-const TICK = 200
-let _nextTick = 0
-
 /**
  *  Walks a directory tree according to rules.
  */
 class Walker extends Sincere {
-  constructor (options, data) {
+  /**
+   * @param {Object<{tick,interval}>} options
+   * @param {*=} sharedData - may be used by derived classes.
+   */
+  constructor (options, sharedData = undefined) {
+    const opts = defaults(undefined, options)
     super()
     /**
      * Shared (not copied) data space - may be used by derived classes.
      * @type {*|Object}
      */
-    this.data = data || {}
+    this.data = sharedData || {}
     /**
      * Diagnostic messages.
      * @type {Array<string>}
      */
     this.failures = []
     /**
+     * Minimum interval between this.tick() calls.
+     * @type {number}
+     */
+    this.interval = opts.interval || 200
+    this.nextTick = 0
+    /**
      * Options to be applied to walk() by default.
      * @type {Object}
      */
-    this.options = defaults({}, options)
+    this.options = opts
     /**
      * When true, walking will terminate immediately.
      * @type {boolean}
      */
     this.terminate = false
+    /**
+     * Function to be called every `this.interval` while walking.
+     * @type {function()}
+     */
     this.tick = this.options.tick || (() => undefined)
     /**
      * Descriptors of recognized filesystem subtrees.
-     * @type {Array<{absDir, ...}>}
+     * @type {Array<{absDir}>}
      */
     this.trees = []
   }
@@ -212,7 +224,7 @@ class Walker extends Sincere {
         (closure.error = r).arguments = args
         r = DO_TERMINATE
       }
-      _nextTick = 0
+      this.nextTick = Date.now() + this.interval
     }
     if (r === DO_TERMINATE) {
       this.terminate = true
@@ -278,10 +290,10 @@ class Walker extends Sincere {
         { absDir, depth, dir, locals, root })
 
       if (!(action <= DO_TERMINATE && action >= DO_SKIP)) {
-        if ((t = Date.now()) > _nextTick) {
-          _nextTick = Infinity
-          _nextTick = t + TICK
+        if ((t = Date.now()) > this.nextTick) {
+          this.nextTick = Infinity
           this.tick()
+          this.nextTick = t + this.interval
         }
 
         while ((entry = directory.readSync())) {
