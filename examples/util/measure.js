@@ -7,8 +7,11 @@
 module.exports = (task) => {
   const t0 = process.hrtime()
 
-  return Promise.resolve(task()).then(() => {
+  const finish = (result) => {
     const t1 = process.hrtime(t0)
-    return (t1[0] * 1e9 + t1[1]) / 1000
-  })
+    result.time = (t1[0] * 1e9 + t1[1]) / 1000
+    return result
+  }
+
+  return Promise.resolve(task()).then(finish).catch(finish)
 }

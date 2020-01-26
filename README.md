@@ -188,6 +188,8 @@ Common return codes from handler and their effect:
    * `DO_TERMINATE` - all walking is terminated for this _`Walker`_ instance;
    * `DO_ABORT` - discard the current operation, exit to previous level;
    * `DO_SKIP` - skip this item;
+   
+Using `DO_TERMINATE` we can implement `Promise.some()` pattern.
 
 **`onBegin(context)`**: `*` handler <br />
 is called before directory itself is opened. Special effects of return codes:

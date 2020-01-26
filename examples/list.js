@@ -7,8 +7,8 @@ const HELP = `Scan directories for Node.js projects, sorting output by actual pr
   Projects containing '/test' directory will be flagged by 'T'.`
 const OPTS = {
   nested: ['n', 'allow nested projects'],
-  verbose: ['V', 'talk a *lot*'],
-  single: ['s', 'do not use multi-threading']
+  // single: ['s', 'do not use multi-threading'],
+  verbose: ['V', 'talk a *lot*']
 }
 
 const
@@ -92,11 +92,12 @@ const walker = new ProWalker(
   { defaultRules, nested: options.nested, talk, tick }, stats)
 const walk = (dir) => walker.walk(pt.resolve(dir))
 let threads = args.length > 1 && !options.single
-const task = threads
-  ? () => Promise.all(args.map(walk)) : () => args.forEach(walk)
+// const task = threads
+//  ? () => Promise.all(args.map(walk)) : () => args.forEach(walk)
 
-measure(task, stats).then((t) => {
-  dump(walker.failures, color.redBright, 'Total %i failures.',
+measure(() => Promise.all(args.map(walk))).then((r) => {
+  const t = r.time
+  dump(walker.failures, color.redBright, 'Total %i soft failures.',
     walker.failures.length)
 
   walker.trees.sort(
@@ -114,6 +115,9 @@ measure(task, stats).then((t) => {
   print('- name '.padEnd(stats.nameLength, '-'),
     '? - cnt:', '- directory '.padEnd(stats.dirLength, '-'))
   print('Total %i projects', walker.trees.length)
+  if (r instanceof Error) {
+    print(color.redBright, '%s\nArgs:  %O', r.stack, r.arguments)
+  }
   threads = threads ? 'in ' + args.length + ' threads' : ''
   print('Total %i ms (%i µs/item) on %i items',
     t / 1000, t / stats.total, stats.total, threads)

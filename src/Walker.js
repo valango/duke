@@ -3,7 +3,6 @@
 const defaults = require('lodash.defaults')
 const { opendirSync } = require('fs')
 const { join } = require('path')
-const { format } = require('util')
 const Sincere = require('sincere')
 const definitions = require('./definitions')
 
@@ -164,10 +163,16 @@ class Walker extends Sincere {
     return action
   }
 
-  onError (error, args) {
+  //  `undefined`: error was not handled.
+  //  `Error`    : treat this value as unrecoverable error.
+  //  otherwise  : assume that error was handled
+  onError (error, args, expected) {
+    let res
+
     if (this.options.onError) {
-      return this.options.onEntry.call(this, error, args)
+      res = this.options.onEntry.call(this, error, args)
     }
+    if (res !== undefined) return res
   }
 
   /**
@@ -188,26 +193,25 @@ class Walker extends Sincere {
 
   //  Execute a function or handler, catching possible errors.
   //  Do default error handling.
-  safely_ (opts, func, args) {
+  //
+  safely_ (closure, func, args, expected = []) {
     let r
 
     try {
-      delete opts.error
+      delete closure.error
       r = func.call(this, args)
     } catch (error) {
-      opts.error = error
-      if (opts.onError) r = opts.onError.call(this, error, args)
-      if (r === undefined) {
-        if (error.code === 'ENOENT') {
+      if ((r = this.onError(error, args, expected)) === undefined) {
+        if (expected.indexOf(error.code) >= 0) {
           this.registerFailure(error.message)
-          r = DO_SKIP
-        } else if (error.code === 'EPERM') {
-          this.registerFailure(error.message)
-        } else {
-          this.registerFailure(error, format('arguments: %O', args))
-          r = DO_TERMINATE
+          return DO_SKIP
         }
-      } else if (r !== DO_SKIP) this.registerFailure(error)
+        r = error
+      }
+      if (r instanceof Error) {
+        (closure.error = r).arguments = args
+        r = DO_TERMINATE
+      }
       _nextTick = 0
     }
     if (r === DO_TERMINATE) {
@@ -228,69 +232,65 @@ class Walker extends Sincere {
    * @param {Object<{?locals}>} options
    * @returns {Walker}
    */
-  walk (root, options = undefined) {
-    const opts = defaults({}, options, this.options)
+  async walk (root, options = undefined) {
+    const closure = defaults({}, options, this.options)
     const paths = []
     let action, directory, entry, t
 
-    paths.push({ locals: opts.locals || {}, depth: 0, dir: '' })
+    closure.root = root
+    paths.push({ locals: closure.locals || {}, depth: 0, dir: '' })
 
-    while (paths.length && !this.terminate) {
-      const { depth, dir, locals } = paths.shift()
-      const absDir = join(root, dir), length = paths.length
+    return new Promise((resolve, reject) => {
+      while (paths.length && !this.terminate) {
+        const { depth, dir, locals } = paths.shift()
+        const absDir = join(root, dir), length = paths.length
 
-      directory = this.safely_(opts, opendirSync, join(root, dir))
+        directory = this.safely_(closure, opendirSync, join(root, dir),
+          ['ENOENT', 'ENOTDIR', 'EPERM'])
 
-      if (opts.error) {
-        if (directory === DO_ABORT) return this
-        continue
-      }
+        if (typeof directory !== 'object') {
+          continue
+        }
 
-      action = this.safely_(opts, this.onBegin,
-        { absDir, depth, dir, locals, root })
-      if (action === DO_ABORT) {
+        action = this.safely_(closure, this.onBegin,
+          { absDir, depth, dir, locals, root })
+
+        if (!(action <= DO_TERMINATE && action >= DO_SKIP)) {
+          if ((t = Date.now()) > _nextTick) {
+            _nextTick = Infinity
+            _nextTick = t + TICK
+            this.tick()
+          }
+
+          while ((entry = directory.readSync())) {
+            const name = entry.name, type = getType(entry)
+
+            action = this.safely_(closure, this.onEntry,
+              { absDir, depth, dir, locals, name, root, type })
+
+            if (action === DO_ABORT || action === DO_TERMINATE) {
+              paths.splice(length, length)
+              break
+            } else if (type === T_DIR && action !== DO_SKIP) {
+              paths.push({
+                depth: depth + 1,
+                dir: join(dir, name),
+                locals: typeof action === 'object' ? action : {}
+              })
+            }
+          }       //  end while (entry...)
+        }       //  end if (action...)
         directory.closeSync()
-        return this
-      }
-      if (action === DO_SKIP) {
-        directory.closeSync()
-        continue
-      }
 
-      if ((t = Date.now()) > _nextTick) {
-        _nextTick = Infinity
-        _nextTick = t + TICK
-        this.tick()
-      }
-
-      while ((entry = directory.readSync())) {
-        const name = entry.name, type = getType(entry)
-
-        action = this.safely_(opts, this.onEntry,
-          { absDir, depth, dir, locals, name, root, type })
+        action = this.safely_(closure, this.onEnd,
+          { absDir, action, depth, dir, locals, root })
 
         if (action === DO_ABORT) {
-          paths.splice(length, length)
           break
-        } else if (type === T_DIR && action !== DO_SKIP) {
-          if (opts.error) break
-          paths.push({
-            depth: depth + 1,
-            dir: join(dir, name),
-            locals: typeof action === 'object' ? action : {}
-          })
         }
-      }
-      directory.closeSync()
-
-      action = this.safely_(opts, this.onEnd,
-        { absDir, depth, dir, locals, root })
-
-      if (action === DO_ABORT || (opts.error && action !== DO_SKIP)) {
-        return this
-      }
-    }
-    return this
+      }       //  end while (paths...)
+      closure.error ? reject(closure.error) : resolve(closure)
+    })
   }
 }
 
