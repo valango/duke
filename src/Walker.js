@@ -31,6 +31,9 @@ const getType = (entry) => {
   }
 }
 
+const TICK = 200
+let _nextTick = 0
+
 /**
  *  Walks a directory tree according to rules.
  */
@@ -57,6 +60,7 @@ class Walker extends Sincere {
      * @type {boolean}
      */
     this.terminate = false
+    this.tick = options.tick || (() => undefined)
     /**
      * Descriptors of recognized filesystem subtrees.
      * @type {Array<{absDir, ...}>}
@@ -204,6 +208,7 @@ class Walker extends Sincere {
           r = DO_TERMINATE
         }
       } else if (r !== DO_SKIP) this.registerFailure(error)
+      _nextTick = 0
     }
     if (r === DO_TERMINATE) {
       this.terminate = true
@@ -226,7 +231,7 @@ class Walker extends Sincere {
   walk (root, options = undefined) {
     const opts = defaults({}, options, this.options)
     const paths = []
-    let action, directory, entry
+    let action, directory, entry, t
 
     paths.push({ locals: opts.locals || {}, depth: 0, dir: '' })
 
@@ -250,6 +255,12 @@ class Walker extends Sincere {
       if (action === DO_SKIP) {
         directory.closeSync()
         continue
+      }
+
+      if ((t = Date.now()) > _nextTick) {
+        _nextTick = Infinity
+        _nextTick = t + TICK
+        this.tick()
       }
 
       while ((entry = directory.readSync())) {

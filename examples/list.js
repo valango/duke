@@ -10,6 +10,7 @@ const OPTS = {
   verbose: ['V', 'talk a *lot*'],
   single: ['s', 'do not use multi-threading']
 }
+
 const
   {
     DO_ABORT, DO_SKIP, T_FILE, T_DIR,
@@ -78,20 +79,23 @@ class ProWalker extends Walker {
         locals.current.promo = locals.current.promo || 'T'
         return DO_SKIP
     }
-    ++this.data.nItems
+    ++this.data.total
     return action
   }
 }
 
-const stats = { dirLength: 0, nameLength: 10, nItems: 0 }
+const stats = { dirLength: 0, nameLength: 10, total: 0 }
+const tick = () => {
+  process.stdout.write(stats.total + '\r')
+}
 const walker = new ProWalker(
-  { defaultRules, nested: options.nested, talk }, stats)
+  { defaultRules, nested: options.nested, talk, tick }, stats)
 const walk = (dir) => walker.walk(pt.resolve(dir))
 let threads = args.length > 1 && !options.single
 const task = threads
   ? () => Promise.all(args.map(walk)) : () => args.forEach(walk)
 
-measure(task).then((t) => {
+measure(task, stats).then((t) => {
   dump(walker.failures, color.redBright, 'Total %i failures.',
     walker.failures.length)
 
@@ -112,5 +116,5 @@ measure(task).then((t) => {
   print('Total %i projects', walker.trees.length)
   threads = threads ? 'in ' + args.length + ' threads' : ''
   print('Total %i ms (%i µs/item) on %i items',
-    t / 1000, t / stats.nItems, stats.nItems, threads)
+    t / 1000, t / stats.total, stats.total, threads)
 })
