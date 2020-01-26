@@ -232,9 +232,9 @@ Common return codes from handler and their effect:
 Using `DO_TERMINATE` we can implement `Promise.some()` pattern.
 
 **`onBegin(context)`**: `*` handler <br />
-is called before directory itself is opened. Special effects of return codes:
+is called just after opening a directory. Special effects of return codes:
    * `DO_ABORT` - `walk()` will return immediately;
-   * `DO_SKIP` - skip this directory without trying to open it later;
+   * `DO_SKIP` - close directory and proceed to `onEnd()`;
 
 **`onEntry(context)`**: `*` handler <br />
 is called for every entry read from the directory. Context has extra fields:
@@ -245,7 +245,9 @@ If type is `T_DIR`, and handler returns an object, then this object
 will be available on this child directory level via `context.locals`.
 
 **`onEnd(context)`**: `*` handler <br />
-is called when all _`onEntry`_ calls are done and the directory is closed.
+is called when all `onEntry()` calls are done and the directory is closed.
+Context has extra field `action : number` resulting from earlier handler. <br />
+`DO_ABORT` return value will finish the walk; other values are ignored.
 
 **`onError(error, args, expected)`** : `*` handler <br />
 is called when exception is caught with `args : *` being arguments originally supplied
