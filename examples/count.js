@@ -22,11 +22,13 @@ const onBegin = ({ absDir, depth }) => {
 }
 const onEntry = ({ type }) => add(type)
 
-const walker = new Walker({ onBegin, onEntry })
+const tick = () => process.stdout.write(d.total + '\r')
+
+const walker = new Walker({ onBegin, onEntry, tick })
 
 measure(
-  () => args.forEach((dir) => walker.walk(dir), d)
-).then((t) => {
+  () => args.map((dir) => walker.walkSync(dir)) && {}
+).then(({ time }) => {
 //  =======  Start of boilerplate code for reporting.
   dump(walker.failures, color.redBright,
     'Total %i failures.', walker.failures.length)
@@ -35,6 +37,6 @@ measure(
     print(typeName(k).padStart(16, ' ') + ':', counts[k])
   }
   print('Total %i ms (%i µs per item), max directory depth: %i.',
-    t / 1000, t / d.total, d.maxDepth)
+    time / 1000, time / d.total, d.maxDepth)
   print('The deepest directory:\n%s', d.deepest)
 })
