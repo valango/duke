@@ -33,7 +33,7 @@ describe(ME, () => {
       return DO_ABORT
     }
     w = new W({ onEntry })
-    w.walk(process.cwd())
+    w.walkSync(process.cwd())
     expect(count).to.equal(1, 'count')
     expect(_.pick(context, ['dir', 'depth'])).to
       .eql({ depth: 0, dir: '' })
@@ -59,27 +59,28 @@ describe(ME, () => {
 
   it('should register exceptions', () => {
     let data
-    w.walk(process.cwd() + '/nope', {
+    w = new W({
       onError: function (e, d) {
         data = { args: d, instance: this }
-        return 0    //  Prevent default error handling
       }
     })
+    w.walkSync(process.cwd() + '/nope')
     expect(data.instance).to.equal(w, 'instance')
     expect(data.args).to.match(/\/nope$/, 'args')
     expect(w.failures.length).to.eql(1, 'length')
-    expect(w.failures[0]).to.match(/^Error: ENOENT/, '[0]')
+    expect(w.failures[0]).to.match(/^ENOENT:\s/, '[0]')
   })
 
   it('should intercept exceptions', () => {
     let data, error
-    w.walk(process.cwd() + '/nope', {
-      onError: (e, d) => {
+    w = new W({
+      onError: function (e, d) {
         error = e
         data = d
         return DO_SKIP
       }
     })
+    w.walkSync(process.cwd() + '/nope')
     expect(error.code).to.eql('ENOENT')
     expect(data).to.match(/nope$/)
     expect(w.failures).to.eql([])

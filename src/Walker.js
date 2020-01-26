@@ -59,7 +59,7 @@ class Walker extends Sincere {
      * @type {boolean}
      */
     this.terminate = false
-    this.tick = options.tick || (() => undefined)
+    this.tick = this.options.tick || (() => undefined)
     /**
      * Descriptors of recognized filesystem subtrees.
      * @type {Array<{absDir, ...}>}
@@ -98,7 +98,7 @@ class Walker extends Sincere {
   }
 
   onBegin (ctx) {
-    if (this.options.onEntry) return this.options.onEntry.call(this, ctx)
+    if (this.options.onBegin) return this.options.onBegin.call(this, ctx)
     const { absDir, locals } = ctx
 
     //  Check if already done - may happen when multi-threading.
@@ -121,7 +121,7 @@ class Walker extends Sincere {
   }
 
   onEnd (ctx) {
-    if (this.options.onEntry) return this.options.onEntry.call(this, ctx)
+    if (this.options.onEnd) return this.options.onEnd.call(this, ctx)
     const { locals } = ctx
 
     if (locals.current) {
@@ -170,7 +170,7 @@ class Walker extends Sincere {
     let res
 
     if (this.options.onError) {
-      res = this.options.onEntry.call(this, error, args)
+      res = this.options.onError.call(this, error, args, expected)
     }
     if (res !== undefined) return res
   }
