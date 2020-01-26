@@ -34,7 +34,7 @@ describe(ME, () => {
     }
     w = new W({ onEntry })
     w.walk(process.cwd())
-    expect(count).to.equal(1)
+    expect(count).to.equal(1, 'count')
     expect(_.pick(context, ['dir', 'depth'])).to
       .eql({ depth: 0, dir: '' })
     expect(w.failures[0]).to.eql('a\n  test')
@@ -53,7 +53,7 @@ describe(ME, () => {
     rules.add([0, '/pack*.json', 1, '*.js'])
     w = new W({ onEntry })
     w.walk(process.cwd())
-    expect(cnt).to.equal(3)
+    expect(cnt).to.equal(3, 'cnt')
     expect(count).to.gte(15)
   })
 

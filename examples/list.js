@@ -12,8 +12,8 @@ const OPTS = {
 }
 const
   {
-    DO_ABORT, DO_SKIP, CONTINUE, T_FILE, T_DIR,
-    actionName, Walker, Ruler, loadFile
+    DO_ABORT, DO_SKIP, T_FILE, T_DIR,
+    Walker, Ruler, loadFile
   } = require('../src')
 
 const DO_COUNT = 1    //  Add file to count.
@@ -23,7 +23,7 @@ Ruler.hook(() => {
   return undefined    //  Breakpoint place.
 })
 
-const commonRules = new Ruler([DO_SKIP, 'node_modules', '.*'])
+const defaultRules = new Ruler([DO_SKIP, 'node_modules', '.*'])
 const projectRules = new Ruler([
   [DO_SKIP, 'node_modules', '.*'],
   [DO_ABORT, '*.html'],
@@ -40,96 +40,53 @@ const relativePath = require('./util/relative-path')
 const talk = options.verbose
   ? print.bind(print, color.green) : () => undefined
 
-const projects = []
-
-const findMaster = (dir) =>
-  projects.find((p) => dir.indexOf(p.absDir) === 0 && dir !== p.absDir)
-
-const findThis = (dir) => projects.find((p) => p.absDir === dir)
-
 //  Statistics
 let dirLength = 0, nameLength = 10, nItems = 0
 
-const onBegin = ({ absDir, dir, locals }) => {
-  if (findThis(absDir)) return DO_SKIP  //  Already done - multi-threading?
+class ProWalker extends Walker {
+  /**
+   * @param {string} absDir
+   * @param {string} dir
+   * @param {Object} locals
+   */
+  detect ({ absDir, dir, locals }) {
+    let v = loadFile(pt.join(absDir, 'package.json'))
 
-  if (locals.master) throw Error('master')
-  if (locals.project) throw Error('project')
-  let v = locals.master = findMaster(absDir)
-
-  if (v) {
-    locals.project = v
-    if (!options.nested) return talk('  DIR', absDir, dir)
-  }
-
-  if ((v = loadFile(pt.join(absDir, 'package.json'), true))) {
-    if (v instanceof Error) {
-      //  This happens when `root` argument of walk() is not a directory.
-      if (v.code === 'ENOTDIR') return DO_SKIP
-      throw v
-    }
-    v = JSON.parse(v.toString())
-    const name = v.name || '<NO-NAME>'
-    talk('PROJECT', absDir, dir)
-    locals.project = { absDir, count: 0, name, promo: '' }
-    if (locals.master) {
-      locals.master = undefined
-      locals.project.promo = 'N'
-    }
-    (locals.rules = projectRules) && (locals.ancs = undefined)
-  }
-  if (!locals.rules) {
-    //  This parsing context will be in effect above the first project
-    //  recognized in directory tree walking route.
-    (locals.rules = commonRules) && (locals.ancs = undefined)
-  }
-}
-
-//  If there was DO_ABORT in current dir, we won't get here.
-const onEnd = ({ absDir, dir, locals }) => {
-  // const { master, project } = locals
-  if (!locals.project) return
-  if (!locals.master) {
-    projects.push(locals.project)
-    nameLength = Math.max(locals.project.name.length, nameLength)
-  }
-  if (findThis(absDir)) talk('END', dir)
-}
-
-//  Application-specific operations.
-const onEntry = ({ dir, locals, name, type }) => {
-  const [action, ancs] = locals.rules.test(name, locals.ancs, name)
-  const actName = actionName(action)   //  For verbose output.
-
-  switch (action) {
-    case DO_ABORT:
-      talk('  DO_ABORT', dir)
-      break
-    case CONTINUE:
-      //  Forward our rule parsing context to subdirectory.
-      if (type === T_DIR) {
-        return { ancs, rules: locals.rules }
+    if (v) {
+      v = JSON.parse(v.toString())
+      const name = v.name || '', funny = !name
+      nameLength = Math.max(name.length, nameLength)
+      talk('PROJECT', absDir, dir)
+      locals.current = { absDir, count: 0, funny, name, promo: '' }
+      if (locals.master) {
+        locals.master = undefined
+        locals.current.promo = 'N'
       }
-      break
-    case DO_COUNT:
-      if (type !== T_FILE) break
-      talk('  DO_COUNT: %s @', name.padEnd(16), dir || '.')
-      locals.project.count += 1
-      break
-    case DO_PROMOTE:
-      if (type !== T_DIR) break
-      locals.project.promo = locals.project.promo || 'T'
-      return DO_SKIP
-    case DO_SKIP:
-      return action
-    default:
-      if (type === T_DIR) talk('default', actName, name, ancs)
+      locals.rules = projectRules
+      locals.ancestors = undefined
+    }
   }
-  ++nItems
-  return action
+
+  onEntry ({ dir, locals, name, type }) {
+    const action = super.onEntry({ dir, locals, name, type })
+
+    switch (action) {
+      case DO_COUNT:
+        if (type !== T_FILE) break
+        talk('  DO_COUNT: %s @', name.padEnd(16), dir || '.')
+        locals.current.count += 1
+        break
+      case DO_PROMOTE:
+        if (type !== T_DIR) break
+        locals.current.promo = locals.current.promo || 'T'
+        return DO_SKIP
+    }
+    ++nItems
+    return action
+  }
 }
 
-const walker = new Walker({ onBegin, onEnd, onEntry })
+const walker = new ProWalker({ defaultRules, nested: options.nested, talk })
 const walk = (dir) => walker.walk(pt.resolve(dir))
 let threads = args.length > 1 && !options.single
 const task = threads
@@ -139,17 +96,21 @@ measure(task).then((t) => {
   dump(walker.failures, color.redBright, 'Total %i failures.',
     walker.failures.length)
 
-  projects.sort((a, b) => a.name === b.name ? 0 : (a.name > b.name ? 1 : -1))
+  walker.trees.sort(
+    (a, b) => a.name === b.name ? 0 : (a.name > b.name ? 1 : -1))
 
-  projects.forEach((p) => {
+  walker.trees.forEach((p) => {
     const dir = relativePath(p.absDir, './')
     dirLength = Math.max(dir.length, dirLength)
-    print('%s %s %s:', p.name.padEnd(nameLength), p.promo || ' ',
-      (p.count + '').padStart(5), dir)
+    const d = ['%s %s %s:', p.name.padEnd(nameLength), p.promo || ' ',
+      (p.count + '').padStart(5), dir]
+    if (p.count === 0) p.funny = true
+    if (p.funny) d.unshift(color.redBright)
+    print.apply(undefined, d)
   })
   print('- name '.padEnd(nameLength, '-'),
     '? - cnt:', '- directory '.padEnd(dirLength, '-'))
-  print('Total %i projects', projects.length)
+  print('Total %i projects', walker.trees.length)
   threads = threads ? 'in ' + args.length + ' threads' : ''
   print('Total %i ms (%i µs/item) on %i items', t / 1000, t / nItems, nItems,
     threads)

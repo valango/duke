@@ -9,8 +9,9 @@ const definitions = require('./definitions')
 
 /* eslint-disable */
 const {
-        DO_ABORT, DO_SKIP, DO_TERMINATE,
-        T_BLOCK, T_CHAR, T_DIR, T_FIFO, T_FILE, T_SOCKET, T_SYMLINK
+        CONTINUE, DISCLAIM, DO_ABORT, DO_SKIP, DO_TERMINATE,
+        T_BLOCK, T_CHAR, T_DIR, T_FIFO, T_FILE, T_SOCKET, T_SYMLINK,
+        actionName
       } = definitions
 /* eslint-enable */
 
@@ -23,8 +24,6 @@ const types = {
   isSocket: T_SOCKET,
   isSymbolicLink: T_SYMLINK
 }
-
-const noop = () => undefined
 
 const getType = (entry) => {
   for (const test of Object.keys(types)) {
@@ -53,6 +52,113 @@ class Walker extends Sincere {
      * @type {boolean}
      */
     this.terminate = false
+    /**
+     * Descriptors of recognized filesystem subtrees.
+     * @type {Array<{absDir, ...}>}
+     */
+    this.trees = []
+  }
+
+  /**
+   * Check if the current directory should be recognized as special.
+   *
+   * @param {Object} context
+   * @returns {*}
+   */
+  detect (context) {
+    const inserted = this.options.detect
+    return inserted && inserted.call(this, context)
+  }
+
+  /**
+   * Get descriptor for the current directory if it was recognized.
+   * @param {string} dir
+   * @returns {{absDir, '...'}|undefined}
+   */
+  getCurrent (dir) {
+    this.trees.find((p) => p.absDir === dir)
+  }
+
+  /**
+   * Find tree above the current directory.
+   * @param {string} dir
+   * @returns {{absDir, '...'}|undefined}
+   */
+  getMaster (dir) {
+    return this.trees.find(
+      (p) => dir.indexOf(p.absDir) === 0 && dir !== p.absDir)
+  }
+
+  onBegin (ctx) {
+    if (this.options.onEntry) return this.options.onEntry.call(this, ctx)
+    const { absDir, locals } = ctx
+
+    //  Check if already done - may happen when multi-threading.
+    if (this.getCurrent(absDir)) return DO_SKIP
+
+    if ((locals.master = this.getMaster(absDir))) {
+      locals.current = locals.master
+      if (!this.options.nested) {
+        return this.options.talk('  DIR', ctx.absDir, ctx.dir)
+      }
+    }
+
+    const res = this.detect(ctx)
+
+    if (!locals.rules) {
+      locals.rules = this.options.defaultRules
+      locals.ancestors = undefined
+    }
+    return res
+  }
+
+  onEnd (ctx) {
+    if (this.options.onEntry) return this.options.onEntry.call(this, ctx)
+    const { locals } = ctx
+
+    if (locals.current) {
+      if (!locals.master) {
+        this.trees.push(locals.current)
+      }
+      if (this.getCurrent(ctx.absDir)) this.options.talk('END', ctx.dir)
+    }
+    return locals.current
+  }
+
+  onEntry (ctx) {
+    if (this.options.onEntry) return this.options.onEntry.call(this, ctx)
+
+    const { locals, name, type } = ctx
+    let action = DISCLAIM, ancestors
+
+    if (locals.rules) {
+      [action, ancestors] = locals.rules.test(name, locals.ancestors)
+    }
+    switch (action) {
+      case CONTINUE:
+      case DISCLAIM:
+        //  Forward our rule parsing context to subdirectory.
+        if (type === T_DIR) {
+          return { ancestors, rules: locals.rules }
+        }
+        break
+      case DO_ABORT:
+        this.options.talk('  DO_ABORT', ctx.dir)
+        break
+      case DO_SKIP:
+        break
+      default:
+        if (type === T_DIR) {
+          this.options.talk('default', actionName(action), name)
+        }
+    }
+    return action
+  }
+
+  onError (error, args) {
+    if (this.options.onError) {
+      return this.options.onEntry.call(this, error, args)
+    }
   }
 
   /**
@@ -83,7 +189,8 @@ class Walker extends Sincere {
       opts.error = error
       if (opts.onError) r = opts.onError.call(this, error, args)
       if (r === undefined) {
-        if (error.code === 'ENOTDIR') {
+        if (error.code === 'ENOENT') {
+          this.registerFailure(error.message)
           r = DO_SKIP
         } else if (error.code === 'EPERM') {
           this.registerFailure(error.message)
@@ -104,14 +211,11 @@ class Walker extends Sincere {
    *  and invoke appropriate on... method.
    *
    * @param {string} root
-   * @param {Object<{?onBegin, ?onEnd, ?onEntry, ?onError}>} options
+   * @param {Object<{?locals}>} options
    * @returns {Walker}
    */
   walk (root, options = undefined) {
     const opts = defaults({}, options, this.options)
-    const onBegin = opts.onBegin || noop
-    const onEnd = opts.onEnd || noop
-    const onEntry = opts.onEntry || noop
     const paths = []
     let action, directory, entry
 
@@ -121,10 +225,6 @@ class Walker extends Sincere {
       const { depth, dir, locals } = paths.shift()
       const absDir = join(root, dir), length = paths.length
 
-      action = this.safely_(opts, onBegin, { absDir, depth, dir, locals, root })
-      if (action === DO_ABORT) return this
-      if (action === DO_SKIP) continue
-
       directory = this.safely_(opts, opendirSync, join(root, dir))
 
       if (opts.error) {
@@ -132,10 +232,21 @@ class Walker extends Sincere {
         continue
       }
 
+      action = this.safely_(opts, this.onBegin,
+        { absDir, depth, dir, locals, root })
+      if (action === DO_ABORT) {
+        directory.closeSync()
+        return this
+      }
+      if (action === DO_SKIP) {
+        directory.closeSync()
+        continue
+      }
+
       while ((entry = directory.readSync())) {
         const name = entry.name, type = getType(entry)
 
-        action = this.safely_(opts, onEntry,
+        action = this.safely_(opts, this.onEntry,
           { absDir, depth, dir, locals, name, root, type })
 
         if (action === DO_ABORT) {
@@ -152,7 +263,8 @@ class Walker extends Sincere {
       }
       directory.closeSync()
 
-      action = this.safely_(opts, onEnd, { absDir, depth, dir, locals, root })
+      action = this.safely_(opts, this.onEnd,
+        { absDir, depth, dir, locals, root })
 
       if (action === DO_ABORT || (opts.error && action !== DO_SKIP)) {
         return this
