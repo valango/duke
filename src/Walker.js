@@ -2,7 +2,7 @@
 
 const defaults = require('lodash.defaults')
 const { opendirSync } = require('fs')
-const { join } = require('path')
+const { join, resolve } = require('path')
 const Sincere = require('sincere')
 const definitions = require('./definitions')
 
@@ -225,72 +225,93 @@ class Walker extends Sincere {
   }
 
   /**
-   *  Process directory tree width-first starting from `root`
+   *  Process directory tree asynchronously width-first starting from `root`
    *  and invoke appropriate on... method.
    *
    * @param {string} root
    * @param {Object<{?locals}>} options
-   * @returns {Walker}
+   * @returns {Promise}
    */
-  async walk (root, options = undefined) {
+  walk (root, options = undefined) {
+    return new Promise((resolve, reject) => {
+      const res = this.walk_(root, options)
+
+      res.error ? reject(res.error) : resolve(res)
+    })
+  }
+
+  /**
+   *  Synchronous version of walk() method.
+   *
+   * @param {string} root
+   * @param {Object<{?locals}>} options
+   * @returns {Object}
+   * @throws {Error}
+   */
+  walkSync (root, options = undefined) {
+    const res = this.walk_(root, options)
+
+    if (res.error) throw res.error
+    return res
+  }
+
+  walk_ (rootPath, options = undefined) {
     const closure = defaults({}, options, this.options)
-    const paths = []
+    const paths = [], root = resolve(rootPath)
     let action, directory, entry, t
 
     closure.root = root
     paths.push({ locals: closure.locals || {}, depth: 0, dir: '' })
 
-    return new Promise((resolve, reject) => {
-      while (paths.length && !this.terminate) {
-        const { depth, dir, locals } = paths.shift()
-        const absDir = join(root, dir), length = paths.length
+    while (paths.length && !this.terminate) {
+      const { depth, dir, locals } = paths.shift()
+      const absDir = join(root, dir), length = paths.length
 
-        directory = this.safely_(closure, opendirSync, join(root, dir),
-          ['ENOENT', 'ENOTDIR', 'EPERM'])
+      directory = this.safely_(closure, opendirSync, join(root, dir),
+        ['ENOENT', 'ENOTDIR', 'EPERM'])
 
-        if (typeof directory !== 'object') {
-          continue
+      if (typeof directory !== 'object') {
+        continue
+      }
+
+      action = this.safely_(closure, this.onBegin,
+        { absDir, depth, dir, locals, root })
+
+      if (!(action <= DO_TERMINATE && action >= DO_SKIP)) {
+        if ((t = Date.now()) > _nextTick) {
+          _nextTick = Infinity
+          _nextTick = t + TICK
+          this.tick()
         }
 
-        action = this.safely_(closure, this.onBegin,
-          { absDir, depth, dir, locals, root })
+        while ((entry = directory.readSync())) {
+          const name = entry.name, type = getType(entry)
 
-        if (!(action <= DO_TERMINATE && action >= DO_SKIP)) {
-          if ((t = Date.now()) > _nextTick) {
-            _nextTick = Infinity
-            _nextTick = t + TICK
-            this.tick()
+          action = this.safely_(closure, this.onEntry,
+            { absDir, depth, dir, locals, name, root, type })
+
+          if (action === DO_ABORT || action === DO_TERMINATE) {
+            paths.splice(length, length)
+            break
+          } else if (type === T_DIR && action !== DO_SKIP) {
+            paths.push({
+              depth: depth + 1,
+              dir: join(dir, name),
+              locals: typeof action === 'object' ? action : {}
+            })
           }
+        }       //  end while (entry...)
+      }       //  end if (action...)
+      directory.closeSync()
 
-          while ((entry = directory.readSync())) {
-            const name = entry.name, type = getType(entry)
+      action = this.safely_(closure, this.onEnd,
+        { absDir, action, depth, dir, locals, root })
 
-            action = this.safely_(closure, this.onEntry,
-              { absDir, depth, dir, locals, name, root, type })
-
-            if (action === DO_ABORT || action === DO_TERMINATE) {
-              paths.splice(length, length)
-              break
-            } else if (type === T_DIR && action !== DO_SKIP) {
-              paths.push({
-                depth: depth + 1,
-                dir: join(dir, name),
-                locals: typeof action === 'object' ? action : {}
-              })
-            }
-          }       //  end while (entry...)
-        }       //  end if (action...)
-        directory.closeSync()
-
-        action = this.safely_(closure, this.onEnd,
-          { absDir, action, depth, dir, locals, root })
-
-        if (action === DO_ABORT) {
-          break
-        }
-      }       //  end while (paths...)
-      closure.error ? reject(closure.error) : resolve(closure)
-    })
+      if (action === DO_ABORT) {
+        break
+      }
+    }       //  end while (paths...)
+    return closure
   }
 }
 

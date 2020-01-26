@@ -7,7 +7,7 @@ const HELP = `Scan directories for Node.js projects, sorting output by actual pr
   Projects containing '/test' directory will be flagged by 'T'.`
 const OPTS = {
   nested: ['n', 'allow nested projects'],
-  // single: ['s', 'do not use multi-threading'],
+  single: ['s', 'do not use multi-threading'],
   verbose: ['V', 'talk a *lot*']
 }
 
@@ -34,7 +34,7 @@ const projectRules = new Ruler([
 ])
 
 const color = require('chalk')
-const pt = require('path')
+const { join } = require('path')
 const { dump, measure, parseCl, print } = require('./util')
 const { args, options } = parseCl(OPTS, HELP, true)
 const relativePath = require('./util/relative-path')
@@ -48,7 +48,7 @@ class ProWalker extends Walker {
    * @param {Object} locals
    */
   detect ({ absDir, dir, locals }) {
-    let v = loadFile(pt.join(absDir, 'package.json'))
+    let v = loadFile(join(absDir, 'package.json'))
 
     if (v) {
       v = JSON.parse(v.toString())
@@ -90,12 +90,13 @@ const tick = () => {
 }
 const walker = new ProWalker(
   { defaultRules, nested: options.nested, talk, tick }, stats)
-const walk = (dir) => walker.walk(pt.resolve(dir))
-let threads = args.length > 1 && !options.single
-// const task = threads
-//  ? () => Promise.all(args.map(walk)) : () => args.forEach(walk)
 
-measure(() => Promise.all(args.map(walk))).then((r) => {
+let threads = args.length > 1 && !options.single
+const task = threads
+  ? () => Promise.all(args.map((d) => walker.walk(d)))
+  : () => args.map((d) => walker.walkSync(d)) || {}
+
+measure(task).then((r) => {
   const t = r.time
   dump(walker.failures, color.redBright, 'Total %i soft failures.',
     walker.failures.length)
