@@ -167,7 +167,7 @@ then `walk()` will return immediately.
 
 ### Class `Ruler`
 _`Walker`_ is not directly dependent on this class, but it is designed specially
-to work with it, so enjoy!
+to work with it. **NB:** It scans it's rule tree most recently added rules first.
 
 **`constructor([options], [...rules])`** <br />
 calls if `rules` are supplied, `add()` method  invoked. Available `options` are:
