@@ -144,8 +144,7 @@ class Walker extends Sincere {
     const res = detect.call(this, ctx)
 
     if (!locals.ruler) {
-      locals.ruler = this.defaultRuler
-      locals.ancestors = undefined
+      locals.ruler = this.defaultRuler.clone()
     }
     return res
   }
@@ -164,17 +163,17 @@ class Walker extends Sincere {
 
   onEntry (ctx) {
     const { locals, name, type } = ctx
-    let action = DISCLAIM, ancestors
+    let action = DISCLAIM
 
     if (locals.ruler) {
-      [action, ancestors] = locals.ruler.test(name, locals.ancestors)
+      action = locals.ruler.test(name, true)
     }
     switch (action) {
       case CONTINUE:
       case DISCLAIM:
         //  Forward our rule parsing context to subdirectory.
         if (type === T_DIR) {
-          return { ancestors, ruler: locals.ruler }
+          return { ruler: locals.ruler }
         }
         break
       case DO_ABORT:

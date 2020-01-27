@@ -109,15 +109,14 @@ describe(ME, () => {
     expect(t.test('any', true)).to.equal(CONTINUE, 'any:CONTINUE')
     expect(t.test('file', true)).to.equal(DISCLAIM, 'file:DISCLAIM')
     expect(t.test('a', true)).to.equal(CONTINUE, 'a:CONTINUE')
-    expect(t.test('b', true)).to.equal(YES, 'b:YES')
-    expect(t.test('b', true)).to.equal(DISCLAIM, 'b:DISCLAIM')
+    expect(t.test('b', true)).to.equal(YES, 'b:YES1')
+    expect(t.test('b', true)).to.equal(YES, 'b:YES2')
   })
 
   it('should clone', () => {
     t.test('a', true)
     const t1 = t.clone().add(2, '/two')
     expect(t1.test('b', true)).to.equal(YES)
-    expect(t1.test('b', true)).to.equal(DISCLAIM)
   })
 
   it('should throw on bad rule', () => {

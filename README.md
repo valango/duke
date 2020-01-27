@@ -211,8 +211,8 @@ The `action : {number}` part of return value is relevant to business logic;
 
 **`test(string, true)`**: `{number}` method <br />
 matches the string against existing rules using `ancestors` instance property and
-returns action code. The `ancestors` instance property is mutated,
-except when `DISCLAIM` is returned. <br />
+returns action code and if it is `CONTINUE`,
+then `ancestors` instance property is mutated. <br />
 NB: this is recommended API for future and `'true'` argument is here only to
 prevent existing application code from breaking.
 

@@ -272,11 +272,11 @@ class Ruler extends Sincere {
 
     if (ancestors === true) {
       //  New API
-      if (res !== DISCLAIM) this.ancestors = r
+      if (res === CONTINUE) this.ancestors = r
       return res
     }
     //  Soon-to-be-deprecated API
-    return [res, res === DISCLAIM ? ancestors : r]
+    return [res, res === CONTINUE ? r : ancestors]
   }
 }
 
