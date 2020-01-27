@@ -78,9 +78,10 @@ usage patterns will stabilize, but until then... enjoy!
 **`constructor([options], [sharedData])`** <br />
 `sharedData={} : *` initial value assigned (not copied) to `data`.<br />
 `Walker` recognizes the following `options : object`:
-   * `interval=200 : number` milliseconds between `tick()` plug-in calls.
-   * `detect : function()` plug-in override for `detect` method.
-   * `tick : function()` plug-in to be repeatedly called during walking.
+   * `interval=200 : number` milliseconds between `tick()` plug-in calls;
+   * `defaultRuler= : Ruler | *` rules or Ruler instance for defaultRuler property;
+   * `detect : function()` plug-in override for `detect` method;
+   * `tick : function()` plug-in to be repeatedly called during walking;
    * `onBegin | onEnd | onEntry | onError' | function(*):*` - handler plug-ins.
 
 **`data`**: `*` property <br />
@@ -93,6 +94,9 @@ Soft error messages; can be examined any time.
 
 **`options`**: `object` property <br />
 is copy of constructor options. `walk()` some methods look here for plug-ins.
+
+**`defaultRuler`**: `Ruler` property <br />
+`onBegin()` method assigns it to `context.ruler` by default.
 
 **`terminate`**: `boolean` property <br />
 assigning _Truey_ value prevents any further walking. 
@@ -116,8 +120,8 @@ and matching it's beginning, or `undefined`.
 Called by `Walker.onBegin()` method.
 
 **`onBegin | onEnd | onEntry | onError`**: `*` method <br />
-Baseclass methods check for plug-in with the same name and if it exists,
-it will run and method quits. Both plug-ins and methods semantics is described
+If plug-in is defined, it will be called instead of instance method.
+Both plug-ins and instance methods semantics is described
 in [handlers](#handlers) chapter.
 
 **`registerFailure(failure, [comment])`**: `Walker` method<br />
@@ -221,8 +225,9 @@ The context argument supplied to handler contains following properties:
    * `absDir `- absolute path of the directory to be opened;
    * `depth  `- dept in directory tree (0 for root);
    * `dir    `- local name the directory to be opened ('' for toot itself);
-   * `locals `- reserved for application code.
-   * `root   `- _`rootDir`_ argument supplied to _`walk()`_ method.
+   * `locals `- reserved for application code;
+   * `root   `- _`rootDir`_ argument supplied to _`walk()`_ method;
+   * `ruler  `- a `Ruler` instance.
    
 Common return codes from handler and their effect:
    * `DO_TERMINATE` - all walking is terminated for this _`Walker`_ instance;
@@ -232,7 +237,8 @@ Common return codes from handler and their effect:
 Using `DO_TERMINATE` we can implement `Promise.some()` pattern.
 
 **`onBegin(context)`**: `*` handler <br />
-is called just after opening a directory. Special effects of return codes:
+is called just after opening a directory, `context.ruler` may be undefined. <br />
+Special effects of return codes:
    * `DO_ABORT` - `walk()` will return immediately;
    * `DO_SKIP` - close directory and proceed to `onEnd()`;
 
