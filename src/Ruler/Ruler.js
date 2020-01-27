@@ -55,6 +55,12 @@ class Ruler extends Sincere {
      */
     this._level = 0
 
+    /**
+     * Used and mutated by test() method.
+     * @type {Array<*>}
+     */
+    this.ancestors = undefined
+
     if (opts.action) {
       process.emitWarning(WARNING_2, DEPRECATED)
       if (!opts.defaultAction) opts.defaultAction = opts.action
@@ -167,7 +173,9 @@ class Ruler extends Sincere {
    * @returns {Ruler}
    */
   clone () {
-    const c = new Ruler(this.options)
+    const a = this.ancestors, c = new Ruler(this.options)
+
+    c.ancestors = Array.isArray(a) ? a.slice() : a
     c.defaultAction = this.defaultAction
     c._tree = this.dump()
 
@@ -224,10 +232,10 @@ class Ruler extends Sincere {
             }
           }
           //  We got a match!
+          if (act === DISCLAIM) return [[par, rule, act, i]]
           res.push([par, rule, act, i])
-          if (act === DISCLAIM) break
-        }
-      }
+        } //  end for iA
+      } //  end for i
 
       if (!res.length) {
         const a = ancs.findIndex((i) => tree[i] && tree[i][RUL] === GLOB)
@@ -252,14 +260,23 @@ class Ruler extends Sincere {
    * Rigid version of match().
    *
    * @param {string} string
-   * @param {Array<*>=} ancestors - from earlier match().
-   * @returns {Array<number>}     - [action code, ancestors].
+   * @param {Array<*>|boolean|=} ancestors - from earlier test().
+   * @returns {number | Array<number>}     - [action code, ancestors].
    */
   test (string, ancestors = undefined) {
     if (this._tree.length === 0) return [DISCLAIM]
-    const res = this.match(string, ancestors || [NIL])
-    if (res.length === 0) return [DISCLAIM, ancestors]
-    return [res[0][ACT], res]
+
+    const context = ancestors === true ? this.ancestors : ancestors
+    const r = this.match(string, context)
+    const res = r.length === 0 ? DISCLAIM : r[0][ACT]
+
+    if (ancestors === true) {
+      //  New API
+      if (res !== DISCLAIM) this.ancestors = r
+      return res
+    }
+    //  Soon-to-be-deprecated API
+    return [res, res === DISCLAIM ? ancestors : r]
   }
 }
 

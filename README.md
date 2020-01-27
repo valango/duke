@@ -175,7 +175,10 @@ calls if `rules` are supplied, `add()` method  invoked. Available `options` are:
    * `extended : {boolean}` - enables sets '{a,b}' -> '(a|b)'; default: `true`.
    * `optimize : {boolean}` - enables rule optimization; default: `true`.
 
-**`defaultAction`**: `integer` property <br />
+**`ancestors`**: `{Array<Array>}` property <br />
+Affects results of `test( , true)` instance method call and may be mutated by it.
+
+**`defaultAction`**: `{integer}` property <br />
 default action to be bound to new rule.
 This value is used and possibly mutated by `add()` method.
 
@@ -203,7 +206,15 @@ In most cases, it's far easier to use `test()` method instead.
 **`test(string, [ancestors])`**: `{[action, ancestors]}` method <br />
 matches the string against existing rules using `ancestors : Array<*>` context. 
 The `action : {number}` part of return value is relevant to business logic;
-`ancestors` part can be used for the next call if action part is `CONTINUE`.
+`ancestors` part can be used for the next call if action part is `CONTINUE`. <br />
+**NB:** this part of API will be deprecated!
+
+**`test(string, true)`**: `{number}` method <br />
+matches the string against existing rules using `ancestors` instance property and
+returns action code. The `ancestors` instance property is mutated,
+except when `DISCLAIM` is returned. <br />
+NB: this is recommended API for future and `'true'` argument is here only to
+prevent existing application code from breaking.
 
 ### Constants
 See [definitions](src/definitions.js). Action codes defined by application code

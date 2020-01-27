@@ -21,8 +21,7 @@ const D1 = [
   [6, /^y$/, YES]
 ]
 
-let t = new Ruler([YES, T1])
-let n = 0, lastAnc, wCount = 0
+let n = 0, lastAnc, t, wCount = 0
 
 const hook = (warning) => {
   wCount += 1
@@ -54,6 +53,7 @@ describe(ME, () => {
   it('should construct', () => {
     // console.log('DUMP', t.dump())
     expect(t.dump()).to.eql(D1)
+    expect(t.ancestors).to.equal(undefined, 'ancestors')
     t = new Ruler({ defaultAction: 2, optimize: false }, '/a*')
     expect(t.dump()).to.eql([[NIL, /^a.*$/, 2]])
   })
@@ -71,12 +71,6 @@ describe(ME, () => {
         done()
       })
     })
-  })
-
-  it('should clone', () => {
-    const c = t.clone().add(2, '/two')
-    expect(c.test('two')[0]).to.equal(2, 1)
-    expect(t.test('two')[0]).to.equal(CONTINUE, 2)
   })
 
   it('should match', () => {
@@ -99,7 +93,7 @@ describe(ME, () => {
     match('a', [1], a)
   })
 
-  it('should test', () => {
+  it('should test (old API)', () => {
     test('a', CONTINUE)
     expect(lastAnc).to.eql([[0, /^a$/, CONTINUE, 1]], 'lastMatches 1')
     test('nope', CONTINUE)
@@ -109,6 +103,21 @@ describe(ME, () => {
     test('nope', CONTINUE, [0], '[0]')
     test('nope', CONTINUE, [NIL], '[NIL]')
     expect(new Ruler().test('a')).to.eql([DISCLAIM])
+  })
+
+  it('should test', () => {
+    expect(t.test('any', true)).to.equal(CONTINUE, 'any:CONTINUE')
+    expect(t.test('file', true)).to.equal(DISCLAIM, 'file:DISCLAIM')
+    expect(t.test('a', true)).to.equal(CONTINUE, 'a:CONTINUE')
+    expect(t.test('b', true)).to.equal(YES, 'b:YES')
+    expect(t.test('b', true)).to.equal(DISCLAIM, 'b:DISCLAIM')
+  })
+
+  it('should clone', () => {
+    t.test('a', true)
+    const t1 = t.clone().add(2, '/two')
+    expect(t1.test('b', true)).to.equal(YES)
+    expect(t1.test('b', true)).to.equal(DISCLAIM)
   })
 
   it('should throw on bad rule', () => {
