@@ -184,7 +184,7 @@ class Walker extends Sincere {
         break
       default:
         if (type === T_DIR) {
-          this.talk('default', actionName(action), name)
+          this.talk('onEntry: default', actionName(action), name)
         }
     }
     return action
