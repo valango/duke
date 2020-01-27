@@ -17,7 +17,7 @@
     "lint": "eslint --ext .js .",
     "purge": "npm run clean && rimraf node_modules",
     "t": "eslint --ext .js . && nyc mocha 'test/**/*.spec.js'",
-    "test": "nyc mocha 'test/**/*.spec.js'"
+    "test": "eslint --ext .js . && nyc mocha 'test/**/*.spec.js'"
   },
   "license": "ISC",
   "bugs": {

@@ -87,6 +87,7 @@ class Walker extends Sincere {
      */
     this.trees = []
 
+    //  istanbul ignore next
     if (o.defaultRules) {
       this.assert(!this.defaultRuler, 'constructor',
         "deprecated option 'defaultRules' conflict with 'defaultRuler'")
@@ -251,6 +252,7 @@ class Walker extends Sincere {
   }
 
   talk (...args) {
+    //  istanbul ignore next
     if (this.options.talk) this.options.talk.apply(this, args)
   }
 
