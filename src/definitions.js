@@ -71,6 +71,12 @@ exports = module.exports = {
   },
 
   /**
+   * Directory entry type codes.
+   * @type {Array<string>}
+   */
+  entryTypes: [T_ANY, T_BLOCK, T_CHAR, T_DIR, T_FIFO, T_FILE, T_SOCKET, T_SYMLINK],
+
+  /**
    * Translate DirEntry type to human-readable type name.
    * @param {string} type
    * @returns {string | undefined}

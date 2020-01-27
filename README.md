@@ -69,7 +69,7 @@ Application - specific handlers `onBegin`, `onEnd`, `onEntry` and
 Things really get exciting, when we apply some business logic in our handlers.
 See [another example](examples/list.js).
 
-## Package exports
+## API
 **_Deprecated:_**
   1. v1.0.1 Ruler instance method call syntax `.add(definition, action)`;
   1. v2.0.0 Ruler constructor `'action'` option - use `'defaultAction'`;
