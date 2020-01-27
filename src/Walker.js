@@ -43,7 +43,7 @@ class Walker extends Sincere {
    * @param {*=} sharedData - may be used by derived classes.
    */
   constructor (options, sharedData = undefined) {
-    let o = defaults(undefined, options)
+    let o = defaults(undefined, options, { talk: () => undefined })
     super()
     /**
      * Shared (not copied) data space - may be used by derived classes.
@@ -107,8 +107,6 @@ class Walker extends Sincere {
    * @returns {*}
    */
   detect (context) {
-    const inserted = this.options.detect
-    return inserted && inserted.call(this, context)
   }
 
   /**
@@ -131,7 +129,7 @@ class Walker extends Sincere {
   }
 
   onBegin (ctx) {
-    const { absDir, locals } = ctx
+    const { absDir, detect, locals } = ctx
 
     //  Check if already done - may happen when multi-threading.
     if (this.getCurrent(absDir)) return DO_SKIP
@@ -143,7 +141,7 @@ class Walker extends Sincere {
       }
     }
 
-    const res = this.detect(ctx)
+    const res = detect.call(this, ctx)
 
     if (!locals.ruler) {
       locals.ruler = this.defaultRuler
@@ -252,8 +250,8 @@ class Walker extends Sincere {
   }
 
   talk (...args) {
-    //  istanbul ignore next
-    if (this.options.talk) this.options.talk.apply(this, args)
+    this.options.talk.apply(this, args)
+    return this
   }
 
   /**
@@ -302,10 +300,14 @@ class Walker extends Sincere {
     let action, directory, entry, t
 
     closure.root = root
-    paths.push({ locals: closure.locals || {}, depth: 0, dir: '' })
+    paths.push({
+      //  eslint-disable-next-line
+      depth: 0, dir: '', detect: closure.detect || this.detect,
+      locals: closure.locals || {}
+    })
 
     while (paths.length && !this.terminate) {
-      const { depth, dir, locals } = paths.shift()
+      const { depth, detect, dir, locals } = paths.shift()
       const absDir = join(root, dir), length = paths.length
 
       directory = this.safely_(closure, opendirSync, join(root, dir),
@@ -316,7 +318,7 @@ class Walker extends Sincere {
       }
 
       action = this.safely_(closure, onBegin,
-        { absDir, depth, dir, locals, root })
+        { absDir, depth, detect, dir, locals, root })
 
       if (!(action <= DO_TERMINATE && action >= DO_SKIP)) {
         if ((t = Date.now()) > this.nextTick) {
@@ -329,7 +331,7 @@ class Walker extends Sincere {
           const name = entry.name, type = getType(entry)
 
           action = this.safely_(closure, onEntry,
-            { absDir, depth, dir, locals, name, root, type })
+            { absDir, depth, detect, dir, locals, name, root, type })
 
           if (action === DO_ABORT || action === DO_TERMINATE) {
             paths.splice(length, length)
@@ -337,16 +339,19 @@ class Walker extends Sincere {
           } else if (type === T_DIR && action !== DO_SKIP) {
             paths.push({
               depth: depth + 1,
+              detect,
               dir: join(dir, name),
               locals: typeof action === 'object' ? action : {}
             })
           }
-        }       //  end while (entry...)
-      }       //  end if (action...)
+        }         //  end of while (entry...)
+      } else {  //  end of if (action...)
+        this.talk('onBegin -> ', actionName(action))
+      }
       directory.closeSync()
 
       action = this.safely_(closure, onEnd,
-        { absDir, action, depth, dir, locals, root })
+        { absDir, action, depth, detect, dir, locals, root })
 
       if (action === DO_ABORT) {
         break

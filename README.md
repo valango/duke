@@ -113,8 +113,9 @@ list of recognized subtrees, e.g. Node.js projects. get... methods assume
 array members having `absDir : string` property.
 
 **`detect(context)`**  method<br />
-called by onBegin method.
-If no `handlers : object` specified, it uses those found in `options` property.
+called by `onBegin()` method.
+Should check if the current directory has special importance and if so,
+it should add and entry to `trees` instance property and possibly change `context.ruler`.
 
 **`getCurrent(path)`**`{object}`  method<br />
 returns `tree` instance property member with `dirPath === path` or `undefined`.
@@ -134,6 +135,9 @@ in [handlers](#handlers) chapter.
 The `failure` should have `stack` or `message` property or default conversion to string.
 The resulting string is pushed to `failures` property.
 If `comment : {string}` is present, it will be appended to message after `'\n  '` string.
+
+**`talk(...args)`**: `{Walker}` method<br />
+executes `options.talk`. For debugging only!
 
 **`walk(rootDir, [options])`**: `{Promise}` method<br />
 walks the directory tree asynchronously starting from `rootDir` down.
@@ -207,8 +211,8 @@ should be non-negative integers - this is important!
 
 ### Helper functions
 **`actionName(action)`**: `{string}` function <br />
-returns human-readable action name for diagnostics.
-Throws `TypeError` if action is not a number.
+if `action` is numeric, returns human-readable action name,
+otherwise returns `action`. Used for diagnostics.
 
 **`loadFile(filePath, [nicely])`**: `{*}` function <br />
 reads file synchronously and returns `Buffer` instance.
@@ -283,6 +287,6 @@ Be sure to check for this README sometimes via
 I'll try to
 not update [npmjs.com](https://www.npmjs.com) too often. ;)
 
-## Versions history
+## Version history
 * v1.0.0 @200124: Lots of improvements + **breaking changes**: class names, action codes.
 * v0.8.3 @200123: first airworthy version.

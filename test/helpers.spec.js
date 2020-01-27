@@ -30,7 +30,7 @@ describe(ME, () => {
   })
 
   it('actionName', () => {
-    expect(actionName).to.throw(TypeError)
+    expect(actionName({})).to.eql({}, 'non-number')
     expect(actionName(DO_SKIP)).to.equal('DO_SKIP')
     expect(actionName(0)).to.equal('ACTION_0')
     expect(actionName(-10)).to.equal('DO_???_(-10)')

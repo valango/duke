@@ -4,3 +4,4 @@
 /reports
 /*.lcov
 /*.log*
+/test/runner.js

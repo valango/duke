@@ -8,12 +8,15 @@ const { DO_ABORT, DO_SKIP } = require(
   '../src/definitions')
 const Ruler = require('../src').Ruler
 const W = require('..')[ME]
+const options = {
+  // talk: console.log
+}
 
-let w, options, context, count, rules
+let w, context, count, ruler
 
 describe(ME, () => {
   beforeEach(() => {
-    rules = new Ruler([DO_SKIP, '/node_modules', '.*'])
+    ruler = new Ruler([DO_SKIP, '/node_modules', '.*'])
     w = new W(options)
     context = undefined
     count = 0
@@ -33,7 +36,7 @@ describe(ME, () => {
       return DO_ABORT
     }
     w = new W({ onEntry })
-    w.walkSync(process.cwd())
+    w.walkSync(process.cwd(), { onEntry })
     expect(count).to.equal(1, 'count')
     expect(_.pick(context, ['dir', 'depth'])).to
       .eql({ depth: 0, dir: '' })
@@ -44,13 +47,13 @@ describe(ME, () => {
   it('should process rules', () => {
     let cnt = 0
     const onEntry = (d) => {
-      const [action] = rules.test(d.name)
+      const [action] = ruler.test(d.name)
       if (action <= DO_SKIP) return action
       if (action === 1) ++count
       if (action === 0) ++cnt
       return action
     }
-    rules.add([0, '/pack*.json', 1, '*.js'])
+    ruler.add([0, '/pack*.json', 1, '*.js'])
     w = new W({ onEntry })
     w.walk(process.cwd())
     expect(cnt).to.equal(3, 'cnt')
