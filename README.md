@@ -70,6 +70,11 @@ Things really get exciting, when we apply some business logic in our handlers.
 See [another example](examples/list.js).
 
 ## Package exports
+**_Deprecated:_**
+  1. v1.0.1 Ruler instance method call syntax `.add(definition, action)`;
+  1. v2.0.0 Ruler constructor `'action'` option - use `'defaultAction'`;
+  1. v2.0.0 Walker constructor `'defaultRules'` option - use `'defaultRuler'`;
+  
 ### Class `Walker`
 For flexibility, `Walker` supports overriding some it's instance methods
 by plug-ins. Maybe it will be strictened in future releases as
@@ -161,7 +166,7 @@ to work with it, so enjoy!
 
 **`constructor([options], [...rules])`** <br />
 calls if `rules` are supplied, `add()` method  invoked. Available `options` are:
-   * `action : number   ` - initial value for `defaultAction` property.
+   * `defaultAction : number   ` - initial value for `defaultAction` property.
    * `extended : boolean` - enables sets '{a,b}' -> '(a|b)'; default: `true`.
    * `optimize : boolean` - enables rule optimization; default: `true`.
 
@@ -180,7 +185,7 @@ r.add(DO_SKIP, 'node_modules', '.*', DO_DEFAULT, '*.js', 'test/*spec.js')
 r.add([DO_SKIP, 'node_modules', '.*', DO_DEFAULT, '*.js', 'test/*spec.js'])
 r.add(['node_modules', '.*'], DO_SKIP).add([DO_DEFAULT, '*.js', 'test/*spec.js'])
 ```
-The v1.0 syntax `add(definition, action)` is deprectated
+The v1.0 syntax `add(definition, action)` is **_deprectated_**
 
 **`dump()`**: `Array<Array>` method <br />
 returns clone of the internal rule tree - useful for diagnostics and testing.
