@@ -82,32 +82,33 @@ usage patterns will stabilize, but until then... enjoy!
 
 **`constructor([options], [sharedData])`** <br />
 `sharedData={} : *` initial value assigned (not copied) to `data`.<br />
-`Walker` recognizes the following `options : object`:
-   * `interval=200 : number` milliseconds between `tick()` plug-in calls;
-   * `defaultRuler= : Ruler | *` rules or Ruler instance for defaultRuler property;
-   * `detect : function()` plug-in override for `detect` method;
-   * `tick : function()` plug-in to be repeatedly called during walking;
-   * `onBegin | onEnd | onEntry | onError' | function(*):*` - handler plug-ins.
+`Walker` recognizes the following `options : {object}`:
+   * `interval=200 : {number}` milliseconds between `tick()` plug-in calls;
+   * `defaultRuler= : {Ruler} | *` rules or Ruler instance for defaultRuler property;
+   * `detect : {function()`} plug-in override for `detect` method;
+   * `talk : {function()}` used by `talk()` instance method;
+   * `tick : {function()}` plug-in to be repeatedly called during walking;
+   * `onBegin | onEnd | onEntry | onError' | {function(*):*}` - handler plug-ins.
 
-**`data`**: `*` property <br />
+**`data`**: `{*}` property <br />
 is not used by `Walker`, 
 but can be used by plug-ins or derived classes.
 This property set to `sharedData` or `{}` by constructor.
 
-**`failures`**: `Array<string>` property <br />
+**`failures`**: `{Array<string>}` property <br />
 Soft error messages; can be examined any time.
 
-**`options`**: `object` property <br />
+**`options`**: `{object}` property <br />
 is copy of constructor options. `walk()` some methods look here for plug-ins.
 
-**`defaultRuler`**: `Ruler` property <br />
+**`defaultRuler`**: `{Ruler}` property <br />
 `onBegin()` method assigns it to `context.ruler` by default.
 
-**`terminate`**: `boolean` property <br />
+**`terminate`**: `{boolean}` property <br />
 assigning _Truey_ value prevents any further walking. 
 `Walker` sets it `true`, when any `onXXX` handler returns `DO_TERMINATE`.
 
-**`tree`**: `object[]` property <br />
+**`tree`**: `{object[]}` property <br />
 list of recognized subtrees, e.g. Node.js projects. get... methods assume
 array members having `absDir : string` property.
 
@@ -115,31 +116,31 @@ array members having `absDir : string` property.
 called by onBegin method.
 If no `handlers : object` specified, it uses those found in `options` property.
 
-**`getCurrent(path)`**`object`  method<br />
+**`getCurrent(path)`**`{object}`  method<br />
 returns `tree` instance property member with `dirPath === path` or `undefined`.
 Called by `Walker.onBegin()` method.
 
-**`getMaster(path)`**`object`  method<br />
+**`getMaster(path)`**`{object}`  method<br />
 returns `tree` instance property member with `dirPath` shorter than `path`
 and matching it's beginning, or `undefined`.
 Called by `Walker.onBegin()` method.
 
-**`onBegin | onEnd | onEntry | onError`**: `*` method <br />
+**`onBegin | onEnd | onEntry | onError`**: `{*}` method <br />
 If plug-in is defined, it will be called instead of instance method.
 Both plug-ins and instance methods semantics is described
 in [handlers](#handlers) chapter.
 
-**`registerFailure(failure, [comment])`**: `Walker` method<br />
+**`registerFailure(failure, [comment])`**: `{Walker}` method<br />
 The `failure` should have `stack` or `message` property or default conversion to string.
 The resulting string is pushed to `failures` property.
-If `comment : string` is present, it will be appended to message after `'\n  '` string.
+If `comment : {string}` is present, it will be appended to message after `'\n  '` string.
 
-**`walk(rootDir, [options])`**: `Promise` method<br />
+**`walk(rootDir, [options])`**: `{Promise}` method<br />
 walks the directory tree asynchronously starting from `rootDir` down.
 If `options.locals` is present then it will be assigned to `locals` property of the _top context_.
 Returns a promise resolving to _walk context_ or rejecting to un-handled `Error` instance.
 
-**`walkSync(rootDir, [options])`**: `Promise` method<br />
+**`walkSync(rootDir, [options])`**: `{object}` method<br />
 Synchronous version of `walk()` method.
 Returns _walk context_ or throws `Error`.
 
@@ -166,15 +167,15 @@ to work with it, so enjoy!
 
 **`constructor([options], [...rules])`** <br />
 calls if `rules` are supplied, `add()` method  invoked. Available `options` are:
-   * `defaultAction : number   ` - initial value for `defaultAction` property.
-   * `extended : boolean` - enables sets '{a,b}' -> '(a|b)'; default: `true`.
-   * `optimize : boolean` - enables rule optimization; default: `true`.
+   * `defaultAction : {number}   ` - initial value for `defaultAction` property.
+   * `extended : {boolean}` - enables sets '{a,b}' -> '(a|b)'; default: `true`.
+   * `optimize : {boolean}` - enables rule optimization; default: `true`.
 
 **`defaultAction`**: `integer` property <br />
 default action to be bound to new rule.
 This value is used and possibly mutated by `add()` method.
 
-**`add(...args)`**: `Ruler` method <br />
+**`add(...args)`**: `{Ruler}` method <br />
 adds new rules. Any numeric item in `args` array
 will be treated as action code for further rules and will also
 mutate `defaultAction` property.
@@ -187,17 +188,17 @@ r.add(['node_modules', '.*'], DO_SKIP).add([DO_DEFAULT, '*.js', 'test/*spec.js']
 ```
 The v1.0 syntax `add(definition, action)` is **_deprectated_**
 
-**`dump()`**: `Array<Array>` method <br />
+**`dump()`**: `{Array<Array>}` method <br />
 returns clone of the internal rule tree - useful for diagnostics and testing.
 
-**`match(string, [ancestors])`**: `Array<*>` method <br />
-does the rule matching using `ancestors : Array<*>` context possibly resulting
+**`match(string, [ancestors])`**: `{Array<*>}` method <br />
+does the rule matching using `ancestors : {Array<*>}` context possibly resulting
 from earlier call to `match()` method.
 In most cases, it's far easier to use `test()` method instead.
 
-**`test(string, [ancestors])`**: `[action, ancestors]` method <br />
+**`test(string, [ancestors])`**: `{[action, ancestors]}` method <br />
 matches the string against existing rules using `ancestors : Array<*>` context. 
-The `action : number` part of return value is relevant to business logic;
+The `action : {number}` part of return value is relevant to business logic;
 `ancestors` part can be used for the next call if action part is `CONTINUE`.
 
 ### Constants
@@ -205,18 +206,18 @@ See [definitions](src/definitions.js). Action codes defined by application code
 should be non-negative integers - this is important!
 
 ### Helper functions
-**`actionName(action)`**: `string` function <br />
+**`actionName(action)`**: `{string}` function <br />
 returns human-readable action name for diagnostics.
 Throws `TypeError` if action is not a number.
 
-**`loadFile(filePath, [nicely])`**: `*` function <br />
+**`loadFile(filePath, [nicely])`**: `{*}` function <br />
 reads file synchronously and returns `Buffer` instance.
 Returning `undefined` means the file did not exist.
 
-Setting `nicely : boolean` to _truey_ value prevents throwing any exception.
+Setting `nicely : {boolean}` to _truey_ value prevents throwing any exception.
 If exception occur, then just `Error` instance is returned by function.
 
-**`typeName(type)`**: `string | undefined` function <br />
+**`typeName(type)`**: `{string | undefined}` function <br />
 translates single-character type id used by `Walker` to human-readable string.
 
 ## Handlers
@@ -241,13 +242,13 @@ Common return codes from handler and their effect:
    
 Using `DO_TERMINATE` we can implement `Promise.some()` pattern.
 
-**`onBegin(context)`**: `*` handler <br />
+**`onBegin(context)`**: `{*}` handler <br />
 is called just after opening a directory, `context.ruler` may be undefined. <br />
 Special effects of return codes:
    * `DO_ABORT` - `walk()` will return immediately;
    * `DO_SKIP` - close directory and proceed to `onEnd()`;
 
-**`onEntry(context)`**: `*` handler <br />
+**`onEntry(context)`**: `{*}` handler <br />
 is called for every entry read from the directory. Context has extra fields:
    * `name `- ...of directory entry;
    * `type `- ...of directory entry (one of exported **`T_...`** constants);
@@ -255,14 +256,14 @@ is called for every entry read from the directory. Context has extra fields:
 If type is `T_DIR`, and handler returns an object, then this object
 will be available on this child directory level via `context.locals`.
 
-**`onEnd(context)`**: `*` handler <br />
+**`onEnd(context)`**: `{*}` handler <br />
 is called when all `onEntry()` calls are done and the directory is closed.
 Context has extra field `action : number` resulting from earlier handler. <br />
 `DO_ABORT` return value will finish the walk; other values are ignored.
 
-**`onError(error, args, expected)`** : `*` handler <br />
-is called when exception is caught with `args : *` being arguments originally supplied
-to failed function. If error.code is one of `expected : string[]` then
+**`onError(error, args, expected)`** : `{*}` handler <br />
+is called when exception is caught with `args : {*}` being arguments originally supplied
+to failed function. If error.code is one of `expected : {string[]}` then
 `registerFailure()` is called and `DO_SKIP` is returned; otherwise the error will
 be thrown, which terminates walking for this instance.
 The following return values have special effect:
