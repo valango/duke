@@ -1,10 +1,14 @@
 'use strict'
 
+const WO = 'Walker option '
+const WARNING = WO + "'defaultRules' is deprecated - use 'ruler' instead."
+
 const defaults = require('lodash.defaults')
 const { opendirSync } = require('fs')
 const { join, resolve } = require('path')
 const Sincere = require('sincere')
 const definitions = require('./definitions')
+const Ruler = require('./Ruler')
 
 /* eslint-disable */
 const {
@@ -39,7 +43,7 @@ class Walker extends Sincere {
    * @param {*=} sharedData - may be used by derived classes.
    */
   constructor (options, sharedData = undefined) {
-    const opts = defaults(undefined, options)
+    let o = defaults(undefined, options)
     super()
     /**
      * Shared (not copied) data space - may be used by derived classes.
@@ -47,21 +51,26 @@ class Walker extends Sincere {
      */
     this.data = sharedData || {}
     /**
-     * Diagnostic messages.
-     * @type {Array<string>}
+     * Default Ruler instance.
+     * @type {*|Ruler}
+     */
+    this.defaultRuler = o.defaultRuler
+    /**
+     * Ruler to be used until detecting something special.
+     * @type {Ruler}
      */
     this.failures = []
     /**
      * Minimum interval between this.tick() calls.
      * @type {number}
      */
-    this.interval = opts.interval || 200
+    this.interval = o.interval || 200
     this.nextTick = 0
     /**
      * Options to be applied to walk() by default.
      * @type {Object}
      */
-    this.options = opts
+    this.options = o
     /**
      * When true, walking will terminate immediately.
      * @type {boolean}
@@ -77,6 +86,17 @@ class Walker extends Sincere {
      * @type {Array<{absDir}>}
      */
     this.trees = []
+
+    if (o.defaultRules) {
+      this.assert(!this.defaultRuler, 'constructor',
+        "deprecated option 'defaultRules' conflict with 'defaultRuler'")
+      process.emitWarning(WARNING, 'DeprecationWarning')
+      this.defaultRuler = o.defaultRules
+    }
+    //  Ensure we have ruler instance.
+    if (!((o = this.defaultRuler) instanceof Ruler)) {
+      this.defaultRuler = new Ruler(o ? [DO_SKIP, o] : DO_SKIP)
+    }
   }
 
   /**
@@ -125,8 +145,8 @@ class Walker extends Sincere {
 
     const res = this.detect(ctx)
 
-    if (!locals.rules) {
-      locals.rules = this.options.defaultRules
+    if (!locals.ruler) {
+      locals.ruler = this.defaultRuler
       locals.ancestors = undefined
     }
     return res
@@ -151,15 +171,15 @@ class Walker extends Sincere {
     const { locals, name, type } = ctx
     let action = DISCLAIM, ancestors
 
-    if (locals.rules) {
-      [action, ancestors] = locals.rules.test(name, locals.ancestors)
+    if (locals.ruler) {
+      [action, ancestors] = locals.ruler.test(name, locals.ancestors)
     }
     switch (action) {
       case CONTINUE:
       case DISCLAIM:
         //  Forward our rule parsing context to subdirectory.
         if (type === T_DIR) {
-          return { ancestors, rules: locals.rules }
+          return { ancestors, ruler: locals.ruler }
         }
         break
       case DO_ABORT:

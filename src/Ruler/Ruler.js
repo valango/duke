@@ -1,6 +1,6 @@
 'use strict'
 
-const DEPR = 'Ruler.add(definition, action) syntax is deprecated.' +
+const WARNING = 'Ruler.add(definition, action) syntax is deprecated.' +
   ' Use `.add(action, {rule}, {action, {rule...}...)` instead.'
 
 const { DO_DEFAULT, DISCLAIM, CONTINUE, GLOB, NIL } = require('../definitions')
@@ -75,7 +75,7 @@ class Ruler extends Sincere {
    */
   add (...args) {
     if (args.length === 2 && typeof args[1] === 'number') {
-      process.emitWarning(DEPR, 'DeprecationWarning')
+      process.emitWarning(WARNING, 'DeprecationWarning')
       return this.add_(args[0], args[1])  //  v1.0.1 API
     }
     return this.add_(args)
