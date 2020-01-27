@@ -7,7 +7,7 @@ const { expect } = require('chai')
 const { inspect } = require('util')
 const { DISCLAIM, CONTINUE, GLOB, NIL } = require('../src/definitions')
 const YES = 0
-const Ruler = require('..')[ME]
+const { Ruler } = require('..')
 
 const T1 = [YES, 'a/b', 'a/c/', 'f*', '!file', '/z/y']
 const D1 = [
@@ -47,27 +47,27 @@ describe(ME, () => {
   before(() => process.on('warning', hook))
   after(() => process.off('warning', hook))
   beforeEach(() => {
-    // warnings = []
     t = new Ruler(YES, T1)
-    n = 0
+    n = wCount = 0
   })
 
   it('should construct', () => {
     // console.log('DUMP', t.dump())
     expect(t.dump()).to.eql(D1)
-    t = new Ruler({ action: 2, optimize: false }, '/a*')
+    t = new Ruler({ defaultAction: 2, optimize: false }, '/a*')
     expect(t.dump()).to.eql([[NIL, /^a.*$/, 2]])
   })
 
   it('should warn about deprecated API', (done) => {
-    let a = new Ruler().add(['a/b', 'a/c/', 'f*', '!file', '/z/y'], YES)
+    let a = new Ruler({ action: 2 })
+      .add(['a/b', 'a/c/', 'f*', '!file', '/z/y'], YES)
     expect(a.dump()).to.eql(t.dump(), 'old API')
     process.nextTick(() => {
-      expect(wCount).to.equal(1, 'old API')
+      expect(wCount).to.equal(2, 'old API')
       a = new Ruler().add(YES, 'a/b', 'a/c/', 'f*', '!file', '/z/y')
       expect(a.dump()).to.eql(t.dump(), 'new API')
       process.nextTick(() => {
-        expect(wCount).to.equal(1, 'new API')
+        expect(wCount).to.equal(2, 'new API')
         done()
       })
     })
@@ -119,7 +119,7 @@ describe(ME, () => {
     const old = t.tree
     t.add(YES, 'a/b')
     expect(() => t.add(1, 'a/b')).to.throw(AssertionError, 'conflict @2')
-    expect(t.tree).to.eql(old)
-    expect(wCount).to.eql(1)
+    expect(t.tree).to.eql(old, 'tree')
+    expect(wCount).to.eql(0, 'wCount')
   })
 })

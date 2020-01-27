@@ -1,7 +1,9 @@
 'use strict'
 
-const WARNING = 'Ruler.add(definition, action) syntax is deprecated.' +
-  ' Use `.add(action, {rule}, {action, {rule...}...)` instead.'
+const DEPRECATED = 'DeprecationWarning'
+const WARNING_1 = 'Ruler.add(definition, action) syntax is deprecated -' +
+  ' use `.add(action, {rule}, {action, {rule...}...)`'
+const WARNING_2 = "Ruler 'action' option is deprecated - use 'defaultAction'"
 
 const { DO_DEFAULT, DISCLAIM, CONTINUE, GLOB, NIL } = require('../definitions')
 const defaults = require('lodash.defaults')
@@ -28,8 +30,11 @@ class Ruler extends Sincere {
       if ((typeof opts === 'object' && opts.constructor !== o.constructor) ||
         typeof opts !== 'object') {
         rules.unshift(opts) && (opts = o)
+        opts = undefined
       }
     }
+    opts = defaults({}, opts)
+
     super()
     /**
      * Rule tree of nodes [parentIndex, rule, action].
@@ -49,17 +54,23 @@ class Ruler extends Sincere {
      * @private
      */
     this._level = 0
-    /**
-     * Options for string parser.
-     * @type {Object}
-     */
-    this.options = defaults({}, opts)
+
+    if (opts.action) {
+      process.emitWarning(WARNING_2, DEPRECATED)
+      if (!opts.defaultAction) opts.defaultAction = opts.action
+    }
     /**
      * Action to be bound to new rule - used and possibly mutated by add().
      * @type {number}
      */
-    this.defaultAction = this.options.action === undefined
-      ? DO_DEFAULT : this.options.action
+    this.defaultAction = opts.defaultAction === undefined
+      ? DO_DEFAULT : opts.defaultAction
+    /**
+     * Options for string parser.
+     * @type {Object}
+     */
+    this.options = opts
+
     if (rules) this.add(rules)
   }
 
@@ -75,7 +86,7 @@ class Ruler extends Sincere {
    */
   add (...args) {
     if (args.length === 2 && typeof args[1] === 'number') {
-      process.emitWarning(WARNING, 'DeprecationWarning')
+      process.emitWarning(WARNING_1, DEPRECATED)
       return this.add_(args[0], args[1])  //  v1.0.1 API
     }
     return this.add_(args)
