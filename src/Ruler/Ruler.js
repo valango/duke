@@ -9,10 +9,25 @@ const { DO_DEFAULT, DISCLAIM, CONTINUE, GLOB, NIL } = require('../definitions')
 const defaults = require('lodash.defaults')
 const parse = require('./parse')
 const Sincere = require('sincere')
-// const PAR = 0
-const RUL = 1
+const RUL = 0
 const ACT = 2
+// const PAR = 1
 const IDX = 3
+
+//  Reducer function.
+const addNode_ = ([parent, tree], rule) => {
+  let i = tree.findIndex(
+    ([rul, par]) => {
+      const y0 = par === parent
+      const y1 = (rul === null ? rul : rul.source) === rule
+      return y0 && y1
+    })
+  if (i === -1) {
+    if (rule) rule = RegExp(rule)
+    i = tree.push([rule, parent, CONTINUE]) - 1
+  }
+  return [i, tree]
+}
 
 /**
  * Rule tree and intermediate state of searches.
@@ -65,17 +80,25 @@ class Ruler extends Sincere {
       process.emitWarning(WARNING_2, DEPRECATED)
       if (!opts.defaultAction) opts.defaultAction = opts.action
     }
+
     /**
      * Action to be bound to new rule - used and possibly mutated by add().
      * @type {number}
      */
     this.defaultAction = opts.defaultAction === undefined
       ? DO_DEFAULT : opts.defaultAction
+
     /**
      * Options for string parser.
      * @type {Object}
      */
     this.options = opts
+
+    /**
+     * Value of ancestors before mutation by test().
+     * @type {Array<*>}
+     */
+    this.saved = undefined
 
     if (rules) this.add(rules)
   }
@@ -112,12 +135,18 @@ class Ruler extends Sincere {
       default:
         if (Array.isArray(definition)) {
           definition.forEach((item) => this.add_(item, action))
+        // } else if (definition instanceof Ruler) {
+        //  definition._tree.map(([r, a]) => [r ? r.source : r, a])
+        //    .reduce(addNode_, [NIL, this._tree])
         } else {
           this.assert(false, 'add', 'bad rule definition < %O >', definition)
         }
     }
-
     return this
+  }
+
+  conc_(other){
+    // const sec = other._tree.map()
   }
 
   /**
@@ -128,43 +157,26 @@ class Ruler extends Sincere {
    */
   addPath_ (path, forAction = undefined) {
     const rules = parse(path, this.options)
-    const flags = rules.shift(), L = 'addPath_'
+    const flags = rules.shift(), locus = 'addPath_'
 
-    this.assert(rules.length, L, 'no rules')
-    const tree = this._tree, last = rules.length - 1
+    this.assert(rules.length, locus, 'no rules')
     let action = flags.isExclusion ? DISCLAIM : forAction
     if (action === undefined) action = this.defaultAction
-    this.assert(action > CONTINUE, L, 'illegal action value \'%i\'', action)
+    this.assert(action > CONTINUE, locus, 'illegal action value \'%i\'', action)
 
-    let index, parent = NIL // parentIndex === undefined ? NIL : parentIndex
+    const i = rules.reduce(addNode_, [NIL, this._tree])[0]
 
-    for (let i = 0; i <= last; i += 1) {
-      let rule = rules[i]
+    this.assert(i >= 0, locus, 'no node created')
+    const node = this._tree[i] // , [par, rul, act] = node
 
-      index = tree.findIndex(
-        ([a, r]) => {
-          const y0 = a === parent
-          const y1 = (r === null ? r : r.source) === rule
-          return y0 && y1
-        })
-      if (index === -1) {
-        if (rule) rule = RegExp(rule)
-        index = tree.push([parent, rule, CONTINUE]) - 1
-      }
-      parent = index
-    }
-    this.assert(index >= 0, L, 'no node created')
-    this.treeTop = index + 1
-    const node = tree[index], [p, r, a] = node
-
-    if (a !== action) {
-      if (a !== CONTINUE) {  //  For debugger breakpoint.
-        this.assert(false, L, 'action conflict @%i: [%i, %s, %i]',
-          index, p, r, a)
-      }
-      node[2] = action
-    }
-
+    // if (act !== action) {
+    /*
+    if (act !== CONTINUE) {  //  For debugger breakpoint.
+      this.assert(false, locus, 'action conflict @%i: [%i, %s, %i]',
+        index, par, rul, act)
+    } */
+    node[ACT] = action
+    // }
     return this
   }
 
@@ -174,12 +186,19 @@ class Ruler extends Sincere {
    */
   clone () {
     const a = this.ancestors, c = new Ruler(this.options)
+    const s = this.saved
 
-    c.ancestors = Array.isArray(a) ? a.slice() : a
+    c.ancestors = a && typeof a === 'object' ? a.slice() : a
+    c.saved = s && typeof s === 'object' ? s.slice() : s
     c.defaultAction = this.defaultAction
     c._tree = this.dump()
 
     return c
+  }
+
+  concat (...args) {
+    const c = this.clone()
+    return this.add.apply(c, args)
   }
 
   /**
@@ -209,8 +228,8 @@ class Ruler extends Sincere {
 
     if (lowest !== Infinity) {
       // Scan the three for nodes matching any of the ancestors.
-      for (let i = this.treeTop; --i > lowest;) {
-        const [par, rule, act] = tree[i]
+      for (let i = this._tree.length; --i > lowest;) {
+        const [rule, par, act] = tree[i]
 
         //  Ancestors list is always smaller than tree ;)
         for (let iA = 0, anc; (anc = ancs[iA]) !== undefined; iA += 1) {
@@ -225,15 +244,15 @@ class Ruler extends Sincere {
           }
           if (rule === GLOB) {
             let next = this.match(string, [i])
-            next = next.filter((o) => o[1] !== GLOB)
+            next = next.filter((o) => o[RUL] !== GLOB)
             if (next.length) {
               res = res.concat(next)
               continue
             }
           }
           //  We got a match!
-          if (act === DISCLAIM) return [[par, rule, act, i]]
-          res.push([par, rule, act, i])
+          if (act === DISCLAIM) return [[rule, par, act, i]]
+          res.push([rule, par, act, i])
         } //  end for iA
       } //  end for i
 
@@ -244,7 +263,7 @@ class Ruler extends Sincere {
           res.push(tree[i].concat(i))
         }
       } else if (res.length > 1) {
-        res = res.filter(([, r]) => r !== GLOB)
+        res = res.filter(([r]) => r !== GLOB)
       }
       if (res.length > 1) {
         //  Sort by action values descending.
@@ -254,6 +273,11 @@ class Ruler extends Sincere {
       }
     }
     return res
+  }
+
+  restore () {
+    this.ancestors = this.saved
+    return this
   }
 
   /**
@@ -272,7 +296,10 @@ class Ruler extends Sincere {
 
     if (ancestors === true) {
       //  New API
-      if (res === CONTINUE) this.ancestors = r
+      if (res === CONTINUE) {
+        this.saved = this.ancestors
+        this.ancestors = r
+      }
       return res
     }
     //  Soon-to-be-deprecated API

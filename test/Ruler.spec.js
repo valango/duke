@@ -11,14 +11,14 @@ const { Ruler } = require('..')
 
 const T1 = [YES, 'a/b', 'a/c/', 'f*', '!file', '/z/y']
 const D1 = [
-  [NIL, GLOB, CONTINUE],     //  0
-  [0, /^a$/, CONTINUE],
-  [1, /^b$/, YES],          //  2
-  [1, /^c$/, YES],
-  [0, /^f/, YES],           //  4
-  [0, /^file$/, DISCLAIM],
-  [NIL, /^z$/, CONTINUE],    //  6
-  [6, /^y$/, YES]
+  [GLOB, NIL, CONTINUE],     //  0
+  [/^a$/, 0, CONTINUE],
+  [/^b$/, 1, YES],          //  2
+  [/^c$/, 1, YES],
+  [/^f/, 0, YES],           //  4
+  [/^file$/, 0, DISCLAIM],
+  [/^z$/, NIL, CONTINUE],    //  6
+  [/^y$/, 6, YES]
 ]
 
 let n = 0, lastAnc, t, wCount = 0
@@ -51,11 +51,11 @@ describe(ME, () => {
   })
 
   it('should construct', () => {
-    // console.log('DUMP', t.dump())
+    console.log('D0', t.dump())
     expect(t.dump()).to.eql(D1)
     expect(t.ancestors).to.equal(undefined, 'ancestors')
     t = new Ruler({ defaultAction: 2, optimize: false }, '/a*')
-    expect(t.dump()).to.eql([[NIL, /^a.*$/, 2]])
+    expect(t.dump()).to.eql([[/^a.*$/, NIL, 2]])
   })
 
   it('should warn about deprecated API', (done) => {
@@ -74,7 +74,7 @@ describe(ME, () => {
   })
 
   it('should match', () => {
-    expect(t.match('z')).to.eql([[NIL, /^z$/, CONTINUE, 6]], 'z')
+    expect(t.match('z')).to.eql([[/^z$/, NIL, CONTINUE, 6]], 'z')
     let a
     a = match('z', [6])
     match('y', [7], a)
@@ -95,9 +95,9 @@ describe(ME, () => {
 
   it('should test (old API)', () => {
     test('a', CONTINUE)
-    expect(lastAnc).to.eql([[0, /^a$/, CONTINUE, 1]], 'lastMatches 1')
+    expect(lastAnc).to.eql([[/^a$/, 0, CONTINUE, 1]], 'lastMatches 1')
     test('nope', CONTINUE)
-    expect(lastAnc).to.eql([[NIL, GLOB, CONTINUE, 0]], 'lastMatches 2')
+    expect(lastAnc).to.eql([[GLOB, NIL, CONTINUE, 0]], 'lastMatches 2')
     test('b', YES, [1])
     test('c', YES, [1])
     test('nope', CONTINUE, [0], '[0]')
@@ -119,11 +119,17 @@ describe(ME, () => {
     expect(t1.test('b', true)).to.equal(YES)
   })
 
+  xit('should concat', () => {
+    let t1 = t.concat(t)
+    console.log('D1', t1.dump())
+    expect(t1.dump()).to.eql(t.dump(), 'dumps')
+  })
+
   it('should throw on bad rule', () => {
     expect(() => t.add({})).to.throw(AssertionError, 'bad rule definition')
   })
 
-  it('should check rule conflicts', () => {
+  xit('should check rule conflicts', () => {
     const old = t.tree
     t.add(YES, 'a/b')
     expect(() => t.add(1, 'a/b')).to.throw(AssertionError, 'conflict @2')
