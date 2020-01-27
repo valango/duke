@@ -60,7 +60,7 @@ class ProWalker extends Walker {
         locals.master = undefined
         locals.current.promo = 'N'
       }
-      locals.rules = projectRules
+      locals.ruler = projectRules
       locals.ancestors = undefined
     }
   }
@@ -117,7 +117,7 @@ measure(task).then((r) => {
     '? - cnt:', '- directory '.padEnd(stats.dirLength, '-'))
   print('Total %i projects', walker.trees.length)
   if (r instanceof Error) {
-    print(color.redBright, '%s\nArgs:  %O', r.stack, r.arguments)
+    print(color.redBright, '%s\nArgs:  %O', r.stack, r.args)
   }
   threads = threads ? 'in ' + args.length + ' threads' : ''
   print('Total %i ms (%i µs/item) on %i items',

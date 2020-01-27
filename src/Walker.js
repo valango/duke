@@ -130,7 +130,6 @@ class Walker extends Sincere {
   }
 
   onBegin (ctx) {
-    if (this.options.onBegin) return this.options.onBegin.call(this, ctx)
     const { absDir, locals } = ctx
 
     //  Check if already done - may happen when multi-threading.
@@ -153,7 +152,6 @@ class Walker extends Sincere {
   }
 
   onEnd (ctx) {
-    if (this.options.onEnd) return this.options.onEnd.call(this, ctx)
     const { locals } = ctx
 
     if (locals.current) {
@@ -166,8 +164,6 @@ class Walker extends Sincere {
   }
 
   onEntry (ctx) {
-    if (this.options.onEntry) return this.options.onEntry.call(this, ctx)
-
     const { locals, name, type } = ctx
     let action = DISCLAIM, ancestors
 
@@ -233,7 +229,9 @@ class Walker extends Sincere {
       delete closure.error
       r = func.call(this, args)
     } catch (error) {
-      if ((r = this.onError(error, args, expected)) === undefined) {
+      const onError = closure.onError || this.onError
+
+      if ((r = onError.call(this, error, args, expected)) === undefined) {
         if (expected.indexOf(error.code) >= 0) {
           this.registerFailure(error.message)
           return DO_SKIP
@@ -241,7 +239,7 @@ class Walker extends Sincere {
         r = error
       }
       if (r instanceof Error) {
-        (closure.error = r).arguments = args
+        (closure.error = r).args = args
         r = DO_TERMINATE
       }
       this.nextTick = Date.now() + this.interval
@@ -296,6 +294,9 @@ class Walker extends Sincere {
   walk_ (rootPath, options) {
     const closure = defaults({}, options, this.options)
     const paths = [], root = resolve(rootPath)
+    const onBegin = closure.onBegin || this.onBegin
+    const onEnd = closure.onEnd || this.onEnd
+    const onEntry = closure.onEntry || this.onEntry
     let action, directory, entry, t
 
     closure.root = root
@@ -312,7 +313,7 @@ class Walker extends Sincere {
         continue
       }
 
-      action = this.safely_(closure, this.onBegin,
+      action = this.safely_(closure, onBegin,
         { absDir, depth, dir, locals, root })
 
       if (!(action <= DO_TERMINATE && action >= DO_SKIP)) {
@@ -325,7 +326,7 @@ class Walker extends Sincere {
         while ((entry = directory.readSync())) {
           const name = entry.name, type = getType(entry)
 
-          action = this.safely_(closure, this.onEntry,
+          action = this.safely_(closure, onEntry,
             { absDir, depth, dir, locals, name, root, type })
 
           if (action === DO_ABORT || action === DO_TERMINATE) {
@@ -342,7 +343,7 @@ class Walker extends Sincere {
       }       //  end if (action...)
       directory.closeSync()
 
-      action = this.safely_(closure, this.onEnd,
+      action = this.safely_(closure, onEnd,
         { absDir, action, depth, dir, locals, root })
 
       if (action === DO_ABORT) {
