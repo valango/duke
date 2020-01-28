@@ -1,19 +1,18 @@
 'use strict'
 
-const DEPRECATED = 'DeprecationWarning'
-const WARNING_1 = 'Ruler.add(definition, action) syntax is deprecated -' +
-  ' use `.add(action, {rule}, {action, {rule...}...)`'
-const WARNING_2 = "Ruler 'action' option is deprecated - use 'defaultAction'"
-
-const { DO_DEFAULT, DISCLAIM, CONTINUE, DO_SKIP, GLOB, NIL, ROOT } = require(
-  '../definitions')
+const
+  {
+    ACT, GLOB, NIL, ROOT,
+    DO_DEFAULT, DISCLAIM, CONTINUE, DO_TERMINATE, DO_ABORT, DO_SKIP
+  } = require('../definitions')
 const defaults = require('lodash.defaults')
 const parse = require('./parse')
 const Sincere = require('sincere')
-const RUL = 0
+// const RUL = 0
 const PAR = 1
-const ACT = 2
 const IDX = 3
+
+const specialActions = [DO_TERMINATE, DO_ABORT, DO_SKIP]
 
 const rule_ = (r) => r ? new RegExp(r) : r
 
@@ -67,11 +66,6 @@ class Ruler extends Sincere {
      */
     this.ancestors = undefined
 
-    if (opts.action) {
-      process.emitWarning(WARNING_2, DEPRECATED)
-      if (!opts.defaultAction) opts.defaultAction = opts.action
-    }
-
     /**
      * Action to be bound to new rule - used and possibly mutated by add().
      * @type {number}
@@ -84,12 +78,6 @@ class Ruler extends Sincere {
      * @type {Object}
      */
     this.options = opts
-
-    /**
-     * Value of ancestors before mutation by test().
-     * @type {Array<*>}
-     */
-    this.saved = undefined
 
     if (rules) this.add(rules)
   }
@@ -105,10 +93,6 @@ class Ruler extends Sincere {
    * @returns {Ruler}
    */
   add (...args) {
-    if (args.length === 2 && typeof args[1] === 'number') {
-      process.emitWarning(WARNING_1, DEPRECATED)
-      return this.add_(args[0], args[1])  //  v1.0.1 API
-    }
     return this.add_(args)
   }
 
@@ -175,14 +159,13 @@ class Ruler extends Sincere {
 
   /**
    * Create copy of the instance.
+   * @param {Array=} ancestors
    * @returns {Ruler}
    */
-  clone () {
+  clone (ancestors = undefined) {
     const a = this.ancestors, c = new Ruler(this.options)
-    const s = this.saved
 
-    c.ancestors = a && typeof a === 'object' ? a.slice() : a
-    c.saved = s && typeof s === 'object' ? s.slice() : s
+    c.ancestors = ancestors ? ancestors.slice() : (a && a.slice())
     c.defaultAction = this.defaultAction
     c._tree = this.dump()
 
@@ -228,7 +211,7 @@ class Ruler extends Sincere {
           let next = this.match_(string, [tree[i].concat(i)])
           next = next.filter(([rul]) => rul !== GLOB)
           res = res.concat(next)
-          continue
+          if (i === ROOT) continue
         }
         //  We got a real match!
         if (act === DISCLAIM) {
@@ -238,6 +221,7 @@ class Ruler extends Sincere {
         }
       } //  end for iA
     } //  end for i
+
     if (bDisclaim) {
       res = res.filter(([, , a]) => a !== DO_SKIP)
     }
@@ -249,13 +233,14 @@ class Ruler extends Sincere {
    *
    * The results array never contains ROOT node, which will be added
    * on every run.
+   * If a node of special action is matched, then only this node is returned.
    *
    * @param {string} string to match
    * @returns {Array<Array>} array of [rule, parent, action, index]
    */
   match (string) {
     let ancestors = (this.ancestors || []).slice()
-    const globs = []
+    const globs = [], spec = [0, 0, 0]
 
     if (ancestors.length) {
       //  Maintain all GLOBs after the ROOT.
@@ -266,40 +251,17 @@ class Ruler extends Sincere {
     } else {
       ancestors = [[0, 0, 0, NIL]]
     }
+
     const res = this.match_(string, ancestors.slice()).concat(globs)
 
-    return res.sort((a, b) => b[ACT] - a[ACT])
-  }
-
-  restore () {
-    this.ancestors = this.saved
-    return this
-  }
-
-  /**
-   * Rigid version of match().
-   *
-   * @param {string} string
-   * @param {Array<*>|boolean|=} ancestors - from earlier test().
-   * @returns {number | Array<number>}     - [action code, ancestors].
-   */
-  test (string, ancestors = undefined) {
-    if (this._tree.length === 0) return [DISCLAIM]
-
-    const context = ancestors === true ? this.ancestors : ancestors
-    const r = this.match(string, context)
-    const res = r.length === 0 ? DISCLAIM : r[0][ACT]
-
-    if (ancestors === true) {
-      //  New API
-      if (res === CONTINUE) {
-        this.saved = this.ancestors
-        this.ancestors = r
-      }
-      return res
+    for (const r of res) {
+      const i = specialActions.indexOf(r[ACT])
+      if (i >= 0) spec[i] = [r]
     }
-    //  Soon-to-be-deprecated API
-    return [res, res === CONTINUE ? r : ancestors]
+
+    return spec[0] || spec[1] || spec[2] || res.sort((a, b) => {
+      return b[ACT] - a[ACT]
+    })
   }
 }
 

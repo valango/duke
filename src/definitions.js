@@ -32,6 +32,8 @@ const _actions = [
  */
 exports = module.exports = {
   //  Internal constants.
+  /** @member {number} ACT   action code index in Ruler.match() record. */
+  ACT: 2,
   /** @member {null} GLOB  glob rule. */
   GLOB: null,
   /** @member {number} NIL   Index pointing to nowhere. */

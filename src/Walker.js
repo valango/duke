@@ -163,14 +163,16 @@ class Walker extends Sincere {
 
   onEntry (ctx) {
     const { locals, name, type } = ctx
-    let action
 
-    switch ((action = locals.ruler.test(name, true))) {
+    const matches = locals.ruler.match(name)
+    const action = matches.length ? matches[0][2] : DISCLAIM
+
+    switch (action) {
       case CONTINUE:
       case DISCLAIM:
         //  Forward our rule parsing context to subdirectory.
         if (type === T_DIR) {
-          return { ruler: locals.ruler.clone() }
+          return { ruler: locals.ruler.clone(matches) }
         }
         break
       case DO_ABORT:
@@ -183,7 +185,6 @@ class Walker extends Sincere {
           this.talk('onEntry: default', actionName(action), name)
         }
     }
-    locals.ruler.restore()
 
     return action
   }

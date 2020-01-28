@@ -79,8 +79,8 @@ exports = module.exports = (string, options = undefined) => {
     }
     rules.push(rule)
   }
-  let l = rules.length - 1
-  const any = opts.optimize ? ANY : '^.*$'
+
+  const any = opts.optimize ? ANY : '^.*$', l = rules.length - 1
   //  a/**$ --> a/$
   if (rules[l] === null) (isDirectory = true) && rules.pop()
   check(!(rules.length === 1 && (rules[0] === ANY || rules[0] === any)))
