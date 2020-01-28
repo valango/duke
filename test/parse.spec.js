@@ -1,11 +1,12 @@
 'use strict'
-const ME = 'parse'
 process.env.NODE_MODULES = 'test'
+const ME = 'parse'
 
 const { AssertionError } = require('assert')
 const { expect } = require('chai')
-const p = require('../src/Ruler/' + ME)
-const { ANY, GLOB } = p
+const { GLOB } = require('../src')
+const target = require('../src/Ruler/' + ME)
+const ANY = '.'
 const DIR = { isDirectory: true, isExclusion: false }
 const SOME = { isDirectory: false, isExclusion: false }
 const XDIR = { isDirectory: true, isExclusion: true }
@@ -13,7 +14,7 @@ const XOME = { isDirectory: false, isExclusion: true }
 let options
 
 const test = (str, exp, x = '') => {
-  const r = p(str, options)
+  const r = target(str, options)
   expect(r).to.eql(exp, `'${str}' ` + x)
 }
 
@@ -56,7 +57,7 @@ describe(ME, () => {
     //  Todo: give some analysis back to parser
     test('/a/**', [DIR, '^a$'])
     test('/a/**/', [DIR, '^a$'])
-    test('/a/**/*', [DIR, '^a$'])
+    test('/a/**/*', [DIR, '^a$', GLOB, ANY])
     test('/a/**/*/*', [SOME, '^a$', GLOB, ANY, ANY])
   })
 
@@ -73,8 +74,8 @@ describe(ME, () => {
   })
 
   it('should fail', () => {
-    expect(() => p('  ')).to.throw(AssertionError, 'invalid', '\'  \'')
-    expect(() => p('a//b')).to.throw(AssertionError, 'invalid', 'a//b')
-    expect(() => p('/')).to.throw(AssertionError, 'invalid', '\'/\'')
+    expect(() => target('  ')).to.throw(AssertionError, 'invalid', '\'  \'')
+    expect(() => target('a//b')).to.throw(AssertionError, 'invalid', 'a//b')
+    expect(() => target('/')).to.throw(AssertionError, 'invalid', '\'/\'')
   })
 })

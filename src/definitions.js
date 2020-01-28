@@ -32,10 +32,12 @@ const _actions = [
  */
 exports = module.exports = {
   //  Internal constants.
-  /** @member {number} GLOB  reserved for Ruler:  match optional dirs (**). */
+  /** @member {null} GLOB  glob rule. */
   GLOB: null,
   /** @member {number} NIL   Index pointing to nowhere. */
   NIL: -1,
+  /** @member {number} ROOT  index of root glob rule node. */
+  ROOT: 0,
 
   //  Action codes. Negative values are reserved.
   /** @member {number} CONTINUE  reserved for Ruler: partial match. */

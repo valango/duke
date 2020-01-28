@@ -28,7 +28,7 @@ const rxBraces = /(?<!\\){[^}]+(?<!\\)}/g   //  Detect non-escaped {...}
  */
 exports = module.exports = (string, options = undefined) => {
   const check = (cond) => assert(cond, `invalid pattern '${string}'`)
-  const opts = defaults({}, options || {}, exports.DEFAULTS), rules = []
+  const opts = defaults({}, options || {}, DEFAULTS), rules = []
 
   let pattern = string.replace(/\\\s/g, '\\s').trimEnd()  //  Normalize spaces.
   let isExclusion = false, isDirectory = false
@@ -46,7 +46,7 @@ exports = module.exports = (string, options = undefined) => {
   if (parts[0] !== P_GLOB) {
     parts[0] ? parts.unshift(P_GLOB) : parts.shift()
   }
-  let last = parts.length - 1, wasGlob = false
+  let last = parts.length - 1
 
   if (last >= 0 && !parts[last]) (isDirectory = true) && (parts.pop() || --last)
   check(last >= 0)
@@ -56,34 +56,34 @@ exports = module.exports = (string, options = undefined) => {
 
     check(rule)
 
-    if (!wasGlob && rule === P_GLOB) {
-      wasGlob = rules.push(GLOB)
-      continue
+    if (rule === P_GLOB) {
+      if (rules.length) {
+        if ((rule = rules.pop()) !== GLOB && rule !== ANY) {
+          rules.push(rule)
+        }
+      }
+      rule = GLOB
     }
-    rule = rule.replace(/\*+/g, OPTIONAL).replace(/\?/g, ANY)
+    if (rule !== GLOB) {
+      rule = rule.replace(/\*+/g, OPTIONAL).replace(/\?/g, ANY)
 
-    if (!opts.optimize) {
-      rule = '^' + rule + '$'
-    } else if (rule === OPTIONAL || rule === ANY) {
-      rule = ANY
-    } else {
-      rule = rule.indexOf(OPTIONAL) === 0 ? rule.substring(2) : '^' + rule
-      rule = /\.\*$/.test(rule)
-        ? rule.substring(0, rule.length - 2) : rule + '$'
+      if (!opts.optimize) {
+        rule = '^' + rule + '$'
+      } else if (rule === OPTIONAL || rule === ANY) {
+        rule = ANY
+      } else {
+        rule = rule.indexOf(OPTIONAL) === 0 ? rule.substring(2) : '^' + rule
+        rule = /\.\*$/.test(rule)
+          ? rule.substring(0, rule.length - 2) : rule + '$'
+      }
     }
     rules.push(rule)
   }
   let l = rules.length - 1
   const any = opts.optimize ? ANY : '^.*$'
-  //  **/*$ --> **$
-  if (rules[l] === any && rules[l - 1] === GLOB) {
-    ((isDirectory = true) && rules.pop() && --l)
-  }
   //  a/**$ --> a/$
-  if (rules[l] === GLOB) (isDirectory = true) && rules.pop()
+  if (rules[l] === null) (isDirectory = true) && rules.pop()
   check(!(rules.length === 1 && (rules[0] === ANY || rules[0] === any)))
   rules.unshift({ isDirectory, isExclusion })
   return rules
 }
-
-Object.assign(exports, { ANY, DEFAULTS, GLOB })

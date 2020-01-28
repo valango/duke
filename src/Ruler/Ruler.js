@@ -5,7 +5,8 @@ const WARNING_1 = 'Ruler.add(definition, action) syntax is deprecated -' +
   ' use `.add(action, {rule}, {action, {rule...}...)`'
 const WARNING_2 = "Ruler 'action' option is deprecated - use 'defaultAction'"
 
-const { DO_DEFAULT, DISCLAIM, CONTINUE, GLOB, NIL } = require('../definitions')
+const { DO_DEFAULT, DISCLAIM, CONTINUE, DO_SKIP, GLOB, NIL, ROOT } = require(
+  '../definitions')
 const defaults = require('lodash.defaults')
 const parse = require('./parse')
 const Sincere = require('sincere')
@@ -21,7 +22,7 @@ const addNode_ = ([parent, tree], rule) => {
   let i = tree.findIndex(
     ([rul, par]) => {
       const y0 = par === parent
-      const y1 = (rul === null ? rul : rul.source) === rule
+      const y1 = (rul === GLOB ? rul : rul.source) === rule
       return y0 && y1
     })
   if (i === -1) {
@@ -52,24 +53,13 @@ class Ruler extends Sincere {
     opts = defaults({}, opts)
 
     super()
+
     /**
-     * Rule tree of nodes [parentIndex, rule, action].
+     * Rule tree of nodes [rule, parent, action].
      * @type Array<Array<*>>
      * @private
      */
-    this._tree = []
-    /**
-     * Used internally by add()
-     * @type {*}
-     * @private
-     */
-    this._lastItem = undefined
-    /**
-     * Used internally by add()
-     * @type {number}
-     * @private
-     */
-    this._level = 0
+    this._tree = [[GLOB, NIL, CONTINUE]]
 
     /**
      * Used and mutated by test() method.
@@ -123,9 +113,6 @@ class Ruler extends Sincere {
   }
 
   add_ (definition, action) {
-    this._level += 1
-    this._lastItem = definition
-
     switch (typeof definition) {
       case 'number':
         this.defaultAction = definition
@@ -179,16 +166,10 @@ class Ruler extends Sincere {
     const i = rules.reduce(addNode_, [NIL, this._tree])[0]
 
     this.assert(i >= 0, locus, 'no node created')
-    const node = this._tree[i] // , [par, rul, act] = node
+    const node = this._tree[i]
 
-    // if (act !== action) {
-    /*
-    if (act !== CONTINUE) {  //  For debugger breakpoint.
-      this.assert(false, locus, 'action conflict @%i: [%i, %s, %i]',
-        index, par, rul, act)
-    } */
     node[ACT] = action
-    // }
+
     return this
   }
 
@@ -221,70 +202,73 @@ class Ruler extends Sincere {
     return this._tree.slice()
   }
 
+  match_ (string, ancestors) {
+    const lowest = -1  //  Todo: think if we can finish looping earlier.
+    const tree = this._tree
+    let bDisclaim = false, res = []
+
+    // Scan the three for nodes matching any of the ancestors.
+    for (let i = tree.length; --i > lowest;) {
+      const [rule, par, act] = tree[i]
+
+      //  Ancestors list is always smaller than tree ;)
+      for (let iA = 0, anc; (anc = ancestors[iA]) !== undefined; iA += 1) {
+        anc = anc[IDX]
+        if (anc >= i) {   //  Ancestor index is always less than node index.
+          ancestors.splice(iA, 1) && (iA -= 1)   //  Discard this ancestor.
+          continue
+        }
+        if (anc !== par) continue
+
+        if (rule !== GLOB && !rule.test(string)) {
+          continue
+        }
+        if (rule === GLOB) {
+          //  In case of GLOB, check it's descendants immediately.
+          let next = this.match_(string, [tree[i].concat(i)])
+          next = next.filter(([rul]) => rul !== GLOB)
+          res = res.concat(next)
+          continue
+        }
+        //  We got a real match!
+        if (act === DISCLAIM) {
+          bDisclaim = true
+        } else {
+          res.push([rule, par, act, i])
+        }
+      } //  end for iA
+    } //  end for i
+    if (bDisclaim) {
+      res = res.filter(([, , a]) => a !== DO_SKIP)
+    }
+    return res
+  }
+
   /**
    * Match the `string` against rules, without mutating object state.
    *
-   * The results array will be sorted by action code, higher first.
-   * A GLOB rule node is returned only if this is the only match.
+   * The results array never contains ROOT node, which will be added
+   * on every run.
    *
    * @param {string} string to match
-   * @param {Array<*>=} ancestors - may be return value from previous call.
-   * @returns {Array<Array<*>>} array of [ancestorIndex, rule, action, ownIndex]
+   * @returns {Array<Array>} array of [rule, parent, action, index]
    */
-  match (string, ancestors = undefined) {
-    let ancs = (ancestors || [NIL]).slice(), res = []
-    if (ancs.length && typeof ancs[0] !== 'number') {
-      ancs = ancs.map((r) => r[IDX])
+  match (string) {
+    let ancestors = (this.ancestors || []).slice()
+    const globs = []
+
+    if (ancestors.length) {
+      //  Maintain all GLOBs after the ROOT.
+      ancestors.forEach(([r, p, a, i]) => {
+        if (i > ROOT && r === GLOB) globs.push([r, p, a, i])
+      })
+      ancestors.push([GLOB, NIL, CONTINUE, ROOT])
+    } else {
+      ancestors = [[0, 0, 0, NIL]]
     }
-    const lowest = Math.min.apply(undefined, ancs), tree = this._tree
+    const res = this.match_(string, ancestors.slice()).concat(globs)
 
-    if (lowest !== Infinity) {
-      // Scan the three for nodes matching any of the ancestors.
-      for (let i = this._tree.length; --i > lowest;) {
-        const [rule, par, act] = tree[i]
-
-        //  Ancestors list is always smaller than tree ;)
-        for (let iA = 0, anc; (anc = ancs[iA]) !== undefined; iA += 1) {
-          if (anc >= i) {   //  Ancestor index is always less than node index.
-            ancs.splice(iA, 1) && (iA -= 1)   //  Discard this ancestor.
-            continue
-          }
-          if (anc !== par) continue
-
-          if (rule !== GLOB && !rule.test(string)) {
-            continue
-          }
-          if (rule === GLOB) {
-            let next = this.match(string, [i])
-            next = next.filter((o) => o[RUL] !== GLOB)
-            if (next.length) {
-              res = res.concat(next)
-              continue
-            }
-          }
-          //  We got a match!
-          if (act === DISCLAIM) return [[rule, par, act, i]]
-          res.push([rule, par, act, i])
-        } //  end for iA
-      } //  end for i
-
-      if (!res.length) {
-        const a = ancs.findIndex((i) => tree[i] && tree[i][RUL] === GLOB)
-        if (a >= 0) {
-          const i = ancs[a]                   //  Here for debugging
-          res.push(tree[i].concat(i))
-        }
-      } else if (res.length > 1) {
-        res = res.filter(([r]) => r !== GLOB)
-      }
-      if (res.length > 1) {
-        //  Sort by action values descending.
-        //  This may slightly speed uo the next match iteration
-        //  Also, test() method currently relies on this.
-        res.sort((a, b) => b[ACT] - a[ACT])
-      }
-    }
-    return res
+    return res.sort((a, b) => b[ACT] - a[ACT])
   }
 
   restore () {
