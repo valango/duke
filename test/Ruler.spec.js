@@ -51,7 +51,7 @@ describe(ME, () => {
   })
 
   it('should construct', () => {
-    console.log('D0', t.dump())
+    // console.log('D0', t.dump())
     expect(t.dump()).to.eql(D1)
     expect(t.ancestors).to.equal(undefined, 'ancestors')
     t = new Ruler({ defaultAction: 2, optimize: false }, '/a*')
@@ -119,9 +119,9 @@ describe(ME, () => {
     expect(t1.test('b', true)).to.equal(YES)
   })
 
-  xit('should concat', () => {
-    let t1 = t.concat(t)
-    console.log('D1', t1.dump())
+  it('should concat', () => {
+    let t1 = t.concat(t, t)
+    // console.log('D1', t1.dump())
     expect(t1.dump()).to.eql(t.dump(), 'dumps')
   })
 
@@ -129,11 +129,12 @@ describe(ME, () => {
     expect(() => t.add({})).to.throw(AssertionError, 'bad rule definition')
   })
 
-  xit('should check rule conflicts', () => {
+  /*
+  it('should check rule conflicts', () => {
     const old = t.tree
     t.add(YES, 'a/b')
     expect(() => t.add(1, 'a/b')).to.throw(AssertionError, 'conflict @2')
     expect(t.tree).to.eql(old, 'tree')
     expect(wCount).to.eql(0, 'wCount')
-  })
+  }) */
 })

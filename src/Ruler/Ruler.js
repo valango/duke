@@ -10,9 +10,11 @@ const defaults = require('lodash.defaults')
 const parse = require('./parse')
 const Sincere = require('sincere')
 const RUL = 0
+const PAR = 1
 const ACT = 2
-// const PAR = 1
 const IDX = 3
+
+const rule_ = (r) => r ? new RegExp(r) : r
 
 //  Reducer function.
 const addNode_ = ([parent, tree], rule) => {
@@ -23,8 +25,7 @@ const addNode_ = ([parent, tree], rule) => {
       return y0 && y1
     })
   if (i === -1) {
-    if (rule) rule = RegExp(rule)
-    i = tree.push([rule, parent, CONTINUE]) - 1
+    i = tree.push([rule_(rule), parent, CONTINUE]) - 1
   }
   return [i, tree]
 }
@@ -135,9 +136,8 @@ class Ruler extends Sincere {
       default:
         if (Array.isArray(definition)) {
           definition.forEach((item) => this.add_(item, action))
-        // } else if (definition instanceof Ruler) {
-        //  definition._tree.map(([r, a]) => [r ? r.source : r, a])
-        //    .reduce(addNode_, [NIL, this._tree])
+        } else if (definition instanceof Ruler) {
+          this.conc_(definition)
         } else {
           this.assert(false, 'add', 'bad rule definition < %O >', definition)
         }
@@ -145,8 +145,20 @@ class Ruler extends Sincere {
     return this
   }
 
-  conc_(other){
-    // const sec = other._tree.map()
+  conc_ (other) {
+    const src = other._tree.map(([r, p, a]) => [r ? r.source : r, p, a])
+    const dst = this._tree
+
+    src.forEach(([rul, par, act], i) => {
+      const pa = par === NIL ? NIL : src[par][PAR]
+      let j = dst.findIndex(
+        ([r, p]) => p === pa && (r ? r.source : r) === rul)
+      if (j < 0) {
+        j = dst.push([rule_(rul), pa, act]) - 1
+      }
+      src[i][PAR] = j
+    })
+    return this
   }
 
   /**
