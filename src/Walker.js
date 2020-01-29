@@ -115,7 +115,7 @@ class Walker extends Sincere {
    * @returns {{absDir, '...'}|undefined}
    */
   getCurrent (dir) {
-    this.trees.find((p) => p.absDir === dir)
+    return this.trees.find((p) => p.absDir === dir)
   }
 
   /**
@@ -135,30 +135,36 @@ class Walker extends Sincere {
     if (this.getCurrent(absDir)) return DO_SKIP
 
     if ((locals.master = this.getMaster(absDir))) {
-      locals.current = locals.master
       if (!this.options.nested) {
-        return this.talk('  DIR', ctx.absDir, ctx.dir)
+        locals.current = locals.master
+        return
       }
     }
 
     const res = detect.call(this, ctx)
 
+    if (locals.current) {
+      this.talk('BEGIN:', ''.padStart(ctx.depth) + ctx.dir, ctx.absDir)
+      locals.master = undefined
+      this.trees.push(locals.current)
+    }
+
     if (!locals.ruler) {
+      //  istanbul ignore next
       locals.ruler = this.defaultRuler.clone()
     }
     return res
   }
 
+  //  NB: here we have ctx.action too.
   onEnd (ctx) {
     const { locals } = ctx
 
     if (locals.current) {
       if (!locals.master) {
-        this.trees.push(locals.current)
+        this.talk('END', ''.padStart(ctx.depth) + ctx.dir)
       }
-      if (this.getCurrent(ctx.absDir)) this.talk('END', ctx.dir)
     }
-    return locals.current
   }
 
   onEntry (ctx) {
@@ -176,29 +182,23 @@ class Walker extends Sincere {
         }
         break
       case DO_ABORT:
-        this.talk('  DO_ABORT', ctx.dir)
-        break
-      case DO_SKIP:
-        break
-      default:
-        if (type === T_DIR) {
-          this.talk('onEntry: default', actionName(action), name)
-        }
+        this.talk('DO_ABORT', ctx.dir + '/' + ctx.name)
     }
-
     return action
   }
 
-  //  `undefined`: error was not handled.
-  //  `Error`    : treat this value as unrecoverable error.
-  //  otherwise  : assume that error was handled
-  onError (error, args, expected) {
-    let res
-
-    if (this.options.onError) {
-      res = this.options.onError.call(this, error, args, expected)
-    }
-    if (res !== undefined) return res
+  /**
+   *
+   * @param {Error} errorInstance
+   * @param {*} args
+   * @param {Array<string>} expected
+   * @returns {*}
+   *  - undefined: do default handling;
+   *  - Error instance: treat this as unrecoverable
+   *  - other: DO_SKIP, DO_ABORT, DO_TERMINATE
+   */
+  //  istanbul ignore next
+  onError (errorInstance, args, expected) {
   }
 
   /**
@@ -235,9 +235,10 @@ class Walker extends Sincere {
         }
         r = error
       }
-      if (r instanceof Error) {
-        //  Preserve original error
-        if (!closure.error) (closure.error = r).args = args
+      if (r !== DO_SKIP) {
+        const v = r instanceof Error ? r : error
+        //  Remember the first error.
+        if (!closure.error) (closure.error = v).args = args
         r = DO_TERMINATE
       }
       this.nextTick = Date.now() + this.interval
@@ -291,8 +292,15 @@ class Walker extends Sincere {
    * @private
    */
   walk_ (rootPath, options) {
-    const closure = defaults({}, options, this.options)
-    const paths = [], root = resolve(rootPath)
+    let root = rootPath, closure = options
+
+    if (root && typeof root === 'object' && options === undefined) {
+      (closure = root) && (root = undefined)
+    }
+    closure = defaults({}, closure, this.options)
+    root = resolve(root || '.')
+
+    const paths = []
     const onBegin = closure.onBegin || this.onBegin
     const onEnd = closure.onEnd || this.onEnd
     const onEntry = closure.onEntry || this.onEntry
@@ -319,7 +327,7 @@ class Walker extends Sincere {
       action = this.safely_(closure, onBegin,
         { absDir, depth, detect, dir, locals, root })
 
-      if (!(action <= DO_TERMINATE && action >= DO_SKIP)) {
+      if (!(action >= DO_SKIP)) {
         if ((t = Date.now()) > this.nextTick) {
           this.nextTick = Infinity
           this.tick()
