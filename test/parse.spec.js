@@ -3,6 +3,7 @@ process.env.NODE_MODULES = 'test'
 const ME = 'parse'
 
 const { AssertionError } = require('assert')
+const { isDeepStrictEqual } = require('util')
 const { expect } = require('chai')
 const { GLOB } = require('../src')
 const target = require('../src/Ruler/' + ME)
@@ -15,6 +16,7 @@ let options
 
 const test = (str, exp, x = '') => {
   const r = target(str, options)
+  if (!isDeepStrictEqual(r, exp)) console.log(str + '\n', r, '\n', exp)
   expect(r).to.eql(exp, `'${str}' ` + x)
 }
 
@@ -50,14 +52,14 @@ describe(ME, () => {
   })
 
   it('should ignore repeated glob', () => {
-    test('**/a/**', [SOME, GLOB, '^a$', ANY])
+    test('**/a/**', [DIR, GLOB, '^a$'])
   })
 
   it('should strip trailing glob', () => {
     //  Todo: give some analysis back to parser
     test('/a/**', [DIR, '^a$'])
     test('/a/**/', [DIR, '^a$'])
-    test('/a/**/*', [DIR, '^a$', GLOB, ANY])
+    test('/a/**/*', [SOME, '^a$', GLOB, ANY])
     test('/a/**/*/*', [SOME, '^a$', GLOB, ANY, ANY])
   })
 
