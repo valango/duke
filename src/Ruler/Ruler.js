@@ -1,18 +1,13 @@
 'use strict'
 
-const
-  {
-    ACT, GLOB, NIL, ROOT,
-    DO_DEFAULT, DISCLAIM, CONTINUE, DO_TERMINATE, DO_ABORT, DO_SKIP
-  } = require('../definitions')
+const { ACT, GLOB, NIL, ROOT, DISCLAIM, CONTINUE, DO_SKIP } =
+        require('../definitions')
 const defaults = require('lodash.defaults')
 const parse = require('./parse')
 const Sincere = require('sincere')
 // const RUL = 0
 const PAR = 1
 const IDX = 3
-
-const specialActions = [DO_TERMINATE, DO_ABORT, DO_SKIP]
 
 const rule_ = (r) => r ? new RegExp(r) : r
 
@@ -71,7 +66,7 @@ class Ruler extends Sincere {
      * @type {number}
      */
     this.defaultAction = opts.defaultAction === undefined
-      ? DO_DEFAULT : opts.defaultAction
+      ? 0 : opts.defaultAction
 
     /**
      * Options for string parser.
@@ -240,7 +235,7 @@ class Ruler extends Sincere {
    */
   match (string) {
     let ancestors = (this.ancestors || []).slice()
-    const globs = [], spec = [0, 0, 0]
+    const globs = []
 
     if (ancestors.length) {
       //  Maintain all GLOBs after the ROOT.
@@ -254,12 +249,7 @@ class Ruler extends Sincere {
 
     const res = this.match_(string, ancestors.slice()).concat(globs)
 
-    for (const r of res) {
-      const i = specialActions.indexOf(r[ACT])
-      if (i >= 0) spec[i] = [r]
-    }
-
-    return spec[0] || spec[1] || spec[2] || res.sort((a, b) => {
+    return /* spec[0] || spec[1] || spec[2] || */ res.sort((a, b) => {
       return b[ACT] - a[ACT]
     })
   }

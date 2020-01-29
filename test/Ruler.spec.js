@@ -4,7 +4,7 @@ process.env.NODE_MODULES = 'test'
 
 const { AssertionError } = require('assert')
 const { expect } = require('chai')
-const { CONTINUE, DO_SKIP, DO_ABORT, GLOB, NIL } = require(
+const { CONTINUE, DO_SKIP, DO_ABORT, DISCLAIM, GLOB, NIL } = require(
   '../src/definitions')
 const { Ruler } = require('..')
 
@@ -15,15 +15,15 @@ const T1 = [
 ]
 
 const D1 = [
-  [null, -1, -5],
-  [/^skp-dir$/, -1, -3],
-  [/^skip/, 0, -3],         // 2
-  [/^skipnever/, 0, -4],
-  [/^src$/, 0, -5],         // 4
-  [null, 4, -5],
-  [/./, 5, 0],              // 6
+  [null, -1, CONTINUE],
+  [/^skp-dir$/, -1, DO_SKIP],
+  [/^skip/, 0, DO_SKIP],          // 2
+  [/^skipnever/, 0, DISCLAIM],
+  [/^src$/, 0, CONTINUE],         // 4
+  [null, 4, CONTINUE],
+  [/./, 5, 0],                    // 6
   [/\.js$/, 5, 1],
-  [/^abort$/, 5, -2]        // 8
+  [/^abort$/, 5, DO_ABORT]        // 8
 ]
 
 let n = 0, t
@@ -59,15 +59,15 @@ describe(ME, () => {
     match('skipa', [2])
     match('skipnever', [])
     match('src', [4])
-    match('abort', [8], [4])
-    match('skip.js', [2], [4])
+    match('abort', [8, 6, 5], [4])
+    match('skip.js', [2, 7, 6, 5], [4])
     match('skipnever.js', [7, 6, 5], [4])
   })
 
   it('should clone', () => {
     let t1 = t.clone().add(2, '/two')
     expect(t1.dump().length).to.eql(t.dump().length + 1)
-    match('skip.js', [2], [4])
+    match('skip.js', [2, 7, 6, 5], [4])
     t1 = t.clone()
     expect(t1.ancestors[0][3]).to.eql(4)
   })

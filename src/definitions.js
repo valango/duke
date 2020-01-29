@@ -23,8 +23,15 @@ const _ts = {
   [T_SYMLINK]: 'symLink'
 }
 
-const _actions = [
-  'DO_TERMINATE', 'DO_ABORT', 'DO_SKIP', 'DISCLAIM', 'CONTINUE'
+const CONTINUE = -2
+const DISCLAIM = -1
+const DO_SKIP = Number.MAX_SAFE_INTEGER - 2
+const DO_ABORT = Number.MAX_SAFE_INTEGER - 1
+const DO_TERMINATE = Number.MAX_SAFE_INTEGER
+
+const _aCodes = [CONTINUE, DISCLAIM, DO_SKIP, DO_ABORT, DO_TERMINATE]
+const _aNames = [
+  'CONTINUE', 'DISCLAIM', 'DO_SKIP', 'DO_ABORT', 'DO_TERMINATE'
 ]
 
 /**
@@ -43,17 +50,15 @@ exports = module.exports = {
 
   //  Action codes. Negative values are reserved.
   /** @member {number} CONTINUE  reserved for Ruler: partial match. */
-  CONTINUE: -5,
+  CONTINUE,
   /** @member {number} DISCLAIM  reserved for Ruler: no match or discard any. */
-  DISCLAIM: -4,
+  DISCLAIM,
   /** @member {number} DO_SKIP      Ignore this item. */
-  DO_SKIP: -3,
+  DO_SKIP,
   /** @member {number} DO_ABORT     Discard all matches, jump one level up. */
-  DO_ABORT: -2,
+  DO_ABORT,
   /** @member {number} DO_TERMINATE Terminate any walking. */
-  DO_TERMINATE: -1,
-  /** @member {number} DO_DEFAULT   Default action (0) if nothing specified. */
-  DO_DEFAULT: 0,
+  DO_TERMINATE,
   //  Application may define it's own codes starting from DO_DEFAULT.
 
   /* eslint-disable */
@@ -70,8 +75,8 @@ exports = module.exports = {
     if (typeof action !== 'number') {
       return action
     }
-    const s = action < 0 ? _actions[-1 - action] : 'ACTION_' + action
-    return s || `DO_???_(${action})`
+    const i = _aCodes.indexOf(action)
+    return i < 0 ? `ACTION(${action})` : _aNames[i]
   },
 
   /**
