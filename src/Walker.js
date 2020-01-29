@@ -165,7 +165,7 @@ class Walker extends Sincere {
     const { locals, name, type } = ctx
 
     const matches = locals.ruler.match(name)
-    const action = matches.length ? matches[0][2] : DISCLAIM
+    const action = matches.length ? matches[0][0] : DISCLAIM
 
     switch (action) {
       case CONTINUE:
@@ -224,7 +224,6 @@ class Walker extends Sincere {
     let r
 
     try {
-      delete closure.error
       r = func.call(this, args)
     } catch (error) {
       const onError = closure.onError || this.onError
@@ -237,7 +236,8 @@ class Walker extends Sincere {
         r = error
       }
       if (r instanceof Error) {
-        (closure.error = r).args = args
+        //  Preserve original error
+        if (!closure.error) (closure.error = r).args = args
         r = DO_TERMINATE
       }
       this.nextTick = Date.now() + this.interval

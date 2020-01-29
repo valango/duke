@@ -4,7 +4,7 @@ process.env.NODE_MODULES = 'test'
 
 const { expect } = require('chai')
 const _ = require('lodash')
-const { DO_ABORT, DO_SKIP } = require(
+const { DISCLAIM, DO_ABORT, DO_SKIP, actionName } = require(
   '../src/definitions')
 const Ruler = require('../src').Ruler
 const W = require('..')[ME]
@@ -47,15 +47,17 @@ describe(ME, () => {
   it('should process rules', () => {
     let cnt = 0
     const onEntry = (d) => {
-      const [action] = ruler.test(d.name)
-      if (action <= DO_SKIP) return action
-      if (action === 1) ++count
-      if (action === 0) ++cnt
+      const a = ruler.match(d.name), action = a[0] ? a[0][0] : DISCLAIM
+      if (action < DO_SKIP) {
+        if (action === 1) ++count
+        if (action === 0) ++cnt
+      }
       return action
     }
     ruler.add([0, '/pack*.json', 1, '*.js'])
     w = new W({ onEntry })
-    w.walk(process.cwd())
+    w.walkSync(process.cwd())
+    expect(w.failures).to.eql([], 'failures')
     expect(cnt).to.equal(3, 'cnt')
     expect(count).to.gte(15)
   })
