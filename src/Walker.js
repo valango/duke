@@ -1,8 +1,5 @@
 'use strict'
 
-const WO = 'Walker option '
-const WARNING = WO + "'defaultRules' is deprecated - use 'ruler' instead."
-
 const defaults = require('lodash.defaults')
 const { opendirSync } = require('fs')
 const { join, resolve } = require('path')
@@ -72,6 +69,10 @@ class Walker extends Sincere {
      */
     this.options = o
     /**
+     * @type {Array<Promise>}
+     */
+    this.promises = []
+    /**
      * When true, walking will terminate immediately.
      * @type {boolean}
      */
@@ -87,13 +88,6 @@ class Walker extends Sincere {
      */
     this.trees = []
 
-    //  istanbul ignore next
-    if (o.defaultRules) {
-      this.assert(!this.defaultRuler, 'constructor',
-        "deprecated option 'defaultRules' conflict with 'defaultRuler'")
-      process.emitWarning(WARNING, 'DeprecationWarning')
-      this.defaultRuler = o.defaultRules
-    }
     //  Ensure we have ruler instance.
     if (!((o = this.defaultRuler) instanceof Ruler)) {
       this.defaultRuler = new Ruler(o ? [DO_SKIP, o] : DO_SKIP)
@@ -163,7 +157,9 @@ class Walker extends Sincere {
     if (locals.current) {
       if (!locals.master) {
         this.talk('END', ''.padStart(ctx.depth) + ctx.dir)
+        return 0
       }
+      return DO_SKIP
     }
   }
 
@@ -266,7 +262,13 @@ class Walker extends Sincere {
     return new Promise((resolve, reject) => {
       const res = this.walk_(root, options)
 
-      res.error ? reject(res.error) : resolve(res)
+      if (res.error) {
+        this.promises = []
+        return reject(res.error)
+      }
+      Promise.all(this.promises).then(() => {
+        resolve(res)
+      })
     })
   }
 
