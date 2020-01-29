@@ -1,17 +1,18 @@
 'use strict'
 
-const { ACT, GLOB, NIL, ROOT, DISCLAIM, CONTINUE, DO_SKIP } =
+const { GLOB, NIL, ROOT, DISCLAIM, CONTINUE, DO_SKIP } =
         require('../definitions')
 const defaults = require('lodash.defaults')
 const parse = require('./parse')
 const Sincere = require('sincere')
-// const RUL = 0
+//  Tree node constants.
+const RUL = 0
 const PAR = 1
-const IDX = 3
+const ACT = 2
 
 const rule_ = (r) => r ? new RegExp(r) : r
 
-//  Reducer function.
+//  Reducer function used by addPath_ instance method.
 const addNode_ = ([parent, tree], rule) => {
   let i = tree.findIndex(
     ([rul, par]) => {
@@ -57,7 +58,7 @@ class Ruler extends Sincere {
 
     /**
      * Used and mutated by test() method.
-     * @type {Array<*>}
+     * @type {Array<Array>|undefined}
      */
     this.ancestors = undefined
 
@@ -84,13 +85,14 @@ class Ruler extends Sincere {
    * If `definition` is an array, then every numeric member will be interpreted as
    * action code for following rule(s). Array may be nested.
    *
-   * @param {...*} args
+   * @param {...*} args any of {Array|Ruler|number|string}
    * @returns {Ruler}
    */
   add (...args) {
     return this.add_(args)
   }
 
+  /** @private */
   add_ (definition, action) {
     switch (typeof definition) {
       case 'number':
@@ -103,7 +105,7 @@ class Ruler extends Sincere {
         if (Array.isArray(definition)) {
           definition.forEach((item) => this.add_(item, action))
         } else if (definition instanceof Ruler) {
-          this.conc_(definition)
+          this.append_(definition)
         } else {
           this.assert(false, 'add', 'bad rule definition < %O >', definition)
         }
@@ -111,7 +113,8 @@ class Ruler extends Sincere {
     return this
   }
 
-  conc_ (other) {
+  /** @private */
+  append_ (other) {
     const src = other._tree.map(([r, p, a]) => [r ? r.source : r, p, a])
     const dst = this._tree
 
@@ -167,6 +170,12 @@ class Ruler extends Sincere {
     return c
   }
 
+  /**
+   * Create a new instance with new rules appended.
+   *
+   * @param {...*} args rule definitions
+   * @returns {Ruler}
+   */
   concat (...args) {
     const c = this.clone()
     return this.add.apply(c, args)
@@ -180,6 +189,12 @@ class Ruler extends Sincere {
     return this._tree.slice()
   }
 
+  /**
+   * @param {string} string
+   * @param {Array<number>} ancestors
+   * @returns {Array<Array>}
+   * @private
+   */
   match_ (string, ancestors) {
     const lowest = -1  //  Todo: think if we can finish looping earlier.
     const tree = this._tree
@@ -191,7 +206,6 @@ class Ruler extends Sincere {
 
       //  Ancestors list is always smaller than tree ;)
       for (let iA = 0, anc; (anc = ancestors[iA]) !== undefined; iA += 1) {
-        anc = anc[IDX]
         if (anc >= i) {   //  Ancestor index is always less than node index.
           ancestors.splice(iA, 1) && (iA -= 1)   //  Discard this ancestor.
           continue
@@ -203,8 +217,8 @@ class Ruler extends Sincere {
         }
         if (rule === GLOB) {
           //  In case of GLOB, check it's descendants immediately.
-          let next = this.match_(string, [tree[i].concat(i)])
-          next = next.filter(([rul]) => rul !== GLOB)
+          let next = this.match_(string, [i])
+          next = next.filter(([, j]) => tree[j][RUL] !== GLOB)
           res = res.concat(next)
           if (i === ROOT) continue
         }
@@ -212,13 +226,13 @@ class Ruler extends Sincere {
         if (act === DISCLAIM) {
           bDisclaim = true
         } else {
-          res.push([rule, par, act, i])
+          res.push([act, i])
         }
       } //  end for iA
     } //  end for i
 
     if (bDisclaim) {
-      res = res.filter(([, , a]) => a !== DO_SKIP)
+      res = res.filter(([a]) => a !== DO_SKIP)
     }
     return res
   }
@@ -231,27 +245,22 @@ class Ruler extends Sincere {
    * If a node of special action is matched, then only this node is returned.
    *
    * @param {string} string to match
-   * @returns {Array<Array>} array of [rule, parent, action, index]
+   * @returns {Array<Array>} array of [action, index]
    */
   match (string) {
     let ancestors = (this.ancestors || []).slice()
-    const globs = []
+    const globs = [], tree = this._tree
 
-    if (ancestors.length) {
-      //  Maintain all GLOBs after the ROOT.
-      ancestors.forEach(([r, p, a, i]) => {
-        if (i > ROOT && r === GLOB) globs.push([r, p, a, i])
+    ancestors = ancestors.length === 0
+      ? [NIL]
+      : ancestors.map(([a, i]) => {
+        if (i > ROOT && tree[i][RUL] === GLOB) globs.push([a, i])
+        return i
       })
-      ancestors.push([GLOB, NIL, CONTINUE, ROOT])
-    } else {
-      ancestors = [[0, 0, 0, NIL]]
-    }
 
     const res = this.match_(string, ancestors.slice()).concat(globs)
 
-    return /* spec[0] || spec[1] || spec[2] || */ res.sort((a, b) => {
-      return b[ACT] - a[ACT]
-    })
+    return res.sort(([a], [b]) => b - a)
   }
 }
 

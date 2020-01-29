@@ -29,10 +29,10 @@ const D1 = [
 let n = 0, t
 
 const match = (str, exp, anc = undefined) => {
-  if (anc) t = t.clone(anc.map(i => t.dump()[i].concat(i)))
+  if (anc) t = t.clone(anc.map(i => [t._tree[i][2], i]))
   const r = t.match(str, anc)
-  // console.log(`match '${str}': `, r)
-  const v = r.map(o => o[3])
+  // console.log(`match '${str}': `, t.ancestors, r)
+  const v = r.map(o => o[1])
   expect(v).to.eql(exp, anc === NIL ? str : str + ' @' + ++n)
   return v
 }
@@ -60,16 +60,16 @@ describe(ME, () => {
     match('skipnever', [])
     match('src', [4])
     match('abort', [8, 6, 5], [4])
-    match('skip.js', [2, 7, 6, 5], [4])
+    match('skip.js', [7, 6, 5], [4])
     match('skipnever.js', [7, 6, 5], [4])
   })
 
   it('should clone', () => {
     let t1 = t.clone().add(2, '/two')
     expect(t1.dump().length).to.eql(t.dump().length + 1)
-    match('skip.js', [2, 7, 6, 5], [4])
+    match('skip.js', [7, 6, 5], [4])
     t1 = t.clone()
-    expect(t1.ancestors[0][3]).to.eql(4)
+    expect(t1.ancestors[0][1]).to.eql(4)
   })
 
   it('should concat', () => {
