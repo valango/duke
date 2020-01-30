@@ -116,7 +116,7 @@ measure(task).then((r) => {
     '? - cnt:', '- directory '.padEnd(stats.dirLength, '-'))
   print('Total %i projects', walker.trees.length)
   if (r instanceof Error) {
-    print(color.redBright, '%s\nArgs:  %O', r.stack, r.args)
+    print(color.redBright, '%s\nArgs:  %O', r.stack, r.argument)
   }
   threads = threads ? 'in ' + args.length + ' threads' : ''
   print('Total %i ms (%i µs/item) on %i items',

@@ -1,7 +1,9 @@
 'use strict'
 
+const expectedOnOpendir = ['ELOOP', 'ENOENT', 'ENOTDIR', 'EPERM']
+
 const { opendirSync } = require('fs')
-const { join, resolve, sep } = require('path')
+const { resolve, sep } = require('path')
 const Sincere = require('sincere')
 const definitions = require('./definitions')
 const Ruler = require('./Ruler')
@@ -224,15 +226,15 @@ class Walker extends Sincere {
   //  Execute a function or handler, catching possible errors.
   //  Do default error handling.
   //
-  safely_ (closure, func, args, expected = []) {
+  safely_ (closure, func, argument, expected = []) {
     let r
 
     try {
-      r = func.call(this, args)
+      r = func.call(this, argument)
     } catch (error) {
       const onError = closure.onError || this.onError
 
-      if ((r = onError.call(this, error, args, expected)) === undefined) {
+      if ((r = onError.call(this, error, argument, expected)) === undefined) {
         if (expected.indexOf(error.code) >= 0) {
           this.registerFailure(error.message)
           return DO_SKIP
@@ -242,7 +244,7 @@ class Walker extends Sincere {
       if (r !== DO_SKIP) {
         const v = r instanceof Error ? r : error
         //  Remember the first error.
-        if (!closure.error) (closure.error = v).args = args
+        if (!closure.error) (closure.error = v).argument = argument
         r = DO_TERMINATE
       }
       this.nextTick = Date.now() + this.interval
@@ -327,14 +329,13 @@ class Walker extends Sincere {
 
     while (paths.length && !this.terminate) {
       const context = paths.shift(), length = paths.length
-      context.absDir = join(root, context.dir) + sep
+      context.absDir = context.dir ? root + sep + context.dir : root
 
-      directory = this.safely_(closure, opendirSync, join(root, context.dir),
-        ['ELOOP', 'ENOENT', 'ENOTDIR', 'EPERM'])
-
-      if (typeof directory !== 'object') {
+      if (typeof (directory = this.safely_(closure, opendirSync, context.absDir,
+        expectedOnOpendir)) !== 'object') {
         continue
       }
+      context.absDir += sep   //  Handlers get `absDir` `sep` terminated!
 
       action = this.safely_(closure, onBegin, context)
 
