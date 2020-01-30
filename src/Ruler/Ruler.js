@@ -2,7 +2,6 @@
 
 const { GLOB, NIL, ROOT, DISCLAIM, CONTINUE, DO_SKIP, actionName } =
         require('../definitions')
-const defaults = require('lodash.defaults')
 const parse = require('./parse')
 const Sincere = require('sincere')
 //  Tree node constants.
@@ -45,7 +44,7 @@ class Ruler extends Sincere {
         opts = undefined
       }
     }
-    opts = defaults({}, opts)
+    opts = { ...opts }
 
     super()
 

@@ -15,7 +15,6 @@ const SEPARATOR = /(?<!\\)\//     //  Matches '/' only if not escaped.
 const assert = require('assert').strict
 const brexIt = require('brace-expansion')
 const { GLOB } = require('../definitions')
-const defaults = require('lodash.defaults')
 
 const rxBraces = /(?<!\\){[^}]+(?<!\\)}/g   //  Detect non-escaped {...}
 
@@ -28,7 +27,7 @@ const rxBraces = /(?<!\\){[^}]+(?<!\\)}/g   //  Detect non-escaped {...}
  */
 exports = module.exports = (string, options = undefined) => {
   const check = (cond) => assert(cond, `invalid pattern '${string}'`)
-  const opts = defaults({}, options || {}, DEFAULTS), rules = []
+  const opts = { ...DEFAULTS, ...options }, rules = []
 
   let pattern = string.replace(/\\\s/g, '\\s').trimEnd()  //  Normalize spaces.
   let isExclusion = false, isDirectory = false

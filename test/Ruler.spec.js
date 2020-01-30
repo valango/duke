@@ -44,11 +44,11 @@ describe(ME, () => {
   })
 
   it('should construct', () => {
-    // console.log('D0', t.dump())
+    // console.log('D0', t.dump(true))
     expect(t.dump()).to.eql(D1)
     expect(t.ancestors).to.equal(undefined, 'ancestors')
     t = new Ruler({ defaultAction: 2, optimize: false }, '/a*')
-    expect(t.dump()).to.eql([[GLOB, NIL, CONTINUE], [/^a.*$/, NIL, 2]])
+    expect(t.dump()).to.eql([[GLOB, NIL, CONTINUE], [/^a.*$/, NIL, 2]], 'dump')
   })
 
   it('should throw on bad rule', () => {

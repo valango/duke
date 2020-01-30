@@ -1,6 +1,5 @@
 'use strict'
 
-const defaults = require('lodash.defaults')
 const { opendirSync } = require('fs')
 const { join, resolve, sep } = require('path')
 const Sincere = require('sincere')
@@ -31,7 +30,7 @@ const getType = (entry) => {
   }
 }
 
-let count = 0
+let count = 0     //  Used by tick() plugin.
 
 /**
  *  Walks a directory tree according to rules.
@@ -42,7 +41,7 @@ class Walker extends Sincere {
    * @param {*=} sharedData - may be used by derived classes.
    */
   constructor (options, sharedData = undefined) {
-    let o = defaults(undefined, options, { talk: () => undefined })
+    let o = { talk: () => undefined, ...options }
     super()
     /**
      * Shared (not copied) data space - may be used by derived classes.
@@ -81,7 +80,7 @@ class Walker extends Sincere {
     this.terminate = false
     /**
      * Function to be called every `this.interval` while walking.
-     * @type {function()}
+     * @type {function(number)}
      */
     this.tick = this.options.tick || (() => undefined)
     /**
@@ -308,7 +307,7 @@ class Walker extends Sincere {
     if (root && typeof root === 'object' && options === undefined) {
       (closure = root) && (root = undefined)
     }
-    closure = defaults({}, closure, this.options)
+    closure = { ...this.options, ...closure }
     closure.root = root = resolve(root || '.')
 
     const paths = []

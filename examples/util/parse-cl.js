@@ -3,7 +3,6 @@
 const DEF_ARG = '.'
 const DEF_OPTS = { help: ['h', 'display help information'] }
 
-const defaults = require('lodash.defaults')
 const dump = require('./dump')
 const expand = require('./expand')
 const print = require('./print')
@@ -16,7 +15,7 @@ const print = require('./print')
 module.exports = (
   availableOptions, help, doExpand = false, input = process.argv
 ) => {
-  const opts = defaults({}, availableOptions, DEF_OPTS)
+  const opts = {...DEF_OPTS, ...availableOptions}
   const errors = [], options = {}, cwd = process.cwd()
   let args = [], name = input[1]
 
