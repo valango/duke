@@ -1,6 +1,6 @@
 'use strict'
 
-const { GLOB, NIL, ROOT, DISCLAIM, CONTINUE, DO_SKIP } =
+const { GLOB, NIL, ROOT, DISCLAIM, CONTINUE, DO_SKIP, actionName } =
         require('../definitions')
 const defaults = require('lodash.defaults')
 const parse = require('./parse')
@@ -183,10 +183,14 @@ class Ruler extends Sincere {
 
   /**
    * Copy the internal rule tree - intended for testing / debugging.
+   * @param {boolean=} forDiagnostics
    * @returns {Array<Array<*>>}
    */
-  dump () {
-    return this._tree.slice()
+  dump (forDiagnostics = false) {
+    return forDiagnostics
+      ? this._tree.map(([r, p, a], i) =>
+        [(i + '').padStart(3), r, p, actionName(a)])
+      : this._tree.slice()
   }
 
   /**
