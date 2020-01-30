@@ -77,4 +77,10 @@ describe(ME, () => {
     // console.log('D1', t1.dump())
     expect(t1.dump()).to.eql(t.dump(), 'dumps')
   })
+
+  it('should dump diagnostics', () => {
+    expect(t.dump(true).ancestors).to.eql(undefined)
+    match('skip.js', [7, 6, 5], [4])
+    expect(t.dump(true).ancestors).to.eql([4])
+  })
 })

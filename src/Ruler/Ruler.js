@@ -186,10 +186,13 @@ class Ruler extends Sincere {
    * @returns {Array<Array<*>>}
    */
   dump (forDiagnostics = false) {
-    return forDiagnostics
-      ? this._tree.map(([r, p, a], i) =>
-        [(i + '').padStart(3), r, p, actionName(a)])
-      : this._tree.slice()
+    if (!forDiagnostics) return this._tree.slice()
+
+    const tree = this._tree.map(([r, p, a], i) =>
+      [(i + '').padStart(3), r, p, actionName(a)])
+    let a = this.ancestors
+    if (Array.isArray(a)) a = a.map(([, i]) => i)
+    return { tree, ancestors: a }
   }
 
   /**
