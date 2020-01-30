@@ -62,11 +62,17 @@ class Ruler extends Sincere {
     this.ancestors = undefined
 
     /**
-     * Action to be bound to new rule - used and possibly mutated by add().
+     * Action code that will override DISCLAIM value.
      * @type {number}
      */
-    this.defaultAction = opts.defaultAction === undefined
-      ? 0 : opts.defaultAction
+    this.defaultAction = opts.defaultAction || DISCLAIM
+
+    /**
+     * Action to be bound to next rule - used and possibly mutated by add().
+     * @type {number}
+     */
+    this.nextRuleAction = opts.nextRuleAction === undefined
+      ? 0 : opts.nextRuleAction
 
     /**
      * Options for string parser.
@@ -95,7 +101,7 @@ class Ruler extends Sincere {
   add_ (definition, action) {
     switch (typeof definition) {
       case 'number':
-        this.defaultAction = definition
+        this.nextRuleAction = definition
         break
       case 'string':
         this.addPath_(definition, action)
@@ -141,7 +147,7 @@ class Ruler extends Sincere {
 
     this.assert(rules.length, locus, 'no rules')
     let action = flags.isExclusion ? DISCLAIM : forAction
-    if (action === undefined) action = this.defaultAction
+    if (action === undefined) action = this.nextRuleAction
     this.assert(action > CONTINUE, locus, 'illegal action value \'%i\'', action)
 
     const i = rules.reduce(addNode_, [NIL, this._tree])[0]
@@ -164,7 +170,8 @@ class Ruler extends Sincere {
 
     c.ancestors = ancestors ? ancestors.slice() : (a && a.slice())
     c.defaultAction = this.defaultAction
-    c._tree = this.dump()
+    c.nextRuleAction = this.nextRuleAction
+    c._tree = this._tree.slice()
 
     return c
   }
@@ -181,18 +188,34 @@ class Ruler extends Sincere {
   }
 
   /**
-   * Copy the internal rule tree - intended for testing / debugging.
-   * @param {boolean=} forDiagnostics
-   * @returns {Array<Array<*>>}
+   * Create a diagnostic image.
+   * @param {boolean|string|Array<string>} mask
+   *   - undefined: return prettified object dump;
+   *   - string|Array: return prettified dump of matching members only;
+   *   - false: return raw object dump;
+   *   - true: return just a copy of rule tree;
+   * @returns {Array|Object}
    */
-  dump (forDiagnostics = false) {
-    if (!forDiagnostics) return this._tree.slice()
-
+  dump (mask = undefined) {
+    if (mask === true) return this._tree.slice()
+    const f = mask === false ? (v) => v : actionName
     const tree = this._tree.map(([r, p, a], i) =>
-      [(i + '').padStart(3), r, p, actionName(a)])
+      [mask === false ? i : (i + '').padStart(3), r, p, f(a)])
     let a = this.ancestors
     if (Array.isArray(a)) a = a.map(([, i]) => i)
-    return { tree, ancestors: a }
+    a = {
+      ancestors: a,
+      defaultAction: f(this.defaultAction),
+      id: this.sincereId,
+      nextRuleAction: f(this.nextRuleAction),
+      options: { ...this.options },
+      tree
+    }
+    if (!mask) return a
+
+    const m = typeof mask === 'string' ? mask.split(/\W+/g) : mask, r = {}
+    Object.keys(a).forEach((k) => m.indexOf(k) < 0 || (r[k] = a[k]))
+    return r
   }
 
   /**

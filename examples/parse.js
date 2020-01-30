@@ -22,6 +22,6 @@ args.forEach((s) => {
 })
 
 print('DEFS:\n', defs, '\nTREE:')
-const tree = new Ruler(defs).dump()
+const tree = new Ruler(defs).dump(true)
 
 tree.forEach((node, i) => print('%s: %O', (i + '').padStart(2), node))
