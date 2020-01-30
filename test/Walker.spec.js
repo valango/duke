@@ -3,7 +3,6 @@ const ME = 'Walker'
 process.env.NODE_MODULES = 'test'
 
 const { expect } = require('chai')
-const _ = require('lodash')
 const { join } = require('path')
 const
   {
@@ -18,7 +17,7 @@ const projectRules = [
   0, 'pa*.json', 1, '*.js'
 ]
 
-let w, context, count, told, acts, special
+let w, told, acts
 
 const options = {
   defaultRuler: defaultRules,
@@ -51,12 +50,9 @@ const onEntry = function (d) {
 
 describe(ME, () => {
   beforeEach(() => {
-    special = undefined
     acts = {}
     told = []
     w = new Walker(options)
-    context = undefined
-    count = 0
   })
 
   it('should construct w defaults', () => {

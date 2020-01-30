@@ -31,6 +31,8 @@ const getType = (entry) => {
   }
 }
 
+let count = 0
+
 /**
  *  Walks a directory tree according to rules.
  */
@@ -125,12 +127,17 @@ class Walker extends Sincere {
   onBegin (ctx) {
     const { absDir, detect, locals } = ctx
 
+    if (!locals.ruler) {
+      //  istanbul ignore next
+      locals.ruler = this.defaultRuler.clone()
+    }
     //  Check if already done - may happen when multi-threading.
     if (this.getCurrent(absDir)) return DO_SKIP
 
     if ((locals.master = this.getMaster(absDir))) {
       if (!this.options.nested) {
         locals.current = locals.master
+        if (!locals.ruler) throw Error('NYPE ' + absDir)
         return
       }
     }
@@ -141,11 +148,6 @@ class Walker extends Sincere {
       this.talk('BEGIN:', ''.padStart(ctx.depth) + ctx.dir, ctx.absDir)
       locals.master = undefined
       this.trees.push(locals.current)
-    }
-
-    if (!locals.ruler) {
-      //  istanbul ignore next
-      locals.ruler = this.defaultRuler.clone()
     }
     return res
   }
@@ -164,6 +166,7 @@ class Walker extends Sincere {
   }
 
   onEntry (ctx) {
+    count += 1
     const { locals, name, type } = ctx
 
     const matches = locals.ruler.match(name)
@@ -211,6 +214,14 @@ class Walker extends Sincere {
     if (comment) msg += '\n  ' + comment
     this.failures.push(msg)
     return this
+  }
+
+  static getCount () {
+    return count
+  }
+
+  static reset () {
+    count = 0
   }
 
   //  Execute a function or handler, catching possible errors.
@@ -320,7 +331,7 @@ class Walker extends Sincere {
       const absDir = join(root, dir), length = paths.length
 
       directory = this.safely_(closure, opendirSync, join(root, dir),
-        ['ENOENT', 'ENOTDIR', 'EPERM'])
+        ['ELOOP', 'ENOENT', 'ENOTDIR', 'EPERM'])
 
       if (typeof directory !== 'object') {
         continue
@@ -332,7 +343,7 @@ class Walker extends Sincere {
       if (!(action >= DO_SKIP)) {
         if ((t = Date.now()) > this.nextTick) {
           this.nextTick = Infinity
-          this.tick()
+          this.tick(count)
           this.nextTick = t + this.interval
         }
 
