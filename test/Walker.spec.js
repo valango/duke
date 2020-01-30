@@ -3,7 +3,7 @@ const ME = 'Walker'
 process.env.NODE_MODULES = 'test'
 
 const { expect } = require('chai')
-const { join } = require('path')
+const { sep } = require('path')
 const
   {
     DO_ABORT, DO_SKIP,
@@ -21,13 +21,14 @@ let w, told, acts
 
 const options = {
   defaultRuler: defaultRules,
-  detect: function ({ absDir, locals }) {
-    let v = loadFile(join(absDir, 'package.json'))
+  detect: function (context) {
+    const { absDir } = context
+    let v = loadFile(absDir + sep + 'package.json')
 
     if (v) {
       v = JSON.parse(v.toString())
-      locals.ruler = new Ruler(projectRules)
-      locals.current = { absDir, name: v.name || '?' }
+      context.ruler = new Ruler(projectRules)
+      context.current = { absDir, name: v.name || '?' }
     }
   },
   onBegin: function (ctx) {
@@ -127,10 +128,10 @@ describe(ME, () => {
       w.defaultRuler.add([0, '/pack*.json', 1, '*.js'])
       w.walkSync({ onEntry })
       expect(w.failures).to.eql([], 'failures')
-      expect(acts['ACTION(0)']).to.equal(3, 'cnt')
-      expect(acts['ACTION(1)']).to.gte(15)
-      // console.log('TREES', w.trees)
-      expect(w.trees.length).to.equal(2)
+      expect(acts['ACTION(0)']).to.equal(3, 'ACTION(0)')
+      expect(acts['ACTION(1)']).to.gte(15, 'ACTION(1)')
+      // console.log('w.trees', w.trees)
+      expect(w.trees.length).to.equal(2, 'trees.length')
     })
   })
 })

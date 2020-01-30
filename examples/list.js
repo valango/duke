@@ -43,11 +43,10 @@ const talk = options.verbose
 
 class ProWalker extends Walker {
   /**
-   * @param {string} absDir
-   * @param {string} dir
-   * @param {Object} locals
+   * @param {Object} context
    */
-  detect ({ absDir, dir, locals }) {
+  detect (context) {
+    const { absDir, dir } = context
     let v = loadFile(join(absDir, 'package.json'))
 
     if (v) {
@@ -55,31 +54,31 @@ class ProWalker extends Walker {
       const name = v.name || '', funny = !name
       this.data.nameLength = Math.max(name.length, this.data.nameLength)
       talk('PROJECT', absDir, dir)
-      locals.current = { absDir, count: 0, funny, name, promo: '' }
-      if (locals.master) {
-        locals.master = undefined
-        locals.current.promo = 'N'
+      context.ruler = projectRules
+      context.current = { absDir, count: 0, funny, name, promo: '' }
+      if (context.master) {
+        context.master = undefined
+        context.current.promo = 'N'
       }
-      locals.ruler = projectRules
-      locals.ancestors = undefined
     }
   }
 
-  onEntry ({ dir, locals, name, type }) {
-    const action = super.onEntry({ dir, locals, name, type })
+  onEntry (context) {
+    const action = super.onEntry(context)
+    const { current, dir, name, type } = context
 
     switch (action) {
       case DO_COUNT:
         if (type !== T_FILE) break
         talk('  DO_COUNT: %s @', name.padEnd(16), dir || '.')
-        locals.current.count += 1
+        current.count += 1
         break
       case DO_PROMOTE:
         if (type !== T_DIR) break
-        locals.current.promo = locals.current.promo || 'T'
+        current.promo = current.promo || 'T'
         return DO_SKIP
     }
-    ++this.data.total
+    this.data.total += 1
     return action
   }
 }

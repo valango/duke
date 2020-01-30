@@ -126,41 +126,36 @@ class Walker extends Sincere {
   }
 
   onBegin (ctx) {
-    const { absDir, detect, locals } = ctx
+    const { absDir, detect } = ctx
 
-    if (!locals.ruler) {
-      //  istanbul ignore next
-      locals.ruler = this.defaultRuler.clone()
-    }
     //  Check if already done - may happen when multi-threading.
     if (this.getCurrent(absDir)) {
       return DO_SKIP
     }
 
-    if ((locals.master = this.getMaster(absDir))) {
+    if ((ctx.master = this.getMaster(absDir))) {
       if (!this.options.nested) {
-        locals.current = locals.master
-        if (!locals.ruler) throw Error('NYPE ' + absDir)
+        ctx.current = ctx.master
         return
       }
     }
 
-    const res = detect.call(this, ctx)
+    const res = detect.call(this, ctx)  //  May set ctx.current
 
-    if (locals.current) {
+    if (ctx.current) {
       this.talk('BEGIN:', ''.padStart(ctx.depth) + ctx.dir, ctx.absDir)
-      locals.master = undefined
-      this.trees.push(locals.current)
+      ctx.master = undefined
+      this.trees.push(ctx.current)
+    } else {
+      ctx.current = ctx.master
     }
     return res
   }
 
   //  NB: here we have ctx.action too.
   onEnd (ctx) {
-    const { locals } = ctx
-
-    if (locals.current) {
-      if (!locals.master) {
+    if (ctx.current) {
+      if (!ctx.master) {
         this.talk('END', ''.padStart(ctx.depth) + ctx.dir)
         return 0
       }
@@ -170,9 +165,9 @@ class Walker extends Sincere {
 
   onEntry (ctx) {
     count += 1
-    const { locals, name, type } = ctx
+    const { name, ruler, type } = ctx
 
-    const matches = locals.ruler.match(name)
+    const matches = ruler.match(name)
     const action = matches.length ? matches[0][0] : DISCLAIM
 
     switch (action) {
@@ -180,7 +175,7 @@ class Walker extends Sincere {
       case DISCLAIM:
         //  Forward our rule parsing context to subdirectory.
         if (type === T_DIR) {
-          return { ruler: locals.ruler.clone(matches) }
+          return { ruler: ruler.clone(matches) }
         }
         break
       case DO_ABORT:
@@ -314,7 +309,7 @@ class Walker extends Sincere {
       (closure = root) && (root = undefined)
     }
     closure = defaults({}, closure, this.options)
-    root = resolve(root || '.')
+    closure.root = root = resolve(root || '.')
 
     const paths = []
     const onBegin = closure.onBegin || this.onBegin
@@ -322,26 +317,27 @@ class Walker extends Sincere {
     const onEntry = closure.onEntry || this.onEntry
     let action, directory, entry, t
 
-    closure.root = root
+    //  Put initial context to FIFO.
     paths.push({
-      //  eslint-disable-next-line
-      depth: 0, dir: '', detect: closure.detect || this.detect,
-      locals: closure.locals || {}
+      /* eslint-disable */
+      depth: 0, detect: closure.detect || this.detect, dir: '',
+      locals: closure.locals || {},
+      root, ruler: this.defaultRuler
+      /* eslint-enable */
     })
 
     while (paths.length && !this.terminate) {
-      const { depth, detect, dir, locals } = paths.shift()
-      const absDir = join(root, dir) + sep, length = paths.length
+      const context = paths.shift(), length = paths.length
+      context.absDir = join(root, context.dir) + sep
 
-      directory = this.safely_(closure, opendirSync, join(root, dir),
+      directory = this.safely_(closure, opendirSync, join(root, context.dir),
         ['ELOOP', 'ENOENT', 'ENOTDIR', 'EPERM'])
 
       if (typeof directory !== 'object') {
         continue
       }
 
-      action = this.safely_(closure, onBegin,
-        { absDir, depth, detect, dir, locals, root })
+      action = this.safely_(closure, onBegin, context)
 
       if (!(action >= DO_SKIP)) {
         if ((t = Date.now()) > this.nextTick) {
@@ -351,20 +347,22 @@ class Walker extends Sincere {
         }
 
         while ((entry = directory.readSync())) {
-          const name = entry.name, type = getType(entry)
+          context.name = entry.name
+          context.type = getType(entry)
 
-          action = this.safely_(closure, onEntry,
-            { absDir, depth, detect, dir, locals, name, root, type })
+          action = this.safely_(closure, onEntry, context)
 
           if (action === DO_ABORT || action === DO_TERMINATE) {
             paths.splice(length, length)
             break
-          } else if (type === T_DIR && action !== DO_SKIP) {
+          } else if (context.type === T_DIR && action !== DO_SKIP) {
             paths.push({
-              depth: depth + 1,
-              detect,
-              dir: join(dir, name),
-              locals: typeof action === 'object' ? action : {}
+              ...context,
+              current: undefined,
+              depth: context.depth + 1,
+              dir: context.dir + sep + context.name,
+              locals: typeof action === 'object' ? action : {},
+              master: undefined
             })
           }
         }         //  end of while (entry...)
@@ -373,10 +371,10 @@ class Walker extends Sincere {
       }
       directory.closeSync()
 
-      action = this.safely_(closure, onEnd,
-        { absDir, action, depth, detect, dir, locals, root })
+      context.action = action   //  Special to this handler only.
+      action = this.safely_(closure, onEnd, context)
 
-      if (action === DO_ABORT) {
+      if (action >= DO_ABORT) {
         break
       }
     }       //  end while (paths...)
