@@ -5,6 +5,9 @@
 Rule-based file directory walker - ambitious 
 alternative to globber-based directory walkers.
 
+**WARNING:** This is _**development** branch_ README and
+it may be lagging real bad behind actual codebase changes.
+
 Imagine, you want to count all directory entries anywhere below given directory,
 by entry types and get report like this:
 ```
