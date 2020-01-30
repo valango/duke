@@ -10,7 +10,7 @@ const { Ruler } = require('..')
 
 const T1 = [
   DO_SKIP, '/skp-dir', 'skip*', '!skipnever*',
-  0, 'src/**/*', 1, 'src/**/*.js',
+  1, 'src/**/*', 2, 'src/**/*.js',
   DO_ABORT, 'src/**/abort'
 ]
 
@@ -21,8 +21,8 @@ const D1 = [
   [/^skipnever/, 0, DISCLAIM],
   [/^src$/, 0, CONTINUE],         // 4
   [null, 4, CONTINUE],
-  [/./, 5, 0],                    // 6
-  [/\.js$/, 5, 1],
+  [/./, 5, 1],                    // 6
+  [/\.js$/, 5, 2],
   [/^abort$/, 5, DO_ABORT]        // 8
 ]
 
@@ -47,7 +47,7 @@ const match = (str, exp, anc = undefined) => {
 
 describe(ME, () => {
   beforeEach(() => {
-    t = new Ruler(0, T1)
+    t = new Ruler(T1)
     n = 0
   })
 
@@ -64,6 +64,7 @@ describe(ME, () => {
 
   it('should throw on bad rule', () => {
     expect(() => t.add({})).to.throw(AssertionError, 'bad rule definition')
+    expect(() => t.add('x', 0, 'y')).to.throw(AssertionError, /reserved/)
   })
 
   it('should match', () => {

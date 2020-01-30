@@ -23,8 +23,8 @@ const _ts = {
   [T_SYMLINK]: 'symLink'
 }
 
-const CONTINUE = -2
-const DISCLAIM = -1
+const CONTINUE = -1
+const DISCLAIM = 0
 const DO_SKIP = Number.MAX_SAFE_INTEGER - 2
 const DO_ABORT = Number.MAX_SAFE_INTEGER - 1
 const DO_TERMINATE = Number.MAX_SAFE_INTEGER
@@ -46,7 +46,7 @@ exports = module.exports = {
   /** @member {number} ROOT  index of root glob rule node. */
   ROOT: 0,
 
-  //  Action codes. Negative values are reserved.
+  //  Action codes. DISCLAIM can not be used in rule definitions!
   /** @member {number} CONTINUE  reserved for Ruler: partial match. */
   CONTINUE,
   /** @member {number} DISCLAIM  reserved for Ruler: no match or discard any. */

@@ -14,7 +14,7 @@ const defaultRules = ['node_modules', '.*']
 const projectRules = [
   DO_ABORT, '*.html',
   DO_SKIP, '/node_modules', '.*',
-  0, 'pa*.json', 1, '*.js'
+  1, 'pa*.json', 2, '*.js'
 ]
 
 let w, told, acts
@@ -62,12 +62,12 @@ describe(ME, () => {
   })
 
   it('should walk synchronously', () => {
-    w.defaultRuler.add([0, '/pack*.json', 1, '*.js'])
+    w.defaultRuler.add([1, '/pack*.json', 1, '*.js'])
     w.walkSync({ onEntry })
     // console.log('TREES', w.trees)
     expect(w.failures).to.eql([], 'failures')
-    expect(acts['ACTION(0)']).to.gte(2, 'cnt')
-    expect(acts['ACTION(1)']).to.gte(15)
+    expect(acts['ACTION(1)']).to.gte(2, 'cnt')
+    expect(acts['ACTION(2)']).to.gte(15)
     expect(w.trees.length).to.equal(1, '#1')
     w.walkSync({ onEntry })
     expect(w.trees.length).to.equal(1, '#2')
@@ -125,11 +125,11 @@ describe(ME, () => {
     before(() => (options.nested = true))
 
     it('should process rules', () => {
-      w.defaultRuler.add([0, '/pack*.json', 1, '*.js'])
+      w.defaultRuler.add([1, '/pack*.json', 2, '*.js'])
       w.walkSync({ onEntry })
       expect(w.failures).to.eql([], 'failures')
-      expect(acts['ACTION(0)']).to.equal(3, 'ACTION(0)')
-      expect(acts['ACTION(1)']).to.gte(15, 'ACTION(1)')
+      expect(acts['ACTION(1)']).to.equal(3, 'ACTION(0)')
+      expect(acts['ACTION(2)']).to.gte(15, 'ACTION(1)')
       // console.log('w.trees', w.trees)
       expect(w.trees.length).to.equal(2, 'trees.length')
     })
