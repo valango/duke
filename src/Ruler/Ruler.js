@@ -247,7 +247,7 @@ class Ruler extends Sincere {
         if (rule === GLOB) {
           //  In case of GLOB, check it's descendants immediately.
           let next = this.match_(string, [i])
-          next = next.filter(([, j]) => tree[j][RUL] !== GLOB)
+          next = next.filter(([, j]) => j === NIL || tree[j][RUL] !== GLOB)
           res = res.concat(next)
           if (i === ROOT) continue
         }
@@ -262,6 +262,9 @@ class Ruler extends Sincere {
 
     if (bDisclaim) {
       res = res.filter(([a]) => a !== DO_SKIP)
+    }
+    if (res.length === 0) {
+      res.push([this.defaultAction || DISCLAIM, NIL])
     }
     return res
   }
@@ -282,10 +285,12 @@ class Ruler extends Sincere {
 
     ancestors = ancestors.length === 0
       ? [NIL]
-      : ancestors.map(([a, i]) => {
-        if (i > ROOT && tree[i][RUL] === GLOB) globs.push([a, i])
-        return i
-      })
+      : ancestors
+        .filter(([, i]) => i !== NIL)
+        .map(([a, i]) => {
+          if (i > ROOT && tree[i][RUL] === GLOB) globs.push([a, i])
+          return i
+        })
 
     const res = this.match_(string, ancestors.slice()).concat(globs)
 

@@ -169,7 +169,7 @@ class Walker extends Sincere {
     const { name, ruler, type } = ctx
 
     const matches = ruler.match(name)
-    const action = matches.length ? matches[0][0] : DISCLAIM
+    const action = matches[0][0]
 
     switch (action) {
       case CONTINUE:

@@ -29,9 +29,17 @@ const D1 = [
 let n = 0, t
 
 const match = (str, exp, anc = undefined) => {
-  if (anc) t = t.clone(anc.map(i => [t._tree[i][2], i]))
+  if (anc) {
+    if (anc === -1) {
+      anc = [DISCLAIM, -1]
+    } else {
+      anc = anc.map(i => [t._tree[i][2], i])
+    }
+    // console.log(str, 'exp', exp, 'anc', anc)
+    t = t.clone(anc)
+  }
   const r = t.match(str, anc)
-  // console.log(`match '${str}': `, t.ancestors, r)
+  // if (anc) console.log(`match '${str}': `, r)
   const v = r.map(o => o[1])
   expect(v).to.eql(exp, anc === NIL ? str : str + ' @' + ++n)
   return v
@@ -60,11 +68,13 @@ describe(ME, () => {
 
   it('should match', () => {
     match('skipa', [2])
-    match('skipnever', [])
+    match('skipnever', [-1])
     match('src', [4])
     match('abort', [8, 6, 5], [4])
     match('skip.js', [7, 6, 5], [4])
     match('skipnever.js', [7, 6, 5], [4])
+    t = new Ruler()
+    match('skipa', [-1])
   })
 
   it('should clone', () => {
@@ -76,14 +86,26 @@ describe(ME, () => {
   })
 
   it('should concat', () => {
-    const t1 = t.concat(t, t)
-    // console.log('D1', t1.dump())
+    let t1 = t.concat(t, t)
     expect(t1.dump('tree')).to.eql(t.dump('tree'), 'dump.tree')
+    t1 = t.concat(new Ruler(10, 'x'))
+    expect(t1.dump(true)[9]).to.eql([/^x$/, 0, 10], 'tree conact')
   })
 
   it('should dump diagnostics', () => {
     expect(t.dump().ancestors).to.eql(undefined)
     match('skip.js', [7, 6, 5], [4])
     expect(t.dump().ancestors).to.eql([4])
+  })
+
+  it('should use defaultAction', () => {
+    expect(t.match('skipnever')).to.eql([[DISCLAIM, NIL]], 'skipnever')
+    expect(t.match('strange')).to.eql([[DISCLAIM, NIL]], 'strange')
+    t.defaultAction = 0
+    expect(t.match('skipnever')).to.eql([[DISCLAIM, NIL]], 'skipnever')
+    expect(t.match('strange')).to.eql([[DISCLAIM, NIL]], 'strange')
+    t.defaultAction = 1
+    expect(t.match('skipnever')).to.eql([[1, NIL]], 'skipnever')
+    expect(t.match('strange')).to.eql([[1, NIL]], 'strange')
   })
 })
