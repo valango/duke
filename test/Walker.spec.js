@@ -63,13 +63,13 @@ describe(ME, () => {
   it('should walk synchronously', () => {
     w.defaultRuler.add([0, '/pack*.json', 1, '*.js'])
     w.walkSync({ onEntry })
+    // console.log('TREES', w.trees)
     expect(w.failures).to.eql([], 'failures')
     expect(acts['ACTION(0)']).to.gte(2, 'cnt')
     expect(acts['ACTION(1)']).to.gte(15)
-    // console.log('TREES', w.trees)
-    expect(w.trees.length).to.equal(1)
+    expect(w.trees.length).to.equal(1, '#1')
     w.walkSync({ onEntry })
-    expect(w.trees.length).to.equal(1)
+    expect(w.trees.length).to.equal(1, '#2')
   })
 
   it('should register failure', () => {

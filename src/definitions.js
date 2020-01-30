@@ -71,7 +71,7 @@ exports = module.exports = {
    */
   actionName: (action) => {
     if (typeof action !== 'number') {
-      return action
+      return action + ''
     }
     const i = _aCodes.indexOf(action)
     return i < 0 ? `ACTION(${action})` : _aNames[i]

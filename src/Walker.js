@@ -2,7 +2,7 @@
 
 const defaults = require('lodash.defaults')
 const { opendirSync } = require('fs')
-const { join, resolve } = require('path')
+const { join, resolve, sep } = require('path')
 const Sincere = require('sincere')
 const definitions = require('./definitions')
 const Ruler = require('./Ruler')
@@ -121,7 +121,8 @@ class Walker extends Sincere {
    */
   getMaster (dir) {
     return this.trees.find(
-      (p) => dir.indexOf(p.absDir) === 0 && dir !== p.absDir)
+      (p) => dir.indexOf(p.absDir) === 0 && dir !== p.absDir
+    )
   }
 
   onBegin (ctx) {
@@ -132,7 +133,9 @@ class Walker extends Sincere {
       locals.ruler = this.defaultRuler.clone()
     }
     //  Check if already done - may happen when multi-threading.
-    if (this.getCurrent(absDir)) return DO_SKIP
+    if (this.getCurrent(absDir)) {
+      return DO_SKIP
+    }
 
     if ((locals.master = this.getMaster(absDir))) {
       if (!this.options.nested) {
@@ -328,7 +331,7 @@ class Walker extends Sincere {
 
     while (paths.length && !this.terminate) {
       const { depth, detect, dir, locals } = paths.shift()
-      const absDir = join(root, dir), length = paths.length
+      const absDir = join(root, dir) + sep, length = paths.length
 
       directory = this.safely_(closure, opendirSync, join(root, dir),
         ['ELOOP', 'ENOENT', 'ENOTDIR', 'EPERM'])
