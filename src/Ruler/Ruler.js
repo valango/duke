@@ -1,6 +1,6 @@
 'use strict'
 
-const { GLOB, NIL, ROOT, DISCLAIM, CONTINUE, DO_SKIP, actionName } =
+const { GLOB, NIL, ROOT, DISCLAIM, CONTINUE, DO_SKIP } =
         require('../definitions')
 const parse = require('./parse')
 const Sincere = require('sincere')
@@ -189,37 +189,6 @@ class Ruler extends Sincere {
   }
 
   /**
-   * Create a diagnostic image.
-   * @param {boolean|string|Array<string>} mask
-   *   - undefined: return prettified object dump;
-   *   - string|Array: return prettified dump of matching members only;
-   *   - false: return raw object dump;
-   *   - true: return just a copy of rule tree;
-   * @returns {Array|Object}
-   */
-  dump (mask = undefined) {
-    if (mask === true) return this._tree.slice()
-    const f = mask === false ? (v) => v : actionName
-    const tree = this._tree.map(([r, p, a], i) =>
-      [mask === false ? i : (i + '').padStart(3), r, p, f(a)])
-    let a = this.ancestors
-    if (Array.isArray(a)) a = a.map(([, i]) => i)
-    a = {
-      ancestors: a,
-      defaultAction: f(this.defaultAction),
-      id: this.sincereId,
-      nextRuleAction: f(this.nextRuleAction),
-      options: { ...this.options },
-      tree
-    }
-    if (!mask) return a
-
-    const m = typeof mask === 'string' ? mask.split(/\W+/g) : mask, r = {}
-    Object.keys(a).forEach((k) => m.indexOf(k) < 0 || (r[k] = a[k]))
-    return r
-  }
-
-  /**
    * @param {string} string
    * @param {Array<number>} ancestors
    * @returns {Array<Array>}
@@ -296,6 +265,10 @@ class Ruler extends Sincere {
     const res = this.match_(string, ancestors.slice()).concat(globs)
 
     return res.sort(([a], [b]) => b - a)
+  }
+
+  get treeCopy () {
+    return this._tree.slice()
   }
 }
 

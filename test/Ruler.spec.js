@@ -52,14 +52,14 @@ describe(ME, () => {
   })
 
   it('should construct', () => {
-    // console.log('DR', t.dump())
-    expect(t.dump(true)).to.eql(D1, 'dump(true)')
+    process.stdout.write(t.dump(true))
+    expect(t.treeCopy).to.eql(D1, 'treeCopy')
     expect(t.defaultAction).to.eql(DISCLAIM, 'defaultAction')
     expect(t.ancestors).to.equal(undefined, 'ancestors')
     t = new Ruler({ defaultAction: 6, nextRuleAction: 2, optimize: false },
       '/a*')
-    expect(t.dump(true)).to
-      .eql([[GLOB, NIL, CONTINUE], [/^a.*$/, NIL, 2]], 'mod.dump(true)')
+    expect(t.treeCopy).to
+      .eql([[GLOB, NIL, CONTINUE], [/^a.*$/, NIL, 2]], 'mod.treeCopy')
   })
 
   it('should throw on bad rule', () => {
@@ -80,7 +80,7 @@ describe(ME, () => {
 
   it('should clone', () => {
     let t1 = t.clone().add(2, '/two')
-    expect(t1.dump(true).length).to.eql(t.dump(true).length + 1, 'length')
+    expect(t1.treeCopy.length).to.eql(t.treeCopy.length + 1, 'length')
     match('skip.js', [7, 6, 5], [4])
     t1 = t.clone()
     expect(t1.ancestors[0][1]).to.eql(4)
@@ -88,12 +88,12 @@ describe(ME, () => {
 
   it('should concat', () => {
     let t1 = t.concat(t, t)
-    expect(t1.dump('tree')).to.eql(t.dump('tree'), 'dump.tree')
+    expect(t1.treeCopy).to.eql(t.treeCopy, 'treeCopy')
     t1 = t.concat(new Ruler(10, 'x'))
-    expect(t1.dump(true)[9]).to.eql([/^x$/, 0, 10], 'tree conact')
+    expect(t1.treeCopy[9]).to.eql([/^x$/, 0, 10], 'tree concat')
   })
 
-  it('should dump diagnostics', () => {
+  xit('should dump diagnostics', () => {
     expect(t.dump().ancestors).to.eql(undefined)
     match('skip.js', [7, 6, 5], [4])
     expect(t.dump().ancestors).to.eql([4])

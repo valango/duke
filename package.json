@@ -62,7 +62,9 @@
   "nyc": {
     "all": true,
     "check-coverage": true,
-    "exclude": [],
+    "exclude": [
+      "src/Ruler/index.js"
+    ],
     "include": [
       "src/**/*.js"
     ],
