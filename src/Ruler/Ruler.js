@@ -68,6 +68,12 @@ class Ruler extends Sincere {
     this.defaultAction = opts.defaultAction || DISCLAIM
 
     /**
+     * Most recent result returned by match() method - for debugging.
+     * @type {Array|undefined}
+     */
+    this.lastMatch = undefined
+
+    /**
      * Action to be bound to next rule - used and possibly mutated by add().
      * @type {number}
      */
@@ -250,21 +256,19 @@ class Ruler extends Sincere {
    * @returns {Array<Array>} array of [action, index]
    */
   match (string) {
-    let ancestors = (this.ancestors || []).slice()
     const globs = [], tree = this._tree
 
-    ancestors = ancestors.length === 0
-      ? [NIL]
-      : ancestors
-        .filter(([, i]) => i !== NIL)
-        .map(([a, i]) => {
-          if (i > ROOT && tree[i][RUL] === GLOB) globs.push([a, i])
-          return i
-        })
+    const ancestors = (this.ancestors || []).filter(([, i]) => i !== NIL)
+      .map(([a, i]) => {
+        if (i > ROOT && tree[i][RUL] === GLOB) globs.push([a, i])
+        return i
+      })
 
-    const res = this.match_(string, ancestors.slice()).concat(globs)
+    if (ancestors.length === 0) ancestors.push(NIL)
 
-    return res.sort(([a], [b]) => b - a)
+    const res = this.match_(string, ancestors).concat(globs)
+
+    return (this.lastMatch = res.sort(([a], [b]) => b - a))
   }
 
   get treeCopy () {

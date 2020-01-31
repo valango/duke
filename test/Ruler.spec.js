@@ -52,7 +52,7 @@ describe(ME, () => {
   })
 
   it('should construct', () => {
-    process.stdout.write(t.dump(true))
+    // process.stdout.write(t.dump(true))
     expect(t.treeCopy).to.eql(D1, 'treeCopy')
     expect(t.defaultAction).to.eql(DISCLAIM, 'defaultAction')
     expect(t.ancestors).to.equal(undefined, 'ancestors')

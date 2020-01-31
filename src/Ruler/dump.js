@@ -2,6 +2,7 @@
  * @module Ruler/dump
  */
 'use strict'
+const COLORS = { colors: true }
 const { format, formatWithOptions } = require('util')
 const { actionName } = require('../definitions')
 /**
@@ -10,7 +11,7 @@ const { actionName } = require('../definitions')
  * @param {Object|boolean=} options for native `util.inspect()`.
  * @returns {string}
  */
-module.exports = function dump (options) {
+module.exports = function dump (options = true) {
   let w = 0
   let mask = Object.keys(this).concat('sincereId', 'tree')
     .filter((k) => k[0] !== '_' && ((k.length > w && (w = k.length)) || k))
@@ -32,11 +33,12 @@ module.exports = function dump (options) {
       mask = opts.split(/\W+/g)
     } else if (typeof opts === 'number') {
       mask = [opts]
-    } else if (opts === true) {
-      opts = { colors: true }
     } else if (Array.isArray(opts)) {
-      (mask = opts) && (opts = {})
+      mask = opts
     }
+    opts = { colors: true }
+  } else {
+    opts = {}
   }
 
   mask.forEach((key, i) => {
