@@ -10,7 +10,7 @@ const Ruler = require('./Ruler')
 
 /* eslint-disable */
 const {
-        CONTINUE, DISCLAIM, DO_ABORT, DO_SKIP, DO_TERMINATE,
+        CONTINUE, DISCLAIM, DO_DETECT, DO_ABORT, DO_SKIP, DO_TERMINATE,
         T_BLOCK, T_CHAR, T_DIR, T_FIFO, T_FILE, T_SOCKET, T_SYMLINK,
         actionName
       } = definitions
@@ -99,11 +99,12 @@ class Walker extends Sincere {
 
   /**
    * Check if the current directory should be recognized as special.
-   *
+   * NB: in most cases, this method should _not_ be called from overriding one!
    * @param {Object} context
    * @returns {*}
    */
   detect (context) {
+    // context.current = { absDir: context.absDir }
   }
 
   /**
@@ -127,7 +128,8 @@ class Walker extends Sincere {
   }
 
   onBegin (ctx) {
-    const { absDir, detect } = ctx
+    let res
+    const { action, absDir, detect } = ctx
 
     //  Check if already done - may happen when multi-threading.
     if (this.getCurrent(absDir)) {
@@ -141,13 +143,15 @@ class Walker extends Sincere {
       }
     }
 
-    const res = detect.call(this, ctx)  //  May set ctx.current
+    if (action === DO_DETECT) {
+      res = detect.call(this, ctx)  //  May set ctx.current
+    }
 
     if (ctx.current) {
       this.talk('BEGIN:', ''.padStart(ctx.depth) + ctx.dir, ctx.absDir)
       ctx.master = undefined
       this.trees.push(ctx.current)
-    } else {
+    } else {  //  Nothing was detected.
       ctx.current = ctx.master
     }
     return res
@@ -172,15 +176,16 @@ class Walker extends Sincere {
     const action = matches[0][0]
 
     switch (action) {
-      case CONTINUE:
-      case DISCLAIM:
-        //  Forward our rule parsing context to subdirectory.
-        if (type === T_DIR) {
-          return { ruler: ruler.clone(matches) }
-        }
-        break
       case DO_ABORT:
         this.talk('DO_ABORT', ctx.dir + '/' + ctx.name)
+      //  Fall through
+      case DO_SKIP:
+        break
+      default:
+        //  Forward our rule parsing context to subdirectory.
+        if (type === T_DIR) {
+          return { action, ruler: ruler.clone(matches) }
+        }
     }
     return action
   }
@@ -321,6 +326,7 @@ class Walker extends Sincere {
     //  Put initial context to FIFO.
     paths.push({
       /* eslint-disable */
+      action: DO_DETECT,
       depth: 0, detect: closure.detect || this.detect, dir: '',
       locals: closure.locals || {},
       root, ruler: this.defaultRuler
@@ -329,13 +335,20 @@ class Walker extends Sincere {
 
     while (paths.length && !this.terminate) {
       const context = paths.shift(), length = paths.length
-      context.absDir = context.dir ? root + sep + context.dir : root
+      // context.absDir = context.dir ? root + sep + context.dir : root
+      context.absDir = root + context.dir
+      if (context.absDir.indexOf('//') >= 0) {
+        console.log('root', root)
+        console.log('dir', context.dir)
+        throw Error(context.absDir)
+      }
 
       if (typeof (directory = this.safely_(closure, opendirSync, context.absDir,
         expectedOnOpendir)) !== 'object') {
         continue
       }
       context.absDir += sep   //  Handlers get `absDir` `sep` terminated!
+      if (context.absDir.indexOf('//') >= 0) throw Error('//')
 
       action = this.safely_(closure, onBegin, context)
 
@@ -356,14 +369,21 @@ class Walker extends Sincere {
             paths.splice(length, length)
             break
           } else if (context.type === T_DIR && action !== DO_SKIP) {
-            paths.push({
+            const ctx = {
               ...context,
-              current: undefined,
+              action,
               depth: context.depth + 1,
               dir: context.dir + sep + context.name,
-              locals: typeof action === 'object' ? action : {},
               master: undefined
-            })
+            }
+            if (ctx.dir.indexOf('//') >= 0) throw Error('//')
+            if (typeof action === 'object') {
+              ctx.action = action.action || undefined
+              ctx.current = action.current || undefined   //  Todo: necessary?
+              ctx.locals = action.locals || ctx.locals    //  Todo: necessary?
+              ctx.ruler = action.ruler || ctx.ruler
+            }
+            paths.push(ctx)
           }
         }         //  end of while (entry...)
       } else {  //  end of if (action...)

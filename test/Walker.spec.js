@@ -3,31 +3,35 @@ const ME = 'Walker'
 process.env.NODE_MODULES = 'test'
 
 const { expect } = require('chai')
-const { sep } = require('path')
 const
   {
-    DO_ABORT, DO_SKIP,
+    DO_ABORT, DO_DETECT, DO_SKIP, T_DIR,
     actionName, loadFile, Ruler, Walker
   } = require('../src')
-
-const defaultRules = ['node_modules', '.*']
+const COUNT = 1
+const defaultRules = [
+  DO_DETECT, '*',
+  DO_SKIP, 'node_modules', '.*'
+]
 const projectRules = [
   DO_ABORT, '*.html',
   DO_SKIP, '/node_modules', '.*',
-  1, 'pa*.json', 2, '*.js'
+  COUNT, '*.js'
 ]
 
 let w, told, acts
-
+/*
+  Here is a substantial problem: once we hit a rule, e.g. DO_DETECT,
+  we'll lost all other context, e.g. DO_COUNT some/weird/path!
+*/
 const options = {
-  defaultRuler: defaultRules,
   detect: function (context) {
     const { absDir } = context
-    let v = loadFile(absDir + sep + 'package.json')
-
+    let v = loadFile(absDir + 'package.json')
+    // console.log('detect', absDir, !!v)
     if (v) {
       v = JSON.parse(v.toString())
-      context.ruler = new Ruler(projectRules)
+      context.ruler = this.projectRuler
       context.current = { absDir, name: v.name || '?' }
     }
   },
@@ -40,13 +44,12 @@ const options = {
   talk: (...args) => told.push(args) // && console.log('TALK:', args)
 }
 
-const onEntry = function (d) {
-  const a = this.onEntry(d)
-  // if (d.type === T_DIR) console.log(actionName(a), d.name)
-  if (typeof a !== 'number') return a
+const onEntry = function (ctx) {
+  let r = this.onEntry(ctx), a = typeof r === 'object' ? r.action : r
+  if (ctx.type === T_DIR) console.log('dir:', actionName(a), ctx.name)
   const k = actionName(a), n = acts[k] || 0
   acts[k] = n + 1
-  return a
+  return r
 }
 
 describe(ME, () => {
@@ -54,6 +57,8 @@ describe(ME, () => {
     acts = {}
     told = []
     w = new Walker(options)
+    w.defaultRuler = new Ruler(defaultRules)
+    w.projectRuler = new Ruler(projectRules)
   })
 
   it('should construct w defaults', () => {
@@ -66,8 +71,8 @@ describe(ME, () => {
     w.walkSync({ onEntry })
     // console.log('TREES', w.trees)
     expect(w.failures).to.eql([], 'failures')
-    expect(acts['ACTION(1)']).to.gte(2, 'cnt')
-    expect(acts['ACTION(2)']).to.gte(15)
+    // expect(acts.DO_DETECT).to.gte(2, 'DO_DETECT')
+    expect(acts['ACTION(1)']).to.gte(15, 'ACTION(1)')
     expect(w.trees.length).to.equal(1, '#1')
     w.walkSync({ onEntry })
     expect(w.trees.length).to.equal(1, '#2')
@@ -125,11 +130,10 @@ describe(ME, () => {
     before(() => (options.nested = true))
 
     it('should process rules', () => {
-      w.defaultRuler.add([1, '/pack*.json', 2, '*.js'])
+      w.projectRuler.add([DO_DETECT, '*'])
       w.walkSync({ onEntry })
       expect(w.failures).to.eql([], 'failures')
-      expect(acts['ACTION(1)']).to.equal(3, 'ACTION(0)')
-      expect(acts['ACTION(2)']).to.gte(15, 'ACTION(1)')
+      // expect(acts['ACTION(1)']).to.gte(15, 'ACTION(1)')
       // console.log('w.trees', w.trees)
       expect(w.trees.length).to.equal(2, 'trees.length')
     })

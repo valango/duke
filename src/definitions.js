@@ -25,13 +25,14 @@ const _ts = {
 
 const CONTINUE = -1
 const DISCLAIM = 0
+const DO_DETECT = Number.MAX_SAFE_INTEGER - 3
 const DO_SKIP = Number.MAX_SAFE_INTEGER - 2
 const DO_ABORT = Number.MAX_SAFE_INTEGER - 1
 const DO_TERMINATE = Number.MAX_SAFE_INTEGER
 
-const _aCodes = [CONTINUE, DISCLAIM, DO_SKIP, DO_ABORT, DO_TERMINATE]
+const _aCodes = [CONTINUE, DISCLAIM, DO_DETECT, DO_SKIP, DO_ABORT, DO_TERMINATE]
 const _aNames = [
-  'CONTINUE', 'DISCLAIM', 'DO_SKIP', 'DO_ABORT', 'DO_TERMINATE'
+  'CONTINUE', 'DISCLAIM', 'DO_DETECT', 'DO_SKIP', 'DO_ABORT', 'DO_TERMINATE'
 ]
 
 /**
@@ -51,6 +52,8 @@ exports = module.exports = {
   CONTINUE,
   /** @member {number} DISCLAIM  reserved for Ruler: no match or discard any. */
   DISCLAIM,
+  /** @member {number} DO_DETECT    apply detect() in this directory. */
+  DO_DETECT,
   /** @member {number} DO_SKIP      Ignore this item. */
   DO_SKIP,
   /** @member {number} DO_ABORT     Discard all matches, jump one level up. */
