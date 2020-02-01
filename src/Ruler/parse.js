@@ -14,23 +14,26 @@ const SEPARATOR = /(?<!\\)\//     //  Matches '/' only if not escaped.
 
 const assert = require('assert').strict
 const brexIt = require('brace-expansion')
-const { GLOB } = require('../definitions')
+const { GLOB, T_DIR, T_FILE } = require('../definitions')
 
 const rxBraces = /(?<!\\){[^}]+(?<!\\)}/g   //  Detect non-escaped {...}
 
 /**
- * Convert `string` parts separated by '/' to array of RegExp instances.
+ * Convert `path` parts separated by '/' to array of RegExp instances.
  *
- * @param {string} string
+ * @param {string} path with optional type specifier separated by ';'.
  * @param {Object<{extended, optimize}>} options
  * @returns {Array<*>} = the first entry is flags object
  */
-exports = module.exports = (string, options = undefined) => {
-  const check = (cond) => assert(cond, `invalid pattern '${string}'`)
+exports = module.exports = (path, options = undefined) => {
+  const check = (cond) => assert(cond, `invalid pattern '${path}'`)
   const opts = { ...DEFAULTS, ...options }, rules = []
 
-  let pattern = string.replace(/\\\s/g, '\\s').trimEnd()  //  Normalize spaces.
-  let isExclusion = false, isDirectory = false
+  let pattern = path.replace(/\\\s/g, '\\s').trimEnd()  //  Normalize spaces.
+  let isExclusion = false, type = T_FILE
+  let declaredT = /^([^;]+);(.*)$/.exec(pattern)   //  null if not declared.
+
+  if (declaredT) (pattern = declaredT[1]) && (declaredT = declaredT[2])
 
   if (pattern[0] === EXCL) {
     (isExclusion = true) && (pattern = pattern.substring(1))
@@ -47,7 +50,7 @@ exports = module.exports = (string, options = undefined) => {
   }
   let last = parts.length - 1
 
-  if (last >= 0 && !parts[last]) (isDirectory = true) && (parts.pop() || --last)
+  if (last >= 0 && !parts[last]) (type = T_DIR) && (parts.pop() || --last)
   check(last >= 0)
 
   for (let i = 0; i <= last; ++i) {
@@ -81,8 +84,8 @@ exports = module.exports = (string, options = undefined) => {
 
   const any = opts.optimize ? ANY : '^.*$', l = rules.length - 1
   //  a/**$ --> a/$
-  if (rules[l] === null) (isDirectory = true) && rules.pop()
+  if (rules[l] === null) (type = T_DIR) && rules.pop()
   check(!(rules.length === 1 && (rules[0] === ANY || rules[0] === any)))
-  rules.unshift({ isDirectory, isExclusion })
+  rules.unshift({ type: declaredT === null ? type : declaredT, isExclusion })
   return rules
 }
