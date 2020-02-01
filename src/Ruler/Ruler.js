@@ -1,28 +1,19 @@
 'use strict'
 
-const { GLOB, NIL, ROOT, DISCLAIM, CONTINUE, DO_SKIP } =
+const { GLOB, NIL, ROOT, DISCLAIM, CONTINUE, DO_SKIP, T_ANY, T_DIR } =
         require('../definitions')
 const parse = require('./parse')
 const Sincere = require('sincere')
 //  Tree node constants.
-const RUL = 0
-const PAR = 1
-const ACT = 2
+// const TYP = 0
+const RUL = 1
+const PAR = 2
+const ACT = 3
 
 const rule_ = (r) => r ? new RegExp(r) : r
 
-//  Reducer function used by addPath_ instance method.
-const addNode_ = ([parent, tree], rule) => {
-  let i = tree.findIndex(
-    ([rul, par]) => {
-      const y0 = par === parent
-      const y1 = (rul === GLOB ? rul : rul.source) === rule
-      return y0 && y1
-    })
-  if (i === -1) {
-    i = tree.push([rule_(rule), parent, CONTINUE]) - 1
-  }
-  return [i, tree]
+const typeMatch_ = (itemType, nodeType) => {
+  return !nodeType || nodeType.indexOf(itemType) >= 0
 }
 
 /**
@@ -53,13 +44,13 @@ class Ruler extends Sincere {
      * @type Array<Array<*>>
      * @private
      */
-    this._tree = [[GLOB, NIL, CONTINUE]]
+    this._tree = [[T_DIR, GLOB, NIL, CONTINUE]]
 
     /**
      * Used and mutated by test() method.
      * @type {Array<Array>|undefined}
      */
-    this.ancestors = undefined
+    this.ancestors = [[DISCLAIM, NIL]]
 
     /**
      * Action code that will override DISCLAIM value.
@@ -127,15 +118,15 @@ class Ruler extends Sincere {
 
   /** @private */
   append_ (other) {
-    const src = other._tree.map(([r, p, a]) => [r ? r.source : r, p, a])
+    const src = other._tree.map(([t, r, p, a]) => [t, r ? r.source : r, p, a])
     const dst = this._tree
 
-    src.forEach(([rul, par, act], i) => {
-      const pa = par === NIL ? NIL : src[par][PAR]
+    src.forEach(([typ, rul, par, act], i) => {
+      const grandPa = par === NIL ? NIL : src[par][PAR]
       let j = dst.findIndex(
-        ([r, p]) => p === pa && (r ? r.source : r) === rul)
+        ([t, r, p]) => p === grandPa && t === typ && (r ? r.source : r) === rul)
       if (j < 0) {
-        j = dst.push([rule_(rul), pa, act]) - 1
+        j = dst.push([typ, rule_(rul), grandPa, act]) - 1
       }
       src[i][PAR] = j
     })
@@ -149,20 +140,33 @@ class Ruler extends Sincere {
    * @private
    */
   addPath_ (path, forAction = undefined) {
-    const rules = parse(path, this.options)
-    const flags = rules.shift(), locus = 'addPath_'
+    const rules = parse(path, this.options), tree = this._tree
+    const flags = rules.shift(), last = rules.length - 1, { type } = flags
+    const locus = 'addPath_'
 
     this.assert(rules.length, locus, 'no rules')
-    let action = flags.isExclusion ? DISCLAIM : forAction
+    let action = flags.isExclusion ? DISCLAIM : forAction, parentIndex = NIL
     if (action === undefined) action = this.nextRuleAction
     this.assert(action > CONTINUE, locus, 'illegal action value \'%i\'', action)
 
-    const i = rules.reduce(addNode_, [NIL, this._tree])[0]
+    rules.forEach((rule, ruleIndex) => {
+      const t = ruleIndex < last ? T_DIR : type
+      const nodeIndex = tree.findIndex(
+        ([typ, rul, par, act]) => {
+          const y0 = par === parentIndex && typeMatch_(t, typ)
+          const y1 = (rul === GLOB ? rul : rul.source) === rule
+          const y2 = ruleIndex < last || (act === action) || act === CONTINUE
+          return y0 && y1 && y2
+        })
 
-    this.assert(i >= 0, locus, 'no node created')
-    const node = this._tree[i]
-
-    node[ACT] = action
+      if (nodeIndex === -1) {
+        parentIndex = tree.push([t, rule_(rule), parentIndex, CONTINUE]) - 1
+      } else {
+        parentIndex = nodeIndex
+      }
+    })
+    this.assert(parentIndex >= 0, locus, 'no node created')
+    tree[parentIndex][ACT] = action
 
     return this
   }
@@ -195,19 +199,20 @@ class Ruler extends Sincere {
   }
 
   /**
-   * @param {string} string
+   * @param {string} itemName
+   * @param {string} itemType
    * @param {Array<number>} ancestors
    * @returns {Array<Array>}
    * @private
    */
-  match_ (string, ancestors) {
+  match_ (itemName, itemType, ancestors) {
     const lowest = -1  //  Todo: think if we can finish looping earlier.
     const tree = this._tree
     let bDisclaim = false, res = []
 
     // Scan the three for nodes matching any of the ancestors.
     for (let i = tree.length; --i > lowest;) {
-      const [rule, par, act] = tree[i]
+      const [type, rule, par, act] = tree[i]
 
       //  Ancestors list is always smaller than tree ;)
       for (let iA = 0, anc; (anc = ancestors[iA]) !== undefined; iA += 1) {
@@ -217,12 +222,13 @@ class Ruler extends Sincere {
         }
         if (anc !== par) continue
 
-        if (rule !== GLOB && !rule.test(string)) {
+        if (rule !== GLOB &&
+          !(typeMatch_(itemType, type) && rule.test(itemName))) {
           continue
         }
         if (rule === GLOB) {
           //  In case of GLOB, check it's descendants immediately.
-          let next = this.match_(string, [i])
+          let next = this.match_(itemName, itemType, [i])
           next = next.filter(([, j]) => j === NIL || tree[j][RUL] !== GLOB)
           res = res.concat(next)
           if (i === ROOT) continue
@@ -246,16 +252,17 @@ class Ruler extends Sincere {
   }
 
   /**
-   * Match the `string` against rules, without mutating object state.
+   * Match the `itemName` against rules, without mutating object state.
    *
    * The results array never contains ROOT node, which will be added
    * on every run.
    * If a node of special action is matched, then only this node is returned.
    *
-   * @param {string} string to match
+   * @param {string} itemName of item
+   * @param {string=} itemType of item
    * @returns {Array<Array>} array of [action, index]
    */
-  match (string) {
+  match (itemName, itemType = T_ANY) {
     const globs = [], tree = this._tree
 
     const ancestors = (this.ancestors || []).filter(([, i]) => i !== NIL)
@@ -264,9 +271,9 @@ class Ruler extends Sincere {
         return i
       })
 
-    if (ancestors.length === 0) ancestors.push(NIL)
+    ancestors.push(ROOT)    //  Always!
 
-    const res = this.match_(string, ancestors).concat(globs)
+    const res = this.match_(itemName, itemType, ancestors).concat(globs)
 
     return (this.lastMatch = res.sort(([a], [b]) => b - a))
   }

@@ -2,9 +2,9 @@
  * @module Ruler/dump
  */
 'use strict'
-const COLORS = { colors: true }
 const { format, formatWithOptions } = require('util')
 const { actionName } = require('../definitions')
+
 /**
  * Create diagnostic dump.
  * @param {Array<string>|string|number=} mask which members to show.
@@ -18,13 +18,13 @@ module.exports = function dump (options = true) {
 
   let opts = options, indexes = []
   const tree = this._tree.slice()
-  const rw = tree.map(([r]) => format('%O', r).length)
+  const rw = tree.map(([, r]) => format('%O', r).length)
   const rm = Math.max.apply(0, rw)
 
   const dumpNode = (i) => {
-    const [r, p, a] = tree[i]
-    return formatWithOptions(opts, '%s: %O,%s%O, %O',
-      (i + '').padStart(w),
+    const [t, r, p, a] = tree[i]
+    return formatWithOptions(opts, '%s: %O %O,%s%O, %O',
+      (i + '').padStart(w), t.padStart(2),
       r, ''.padStart(rm - rw[i] + 4 - (p + '').length), p, actionName(a))
   }
 

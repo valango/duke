@@ -14,7 +14,7 @@ const SEPARATOR = /(?<!\\)\//     //  Matches '/' only if not escaped.
 
 const assert = require('assert').strict
 const brexIt = require('brace-expansion')
-const { GLOB, T_DIR, T_FILE } = require('../definitions')
+const { GLOB, T_ANY, T_DIR } = require('../definitions')
 
 const rxBraces = /(?<!\\){[^}]+(?<!\\)}/g   //  Detect non-escaped {...}
 
@@ -30,7 +30,7 @@ exports = module.exports = (path, options = undefined) => {
   const opts = { ...DEFAULTS, ...options }, rules = []
 
   let pattern = path.replace(/\\\s/g, '\\s').trimEnd()  //  Normalize spaces.
-  let isExclusion = false, type = T_FILE
+  let isExclusion = false, type = T_ANY
   let declaredT = /^([^;]+);(.*)$/.exec(pattern)   //  null if not declared.
 
   if (declaredT) (pattern = declaredT[1]) && (declaredT = declaredT[2])
