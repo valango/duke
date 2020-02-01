@@ -5,7 +5,7 @@ process.env.NODE_MODULES = 'test'
 const { expect } = require('chai')
 const
   {
-    DO_ABORT, DO_DETECT, DO_SKIP, T_DIR,
+    DO_ABORT, DO_DETECT, DO_SKIP, // T_DIR,
     actionName, loadFile, Ruler, Walker
   } = require('../src')
 const COUNT = 1
@@ -15,7 +15,7 @@ const defaultRules = [
 ]
 const projectRules = [
   DO_ABORT, '*.html',
-  DO_SKIP, '/node_modules', '.*',
+  DO_SKIP, '/node_modules/', '.*',
   COUNT, '*.js'
 ]
 
@@ -45,8 +45,8 @@ const options = {
 }
 
 const onEntry = function (ctx) {
-  let r = this.onEntry(ctx), a = typeof r === 'object' ? r.action : r
-  if (ctx.type === T_DIR) console.log('dir:', actionName(a), ctx.name)
+  const r = this.onEntry(ctx), a = typeof r === 'object' ? r.action : r
+  // if (ctx.type === T_DIR) console.log('dir:', actionName(a), ctx.name)
   const k = actionName(a), n = acts[k] || 0
   acts[k] = n + 1
   return r
@@ -130,7 +130,7 @@ describe(ME, () => {
     before(() => (options.nested = true))
 
     it('should process rules', () => {
-      w.projectRuler.add([DO_DETECT, '*'])
+      w.projectRuler.add(DO_DETECT, '*')
       w.walkSync({ onEntry })
       expect(w.failures).to.eql([], 'failures')
       // expect(acts['ACTION(1)']).to.gte(15, 'ACTION(1)')

@@ -171,7 +171,8 @@ class Ruler extends Sincere {
     this.assert(rules.length, 'addPath_', 'no rules')
     let action = flags.isExclusion ? DISCLAIM : forAction
     if (action === undefined) action = this.nextRuleAction
-    this.assert(action > CONTINUE, 'addPath_', 'illegal action value \'%i\'', action)
+    this.assert(action > CONTINUE, 'addPath_', 'illegal action value \'%i\'',
+      action)
 
     this.addRules_(rules, flags.type, action)
     return this
@@ -208,13 +209,14 @@ class Ruler extends Sincere {
    * @param {string} itemName
    * @param {string} itemType
    * @param {Array<number>} ancestors
+   * @param {Array} res
    * @returns {Array<Array>}
    * @private
    */
-  match_ (itemName, itemType, ancestors) {
+  match_ (itemName, itemType, ancestors, res) {
     const lowest = -1  //  Todo: think if we can finish looping earlier.
     const tree = this._tree
-    let bDisclaim = false, res = []
+    let bDisclaim = false
 
     // Scan the three for nodes matching any of the ancestors.
     for (let i = tree.length; --i > lowest;) {
@@ -234,15 +236,13 @@ class Ruler extends Sincere {
         }
         if (rule === GLOB) {
           //  In case of GLOB, check it's descendants immediately.
-          let next = this.match_(itemName, itemType, [i])
-          next = next.filter(([, j]) => j === NIL || tree[j][RUL] !== GLOB)
-          res = res.concat(next)
+          this.match_(itemName, itemType, [i], res)
           if (i === ROOT) continue
         }
         //  We got a real match!
         if (act === DISCLAIM) {
           bDisclaim = true
-        } else {
+        } else if (!res.find(([, j]) => j === i)) {
           res.push([act, i])
         }
       } //  end for iA
@@ -271,7 +271,7 @@ class Ruler extends Sincere {
   match (itemName, itemType = T_ANY) {
     const globs = [], tree = this._tree
 
-    const ancestors = (this.ancestors || []).filter(([, i]) => i !== NIL)
+    const ancestors = (this.ancestors || [])
       .map(([a, i]) => {
         if (i > ROOT && tree[i][RUL] === GLOB) globs.push([a, i])
         return i
@@ -279,7 +279,7 @@ class Ruler extends Sincere {
 
     ancestors.push(ROOT)    //  Always!
 
-    const res = this.match_(itemName, itemType, ancestors).concat(globs)
+    const res = this.match_(itemName, itemType, ancestors, []).concat(globs)
 
     return (this.lastMatch = res.sort(([a], [b]) => b - a))
   }

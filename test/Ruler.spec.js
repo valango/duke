@@ -30,6 +30,8 @@ const match = (str, type, exp, anc = undefined) => {
     t = t.clone(anc)
   }
   const r = t.match(str, type, anc)
+  // process.stdout.write(t.dump())
+  // process.exit(0)
   // if (anc) console.log(`match '${str}': `, r)
   const v = r.map(o => o[1])
   str += ';' + type

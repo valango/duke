@@ -172,7 +172,7 @@ class Walker extends Sincere {
     count += 1
     const { name, ruler, type } = ctx
 
-    const matches = ruler.match(name)
+    const matches = ruler.match(name, type)
     const action = matches[0][0]
 
     switch (action) {
@@ -338,8 +338,8 @@ class Walker extends Sincere {
       // context.absDir = context.dir ? root + sep + context.dir : root
       context.absDir = root + context.dir
       if (context.absDir.indexOf('//') >= 0) {
-        console.log('root', root)
-        console.log('dir', context.dir)
+        // console.log('root', root)
+        // console.log('dir', context.dir)
         throw Error(context.absDir)
       }
 
