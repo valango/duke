@@ -133,21 +133,10 @@ class Ruler extends Sincere {
     return this
   }
 
-  /**
-   * @param {string} path
-   * @param {number=} forAction
-   * @returns {Ruler}
-   * @private
-   */
-  addPath_ (path, forAction = undefined) {
-    const rules = parse(path, this.options), tree = this._tree
-    const flags = rules.shift(), last = rules.length - 1, { type } = flags
-    const locus = 'addPath_'
-
-    this.assert(rules.length, locus, 'no rules')
-    let action = flags.isExclusion ? DISCLAIM : forAction, parentIndex = NIL
-    if (action === undefined) action = this.nextRuleAction
-    this.assert(action > CONTINUE, locus, 'illegal action value \'%i\'', action)
+  /** @private */
+  addRules_ (rules, type, action) {
+    const last = rules.length - 1, tree = this._tree
+    let parentIndex = NIL
 
     rules.forEach((rule, ruleIndex) => {
       const t = ruleIndex < last ? T_DIR : type
@@ -165,9 +154,26 @@ class Ruler extends Sincere {
         parentIndex = nodeIndex
       }
     })
-    this.assert(parentIndex >= 0, locus, 'no node created')
+    this.assert(parentIndex >= 0, 'addRules_', 'no node created')
     tree[parentIndex][ACT] = action
+  }
 
+  /**
+   * @param {string} path
+   * @param {number=} forAction
+   * @returns {Ruler}
+   * @private
+   */
+  addPath_ (path, forAction = undefined) {
+    const rules = parse(path, this.options)
+    const flags = rules.shift()
+
+    this.assert(rules.length, 'addPath_', 'no rules')
+    let action = flags.isExclusion ? DISCLAIM : forAction
+    if (action === undefined) action = this.nextRuleAction
+    this.assert(action > CONTINUE, 'addPath_', 'illegal action value \'%i\'', action)
+
+    this.addRules_(rules, flags.type, action)
     return this
   }
 
