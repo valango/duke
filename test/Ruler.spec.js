@@ -13,7 +13,7 @@ const { Ruler } = require('..')
 
 const T1 = [
   DO_SKIP, '/skp-dir', 'skip*', '!skipnever*',
-  1, 'src/**/*', 2, 'src/**/*.js',
+  1, 'src/**/*', 2, '*.js;f', 3, 'src/**/*.js',
   DO_ABORT, 'src/**/abort'
 ]
 
@@ -45,7 +45,7 @@ describe(ME, () => {
 
   it('should construct', () => {
     // process.stdout.write(t.dump())
-    expect(t.treeCopy.length).to.eql(9, 'treeCopy.len')
+    expect(t.treeCopy.length).to.eql(10, 'treeCopy.len')
     expect(t.defaultAction).to.eql(DISCLAIM, 'defaultAction')
     expect(t.ancestors).to.eql([[DISCLAIM, NIL]], 'ancestors')
     t = new Ruler({ defaultAction: 6, nextRuleAction: 2, optimize: false },
@@ -63,10 +63,12 @@ describe(ME, () => {
   it('should match', () => {
     match('skipa', T_FILE, [2])
     match('skipnever', T_FILE, [-1])
+    match('skipnever.js', T_FILE, [7])
+    match('any.js', T_FILE, [7])
     match('src', T_DIR, [4])
-    match('abort', T_FILE, [8, 6, 5], [4])
-    match('skip.js', T_FILE, [2, 7, 6, 5], [4])
-    match('skipnever.js', T_FILE, [7, 6, 5], [4])
+    match('abort', T_FILE, [9, 6, 5], [4])
+    match('skip.js', T_FILE, [2, 8, 7, 6, 5], [4])
+    match('skipnever.js', T_FILE, [8, 7, 6, 5], [4])
     t = new Ruler()
     match('skipa', T_FILE, [-1])
   })
@@ -74,7 +76,7 @@ describe(ME, () => {
   it('should clone', () => {
     let t1 = t.clone().add(2, '/two')
     expect(t1.treeCopy.length).to.eql(t.treeCopy.length + 1, 'length')
-    match('skip.js', T_FILE, [2, 7, 6, 5], [4])
+    match('skip.js', T_FILE, [2, 8, 7, 6, 5], [4])
     t1 = t.clone()
     expect(t1.ancestors[0][1]).to.eql(4)
   })
@@ -83,12 +85,12 @@ describe(ME, () => {
     let t1 = t.concat(t, t)
     expect(t1.treeCopy).to.eql(t.treeCopy, 'treeCopy')
     t1 = t.concat(new Ruler(10, 'x'))
-    expect(t1.treeCopy[9]).to.eql([T_ANY, /^x$/, 0, 10], 'tree concat')
+    expect(t1.treeCopy[10]).to.eql([T_ANY, /^x$/, 0, 10], 'tree concat')
   })
 
   it('should dump diagnostics', () => {
     expect(t.dump().ancestors).to.eql(undefined)
-    match('skip.js', T_FILE, [2, 7, 6, 5], [4])
+    match('skip.js', T_FILE, [2, 8, 7, 6, 5], [4])
     expect(t.dump(false)).to.match(/ancestors:\s+\[\s+4\s+]/)
   })
 
