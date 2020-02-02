@@ -98,7 +98,6 @@ class Ruler extends Sincere {
   add_ (definition, action) {
     switch (typeof definition) {
       case 'number':
-        this.assert(definition !== DISCLAIM, 'add', "reserved value 'DISCLAIM'")
         this.nextRuleAction = definition
         break
       case 'string':

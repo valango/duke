@@ -10,7 +10,7 @@ const Ruler = require('./Ruler')
 
 /* eslint-disable */
 const {
-        CONTINUE, DISCLAIM, DO_DETECT, DO_ABORT, DO_SKIP, DO_TERMINATE,
+        CONTINUE, DISCLAIM, DO_ABORT, DO_SKIP, DO_TERMINATE,
         T_BLOCK, T_CHAR, T_DIR, T_FIFO, T_FILE, T_SOCKET, T_SYMLINK,
         actionName
       } = definitions
@@ -133,8 +133,7 @@ class Walker extends Sincere {
   }
 
   onBegin (ctx) {
-    let res
-    const { action, absDir, detect } = ctx
+    const { absDir, detect } = ctx
 
     //  Check if already done - may happen when multi-threading.
     if (this.getCurrent(absDir)) {
@@ -148,9 +147,8 @@ class Walker extends Sincere {
       }
     }
 
-    if (action === DO_DETECT) {
-      res = detect.call(this, ctx)  //  May set ctx.current
-    }
+    const res = detect.call(this, ctx)  //  May set ctx.current
+    this.trace('detect', ctx, res)
 
     if (ctx.current) {
       ctx.master = undefined
@@ -326,7 +324,6 @@ class Walker extends Sincere {
     //  Put initial context to FIFO.
     paths.push({
       /* eslint-disable */
-      action: DO_DETECT,
       depth: 0, detect: closure.detect || this.detect, dir: '',
       locals: closure.locals || {},
       root, ruler: this.defaultRuler

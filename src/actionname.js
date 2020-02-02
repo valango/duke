@@ -2,12 +2,12 @@
 
 const { format } = require('util')
 
-const { CONTINUE, DISCLAIM, DO_DETECT, DO_SKIP, DO_ABORT, DO_TERMINATE } =
+const { CONTINUE, DISCLAIM, DO_SKIP, DO_ABORT, DO_TERMINATE } =
         require('./definitions')
 
-const _aCodes = [CONTINUE, DISCLAIM, DO_DETECT, DO_SKIP, DO_ABORT, DO_TERMINATE]
+const _aCodes = [CONTINUE, DISCLAIM, DO_SKIP, DO_ABORT, DO_TERMINATE]
 const _aNames = [
-  'CONTINUE', 'DISCLAIM', 'DO_DETECT', 'DO_SKIP', 'DO_ABORT', 'DO_TERMINATE'
+  'CONTINUE', 'DISCLAIM', 'DO_SKIP', 'DO_ABORT', 'DO_TERMINATE'
 ]
 
 /**

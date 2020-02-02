@@ -5,12 +5,11 @@ process.env.NODE_MODULES = 'test'
 const { expect } = require('chai')
 const
   {
-    DO_ABORT, DO_DETECT, DO_SKIP, // T_DIR,
+    DO_ABORT, DO_SKIP, // T_DIR,
     actionName, loadFile, Ruler, Walker
   } = require('../src')
 const COUNT = 1
 const defaultRules = [
-  DO_DETECT, '*',
   DO_SKIP, 'node_modules', '.*'
 ]
 const projectRules = [
@@ -20,10 +19,7 @@ const projectRules = [
 ]
 
 let w, told, acts
-/*
-  Here is a substantial problem: once we hit a rule, e.g. DO_DETECT,
-  we'll lost all other context, e.g. DO_COUNT some/weird/path!
-*/
+
 const options = {
   detect: function (context) {
     const { absDir } = context
@@ -69,7 +65,6 @@ describe(ME, () => {
     w.defaultRuler.add([1, '/pack*.json', 1, '*.js'])
     w.walkSync({ onEntry })
     expect(w.failures).to.eql([], 'failures')
-    // expect(acts.DO_DETECT).to.gte(2, 'DO_DETECT')
     expect(acts['ACTION(1)']).to.gte(15, 'ACTION(1)')
     expect(w.trees.length).to.equal(1, '#1')
     w.walkSync({ onEntry })
@@ -128,7 +123,6 @@ describe(ME, () => {
     before(() => (options.nested = true))
 
     it('should process rules', () => {
-      w.projectRuler.add(DO_DETECT, '*')
       w.walkSync({ onEntry })
       expect(w.failures).to.eql([], 'failures')
       // expect(acts['ACTION(1)']).to.gte(15, 'ACTION(1)')

@@ -59,7 +59,6 @@ describe(ME, () => {
 
   it('should throw on bad rule', () => {
     expect(() => t.add({})).to.throw(AssertionError, 'bad rule definition')
-    expect(() => t.add('x', 0, 'y')).to.throw(AssertionError, /reserved/)
   })
 
   it('should match', () => {
