@@ -28,7 +28,7 @@ const options = {
   detect: function (context) {
     const { absDir } = context
     let v = loadFile(absDir + 'package.json')
-    // console.log('detect', absDir, !!v)
+
     if (v) {
       v = JSON.parse(v.toString())
       context.ruler = this.projectRuler
@@ -41,12 +41,11 @@ const options = {
   onEnd: function (ctx) {
     return /skipped$/.test(ctx.dir) ? DO_ABORT : this.onEnd(ctx)
   },
-  talk: (...args) => told.push(args) // && console.log('TALK:', args)
+  talk: (...args) => told.push(args)
 }
 
 const onEntry = function (ctx) {
   const r = this.onEntry(ctx), a = typeof r === 'object' ? r.action : r
-  // if (ctx.type === T_DIR) console.log('dir:', actionName(a), ctx.name)
   const k = actionName(a), n = acts[k] || 0
   acts[k] = n + 1
   return r
@@ -69,7 +68,6 @@ describe(ME, () => {
   it('should walk synchronously', () => {
     w.defaultRuler.add([1, '/pack*.json', 1, '*.js'])
     w.walkSync({ onEntry })
-    // console.log('TREES', w.trees)
     expect(w.failures).to.eql([], 'failures')
     // expect(acts.DO_DETECT).to.gte(2, 'DO_DETECT')
     expect(acts['ACTION(1)']).to.gte(15, 'ACTION(1)')

@@ -14,7 +14,7 @@ const SEPARATOR = /(?<!\\)\//     //  Matches '/' only if not escaped.
 
 const assert = require('assert').strict
 const brexIt = require('brace-expansion')
-const { GLOB, T_ANY, T_DIR } = require('../definitions')
+const { GLOB, T_ANY, T_DIR } = require('./definitions')
 
 const rxBraces = /(?<!\\){[^}]+(?<!\\)}/g   //  Detect non-escaped {...}
 

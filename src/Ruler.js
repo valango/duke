@@ -1,7 +1,7 @@
 'use strict'
 
 const { GLOB, NIL, ROOT, DISCLAIM, CONTINUE, DO_SKIP, T_ANY, T_DIR } =
-        require('../definitions')
+        require('./definitions')
 const parse = require('./parse')
 const Sincere = require('sincere')
 //  Tree node constants.

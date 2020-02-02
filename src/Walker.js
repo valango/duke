@@ -43,7 +43,7 @@ class Walker extends Sincere {
    * @param {*=} sharedData - may be used by derived classes.
    */
   constructor (options, sharedData = undefined) {
-    let o = { talk: () => undefined, ...options }
+    let o = { ...options }
     super()
     /**
      * Shared (not copied) data space - may be used by derived classes.
@@ -85,6 +85,12 @@ class Walker extends Sincere {
      * @type {function(number)}
      */
     this.tick = this.options.tick || (() => undefined)
+
+    /**
+     * Tracer API.
+     * @type {function(...)}
+     */
+    this.trace = this.options.trace || (() => undefined)
     /**
      * Descriptors of recognized filesystem subtrees.
      * @type {Array<{absDir}>}
@@ -104,7 +110,6 @@ class Walker extends Sincere {
    * @returns {*}
    */
   detect (context) {
-    // context.current = { absDir: context.absDir }
   }
 
   /**
@@ -148,7 +153,6 @@ class Walker extends Sincere {
     }
 
     if (ctx.current) {
-      this.talk('BEGIN:', ''.padStart(ctx.depth) + ctx.dir, ctx.absDir)
       ctx.master = undefined
       this.trees.push(ctx.current)
     } else {  //  Nothing was detected.
@@ -161,7 +165,6 @@ class Walker extends Sincere {
   onEnd (ctx) {
     if (ctx.current) {
       if (!ctx.master) {
-        this.talk('END', ''.padStart(ctx.depth) + ctx.dir)
         return 0
       }
       return DO_SKIP
@@ -177,7 +180,6 @@ class Walker extends Sincere {
 
     switch (action) {
       case DO_ABORT:
-        this.talk('DO_ABORT', ctx.dir + '/' + ctx.name)
       //  Fall through
       case DO_SKIP:
         break
@@ -239,7 +241,10 @@ class Walker extends Sincere {
     } catch (error) {
       const onError = closure.onError || this.onError
 
-      if ((r = onError.call(this, error, argument, expected)) === undefined) {
+      r = onError.call(this, error, argument, expected)
+      this.trace('onError', { argument, error }, r)
+
+      if (r === undefined) {
         if (expected.indexOf(error.code) >= 0) {
           this.registerFailure(error.message)
           return DO_SKIP
@@ -258,11 +263,6 @@ class Walker extends Sincere {
       this.terminate = true
     }
     return r
-  }
-
-  talk (...args) {
-    this.options.talk.apply(this, args)
-    return this
   }
 
   /**
@@ -335,22 +335,17 @@ class Walker extends Sincere {
 
     while (paths.length && !this.terminate) {
       const context = paths.shift(), length = paths.length
-      // context.absDir = context.dir ? root + sep + context.dir : root
+
       context.absDir = root + context.dir
-      if (context.absDir.indexOf('//') >= 0) {
-        // console.log('root', root)
-        // console.log('dir', context.dir)
-        throw Error(context.absDir)
-      }
 
       if (typeof (directory = this.safely_(closure, opendirSync, context.absDir,
         expectedOnOpendir)) !== 'object') {
         continue
       }
       context.absDir += sep   //  Handlers get `absDir` `sep` terminated!
-      if (context.absDir.indexOf('//') >= 0) throw Error('//')
 
       action = this.safely_(closure, onBegin, context)
+      this.trace('onBegin', context, action)
 
       if (!(action >= DO_SKIP)) {
         if ((t = Date.now()) > this.nextTick) {
@@ -364,6 +359,7 @@ class Walker extends Sincere {
           context.type = getType(entry)
 
           action = this.safely_(closure, onEntry, context)
+          this.trace('onEntry', context, action)
 
           if (action === DO_ABORT || action === DO_TERMINATE) {
             paths.splice(length, length)
@@ -376,23 +372,22 @@ class Walker extends Sincere {
               dir: context.dir + sep + context.name,
               master: undefined
             }
-            if (ctx.dir.indexOf('//') >= 0) throw Error('//')
             if (typeof action === 'object') {
               ctx.action = action.action || undefined
               ctx.current = action.current || undefined   //  Todo: necessary?
               ctx.locals = action.locals || ctx.locals    //  Todo: necessary?
               ctx.ruler = action.ruler || ctx.ruler
             }
+            this.trace('push', ctx, action)
             paths.push(ctx)
           }
         }         //  end of while (entry...)
-      } else {  //  end of if (action...)
-        this.talk('onBegin -> ', actionName(action))
-      }
+      }         //  end of if (action...)
       directory.closeSync()
 
       context.action = action   //  Special to this handler only.
       action = this.safely_(closure, onEnd, context)
+      this.trace('onEnd', context, action)
 
       if (action >= DO_ABORT) {
         break

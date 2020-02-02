@@ -3,7 +3,7 @@
  */
 'use strict'
 const { format, formatWithOptions } = require('util')
-const { actionName } = require('../definitions')
+const actionName = require('./actionname')
 
 /**
  * Create diagnostic dump.

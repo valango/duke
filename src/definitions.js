@@ -30,11 +30,6 @@ const DO_SKIP = Number.MAX_SAFE_INTEGER - 2
 const DO_ABORT = Number.MAX_SAFE_INTEGER - 1
 const DO_TERMINATE = Number.MAX_SAFE_INTEGER
 
-const _aCodes = [CONTINUE, DISCLAIM, DO_DETECT, DO_SKIP, DO_ABORT, DO_TERMINATE]
-const _aNames = [
-  'CONTINUE', 'DISCLAIM', 'DO_DETECT', 'DO_SKIP', 'DO_ABORT', 'DO_TERMINATE'
-]
-
 /**
  * type {Object}
  */
@@ -66,19 +61,6 @@ exports = module.exports = {
   //  DirEntry type codes.
   T_ANY, T_BLOCK, T_CHAR, T_DIR, T_FIFO, T_FILE, T_SOCKET, T_SYMLINK,
   /* eslint-enable */
-
-  /**
-   * Translate action code to human-readable string. For diagnostics only.
-   * @param {number} action
-   * @returns {string|*}
-   */
-  actionName: (action) => {
-    if (typeof action !== 'number') {
-      return action + ''
-    }
-    const i = _aCodes.indexOf(action)
-    return i < 0 ? `ACTION(${action})` : _aNames[i]
-  },
 
   /**
    * Directory entry type codes.
