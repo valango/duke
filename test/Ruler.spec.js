@@ -93,6 +93,9 @@ describe(ME, () => {
     expect(t.dump().ancestors).to.eql(undefined)
     match('skip.js', T_FILE, [2, 8, 7, 6, 5], [4])
     expect(t.dump(false)).to.match(/ancestors:\s+\[\s+4\s+]/)
+    expect(t.dump('defaultAction').split('\n').length).to.eql(2)
+    expect(t.dump(2).split('\n').length).to.eql(2)
+    expect(t.dump([2, 'defaultAction']).split('\n').length).to.eql(3)
   })
 
   it('should use defaultAction', () => {
