@@ -4,7 +4,7 @@
 'use strict'
 
 const ANY = '.'
-const EXCL = '!'
+const EXCL = '^'
 const SCREENED_EXCL = '\\!'
 const P_GLOB = '**'
 const OPTIONAL = '.*'

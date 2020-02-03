@@ -9,7 +9,7 @@ const { CONTINUE, DO_SKIP, DO_ABORT, GLOB, NIL, T_ANY, T_DIR, T_FILE } =
 const { Ruler } = require('..')
 
 const T1 = [
-  DO_SKIP, '/skp-dir', 'skip*', '!skipnever*',
+  DO_SKIP, '/skp-dir', 'skip*', '^skipnever*',
   1, 'src/**/*', 2, '*.js;f', 3, 'src/**/*.js',
   DO_ABORT, 'src/**/abort'
 ]
