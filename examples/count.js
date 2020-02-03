@@ -7,14 +7,11 @@ const { Walker, typeName } = require('../src')
 const { dump, measure, parseCl, print } = require('./util')
 
 const counts = {}, { args } = parseCl({}, HELP, true)
-const d = { deepest: '', maxDepth: 0, total: 1 }
+const d = { deepest: '', maxDepth: 0 }
 
 //  =======  Start of application-specific code.      =======
 
-const add = (key) => {
-  if (!counts[key]) counts[key] = 0
-  ++counts[key] && ++d.total
-}
+const add = (key) => (counts[key] = ((counts[key] || 0) + 1))
 
 //  Use plugin strategy to avoid class declaration.
 //  In general case, we should call Walker instance method,
@@ -27,7 +24,7 @@ const onBegin = ({ absDir, depth }) => {
 
 const onEntry = ({ type }) => add(type)
 
-const tick = () => process.stdout.write(d.total + '\r')
+const tick = (count) => process.stdout.write('Entries visited: ' + count + '\r')
 
 const walker = new Walker({ onBegin, onEntry, tick })
 
@@ -41,7 +38,8 @@ measure(
   for (const k of Object.keys(counts)) {
     print(typeName(k).padStart(16, ' ') + ':', counts[k])
   }
-  print('Total %i ms (%i µs per item), max directory depth: %i.',
-    time / 1000, time / d.total, d.maxDepth)
-  print('The deepest directory:\n%s', d.deepest)
+  const { directories, entries } = Walker.getTotals()
+  print('Total %i ms (%i µs per entry) for %i entries in %i directories.'
+    , time / 1000, time / entries, entries, directories)
+  print('Max directory depth: %i, the deepest directory was:\n', d.maxDepth, d.deepest)
 })

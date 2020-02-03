@@ -9,7 +9,11 @@ const Ruler = require('./Ruler')
 const entryType = require('./entry-type')
 const { DO_ABORT, DO_SKIP, DO_TERMINATE, T_DIR } = require('./definitions')
 
-let count = 0     //  Used by tick() plugin.
+/**
+ * Total number of directories and directory entries processed.
+ * @type {number}
+ */
+let directories = 0, entries = 0
 
 /**
  *  Walks a directory tree according to rules.
@@ -59,7 +63,7 @@ class Walker extends Sincere {
     this.terminate = false
     /**
      * Function to be called every `this.interval` while walking.
-     * @type {function(number)}
+     * @type {function(number=, number=)}
      */
     this.tick = this.options.tick || (() => undefined)
 
@@ -109,6 +113,14 @@ class Walker extends Sincere {
     )
   }
 
+  /**
+   * Get total counts.
+   * @returns {{directories: number, entries: number}}
+   */
+  static getTotals () {
+    return {directories, entries}
+  }
+
   onBegin (ctx) {
     const { absDir, detect } = ctx
 
@@ -147,7 +159,6 @@ class Walker extends Sincere {
   }
 
   onEntry (ctx) {
-    count += 1
     const { name, ruler, type } = ctx
 
     const matches = ruler.match(name, type)
@@ -189,12 +200,11 @@ class Walker extends Sincere {
     return this
   }
 
-  static getCount () {
-    return count
-  }
-
+  /**
+   * Reset counters for getTotals().
+   */
   static reset () {
-    count = 0
+    directories = entries = 0
   }
 
   //  Execute a function or handler, catching possible errors.
@@ -309,6 +319,12 @@ class Walker extends Sincere {
         this.trace('noOpen', context.absDir)
         continue
       }
+      directories += 1
+      if ((t = Date.now()) > this.nextTick) {
+        this.nextTick = Infinity
+        this.tick(entries, directories)
+        this.nextTick = t + this.interval
+      }
       //  Handlers get `absDir` `sep` terminated!
       if (notRoot) context.absDir += sep
       if (context.absDir.indexOf('//') >= 0) throw Error('Bad absDir')
@@ -317,12 +333,6 @@ class Walker extends Sincere {
       this.trace('onBegin', context, action)
 
       if (!(action >= DO_SKIP)) {
-        if ((t = Date.now()) > this.nextTick) {
-          this.nextTick = Infinity
-          this.tick(count)
-          this.nextTick = t + this.interval
-        }
-
         while (true) {
           action = undefined
           try {
@@ -336,6 +346,7 @@ class Walker extends Sincere {
             context.name = entry.name
             context.type = entryType(entry)
 
+            entries += 1
             action = this.safely_(closure, onEntry, context)
             this.trace('onEntry', context, action)
           }

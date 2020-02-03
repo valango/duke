@@ -38,22 +38,20 @@ const { join } = require('path')
 const { dump, measure, parseCl, print } = require('./util')
 const { args, options } = parseCl(OPTS, HELP, true)
 const relativePath = require('./util/relative-path')
-const talk = options.verbose
-  ? print.bind(print, color.green) : () => undefined
+const trace = options.verbose && print.bind(print, color.green)
 
 class ProWalker extends Walker {
   /**
    * @param {Object} context
    */
   detect (context) {
-    const { absDir, dir } = context
+    const { absDir } = context
     let v = loadFile(join(absDir, 'package.json'))
 
     if (v) {
       v = JSON.parse(v.toString())
       const name = v.name || '', funny = !name
       this.data.nameLength = Math.max(name.length, this.data.nameLength)
-      talk('PROJECT', absDir, dir)
       context.ruler = projectRules
       context.current = { absDir, count: 0, funny, name, promo: '' }
       if (context.master) {
@@ -65,12 +63,11 @@ class ProWalker extends Walker {
 
   onEntry (context) {
     const action = super.onEntry(context)
-    const { current, dir, name, type } = context
+    const { current, type } = context
 
     switch (action) {
       case DO_COUNT:
         if (type !== T_FILE) break
-        talk('  DO_COUNT: %s @', name.padEnd(16), dir || '.')
         current.count += 1
         break
       case DO_PROMOTE:
@@ -84,11 +81,9 @@ class ProWalker extends Walker {
 }
 
 const stats = { dirLength: 0, nameLength: 10, total: 0 }
-const tick = () => {
-  process.stdout.write(stats.total + '\r')
-}
-const walker = new ProWalker(
-  { defaultRules, nested: options.nested, talk, tick }, stats)
+const tick = (count) => process.stdout.write('Entries visited: ' + count + '\r')
+const opts = { defaultRules, nested: options.nested, tick, trace }
+const walker = new ProWalker(opts, stats)
 
 let threads = args.length > 1 && !options.single
 const task = threads
@@ -96,7 +91,7 @@ const task = threads
   : () => args.map((d) => walker.walkSync(d)) || {}
 
 measure(task).then((r) => {
-  const t = r.time
+  const time = r.time
   dump(walker.failures, color.redBright, 'Total %i soft failures.',
     walker.failures.length)
 
@@ -118,7 +113,8 @@ measure(task).then((r) => {
   if (r instanceof Error) {
     print(color.redBright, '%s\nArgs:  %O', r.stack, r.argument)
   }
-  threads = threads ? 'in ' + args.length + ' threads' : ''
-  print('Total %i ms (%i µs/item) on %i items',
-    t / 1000, t / stats.total, stats.total, threads)
+  const { directories, entries } = Walker.getTotals()
+  print('Total %i ms (%i µs per entry) for %i entries in %i directories%s.',
+    time / 1000, time / entries, entries, directories,
+    threads ? ' processed by ' + args.length + ' threads' : '')
 })
