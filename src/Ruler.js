@@ -53,12 +53,6 @@ class Ruler extends Sincere {
     this.ancestors = [[DISCLAIM, NIL]]
 
     /**
-     * Action code that will override DISCLAIM value.
-     * @type {number}
-     */
-    this.defaultAction = opts.defaultAction || DISCLAIM
-
-    /**
      * Most recent result returned by match() method - for debugging.
      * @type {Array|undefined}
      */
@@ -186,7 +180,6 @@ class Ruler extends Sincere {
     const a = this.ancestors, c = new Ruler(this.options)
 
     c.ancestors = ancestors ? ancestors.slice() : (a && a.slice())
-    c.defaultAction = this.defaultAction
     c.nextRuleAction = this.nextRuleAction
     c._tree = this._tree.slice()
 
@@ -251,7 +244,7 @@ class Ruler extends Sincere {
       res = res.filter(([a]) => a !== DO_SKIP)
     }
     if (res.length === 0) {
-      res.push([this.defaultAction || DISCLAIM, NIL])
+      res.push([DISCLAIM, NIL])
     }
     return res
   }

@@ -48,10 +48,8 @@ describe(ME, () => {
   it('should construct', () => {
     // process.stdout.write(t.dump())
     expect(t.treeCopy.length).to.eql(10, 'treeCopy.len')
-    expect(t.defaultAction).to.eql(DISCLAIM, 'defaultAction')
     expect(t.ancestors).to.eql([[DISCLAIM, NIL]], 'ancestors')
-    t = new Ruler({ defaultAction: 6, nextRuleAction: 2, optimize: false },
-      '/a*')
+    t = new Ruler({ nextRuleAction: 2, optimize: false }, '/a*')
     expect(t.treeCopy).to
       .eql([[T_DIR, GLOB, NIL, CONTINUE], [T_ANY, /^a.*$/, NIL, 2]],
         'mod.treeCopy')
@@ -93,19 +91,8 @@ describe(ME, () => {
     expect(t.dump().ancestors).to.eql(undefined)
     match('skip.js', T_FILE, [2, 8, 7, 6, 5], [4])
     expect(t.dump(false)).to.match(/ancestors:\s+\[\s+4\s+]/)
-    expect(t.dump('defaultAction').split('\n').length).to.eql(2)
+    expect(t.dump('nextRuleAction').split('\n').length).to.eql(2)
     expect(t.dump(2).split('\n').length).to.eql(2)
-    expect(t.dump([2, 'defaultAction']).split('\n').length).to.eql(3)
-  })
-
-  it('should use defaultAction', () => {
-    expect(t.match('skipnever')).to.eql([[DISCLAIM, NIL]], 'skipnever')
-    expect(t.match('strange')).to.eql([[DISCLAIM, NIL]], 'strange')
-    t.defaultAction = 0
-    expect(t.match('skipnever')).to.eql([[DISCLAIM, NIL]], 'skipnever')
-    expect(t.match('strange')).to.eql([[DISCLAIM, NIL]], 'strange')
-    t.defaultAction = 1
-    expect(t.match('skipnever')).to.eql([[1, NIL]], 'skipnever')
-    expect(t.match('strange')).to.eql([[1, NIL]], 'strange')
+    expect(t.dump([2, 'nextRuleAction']).split('\n').length).to.eql(3)
   })
 })
