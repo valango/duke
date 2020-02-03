@@ -1,7 +1,6 @@
 'use strict'
 
-const { GLOB, NIL, ROOT, DISCLAIM, CONTINUE, DO_SKIP, T_ANY, T_DIR } =
-        require('./definitions')
+const { GLOB, NIL, ROOT, CONTINUE, T_ANY, T_DIR } = require('./definitions')
 const parse = require('./parse')
 const Sincere = require('sincere')
 //  Tree node constants.
@@ -50,7 +49,7 @@ class Ruler extends Sincere {
      * Used and mutated by test() method.
      * @type {Array<Array>|undefined}
      */
-    this.ancestors = [[DISCLAIM, NIL]]
+    this.ancestors = [[CONTINUE, NIL]]
 
     /**
      * Most recent result returned by match() method - for debugging.
@@ -89,17 +88,17 @@ class Ruler extends Sincere {
   }
 
   /** @private */
-  add_ (definition, action) {
+  add_ (definition) {
     switch (typeof definition) {
       case 'number':
         this.nextRuleAction = definition
         break
       case 'string':
-        this.addPath_(definition, action)
+        this.addPath_(definition)
         break
       default:
         if (Array.isArray(definition)) {
-          definition.forEach((item) => this.add_(item, action))
+          definition.forEach((item) => this.add_(item))
         } else if (definition instanceof Ruler) {
           this.append_(definition)
         } else {
@@ -153,20 +152,16 @@ class Ruler extends Sincere {
 
   /**
    * @param {string} path
-   * @param {number=} forAction
    * @returns {Ruler}
    * @private
    */
-  addPath_ (path, forAction = undefined) {
+  addPath_ (path) {
     const rules = parse(path, this.options)
     const flags = rules.shift()
 
     this.assert(rules.length, 'addPath_', 'no rules')
-    let action = flags.isExclusion ? DISCLAIM : forAction
-    if (action === undefined) action = this.nextRuleAction
-    this.assert(action > CONTINUE, 'addPath_', 'illegal action value \'%i\'',
-      action)
-
+    let action = this.nextRuleAction
+    if (flags.isExclusion) action = -action
     this.addRules_(rules, flags.type, action)
     return this
   }
@@ -207,8 +202,7 @@ class Ruler extends Sincere {
    */
   match_ (itemName, itemType, ancestors, res) {
     const lowest = -1  //  Todo: think if we can finish looping earlier.
-    const tree = this._tree
-    let bDisclaim = false
+    const tree = this._tree, toDisclaim = []
 
     // Scan the three for nodes matching any of the ancestors.
     for (let i = tree.length; --i > lowest;) {
@@ -232,19 +226,19 @@ class Ruler extends Sincere {
           if (i === ROOT) continue
         }
         //  We got a real match!
-        if (act === DISCLAIM) {
-          bDisclaim = true
+        if (act < 0) {
+          toDisclaim.push(-act)
         } else if (!res.find(([, j]) => j === i)) {
           res.push([act, i])
         }
       } //  end for iA
     } //  end for i
 
-    if (bDisclaim) {
-      res = res.filter(([a]) => a !== DO_SKIP)
+    if (toDisclaim.length) {
+      res = res.filter(([a]) => toDisclaim.indexOf(a) < 0)
     }
     if (res.length === 0) {
-      res.push([DISCLAIM, NIL])
+      res.push([CONTINUE, NIL])
     }
     return res
   }

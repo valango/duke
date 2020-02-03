@@ -2,12 +2,12 @@
 
 const { format } = require('util')
 
-const { CONTINUE, DISCLAIM, DO_SKIP, DO_ABORT, DO_TERMINATE } =
+const { CONTINUE, DO_SKIP, DO_ABORT, DO_TERMINATE } =
         require('./definitions')
 
-const _aCodes = [CONTINUE, DISCLAIM, DO_SKIP, DO_ABORT, DO_TERMINATE]
+const _aCodes = [CONTINUE, DO_SKIP, DO_ABORT, DO_TERMINATE]
 const _aNames = [
-  'CONTINUE', 'DISCLAIM', 'DO_SKIP', 'DO_ABORT', 'DO_TERMINATE'
+  'CONTINUE', 'DO_SKIP', 'DO_ABORT', 'DO_TERMINATE'
 ]
 
 /**
@@ -22,7 +22,9 @@ exports = module.exports = (action, f = undefined) => {
   if (typeof action !== 'number') {
     return format(f || '%O', action)
   }
-  const i = _aCodes.indexOf(action)
-  const v = i < 0 ? `ACTION(${action})` : _aNames[i]
+  let a = action, s = ''
+  if (a < 0) (a = -a) && (s = '-')
+  const i = _aCodes.indexOf(a)
+  const v = s + (i < 0 ? `ACTION(${action})` : _aNames[i])
   return f ? format(f, v) : v
 }

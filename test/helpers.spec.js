@@ -34,7 +34,7 @@ describe(ME, () => {
     expect(actionName({ action: DO_SKIP, other: {} })).to.eql('{ action: DO_SKIP }')
     expect(actionName(DO_SKIP)).to.equal('DO_SKIP', 'DO_SKIP')
     expect(actionName(1)).to.equal('ACTION(1)', 'ACTION(1)')
-    expect(actionName(-10)).to.equal('ACTION(-10)', 'ACTION(-10)')
+    expect(actionName(-DO_SKIP)).to.equal('-DO_SKIP', '-DO_SKIP')
   })
 
   it('typeName', () => {

@@ -4,11 +4,8 @@ process.env.NODE_MODULES = 'test'
 
 const { AssertionError } = require('assert')
 const { expect } = require('chai')
-const
-  {
-    CONTINUE, DO_SKIP, DO_ABORT, DISCLAIM,
-    GLOB, NIL, T_ANY, T_DIR, T_FILE
-  } = require('../src/definitions')
+const { CONTINUE, DO_SKIP, DO_ABORT, GLOB, NIL, T_ANY, T_DIR, T_FILE } =
+        require('../src/definitions')
 const { Ruler } = require('..')
 
 const T1 = [
@@ -22,17 +19,13 @@ let n = 0, t
 const match = (str, type, exp, anc = undefined) => {
   if (anc) {
     if (anc === -1) {
-      anc = [DISCLAIM, -1]
+      anc = [CONTINUE, -1]
     } else {
       anc = anc.map(i => [t._tree[i][2], i])
     }
-    // console.log(str, 'exp', exp, 'anc', anc)
     t = t.clone(anc)
   }
   const r = t.match(str, type, anc)
-  // process.stdout.write(t.dump())
-  // process.exit(0)
-  // if (anc) console.log(`match '${str}': `, r)
   const v = r.map(o => o[1])
   str += ';' + type
   expect(v).to.eql(exp, anc === NIL ? str : str + ' @' + ++n)
@@ -48,7 +41,7 @@ describe(ME, () => {
   it('should construct', () => {
     // process.stdout.write(t.dump())
     expect(t.treeCopy.length).to.eql(10, 'treeCopy.len')
-    expect(t.ancestors).to.eql([[DISCLAIM, NIL]], 'ancestors')
+    expect(t.ancestors).to.eql([[CONTINUE, NIL]], 'ancestors')
     t = new Ruler({ nextRuleAction: 2, optimize: false }, '/a*')
     expect(t.treeCopy).to
       .eql([[T_DIR, GLOB, NIL, CONTINUE], [T_ANY, /^a.*$/, NIL, 2]],
