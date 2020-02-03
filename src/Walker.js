@@ -1,36 +1,13 @@
 'use strict'
 
-const expectedOnOpendir = ['ELOOP', 'ENOENT', 'ENOTDIR', 'EPERM']
+const expectedOnOpendir = ['EACCES', 'ELOOP', 'ENOENT', 'ENOTDIR', 'EPERM']
 
 const { opendirSync } = require('fs')
 const { resolve, sep } = require('path')
 const Sincere = require('sincere')
-const definitions = require('./definitions')
 const Ruler = require('./Ruler')
-
-/* eslint-disable */
-const {
-        CONTINUE, DISCLAIM, DO_ABORT, DO_SKIP, DO_TERMINATE,
-        T_BLOCK, T_CHAR, T_DIR, T_FIFO, T_FILE, T_SOCKET, T_SYMLINK,
-        actionName
-      } = definitions
-/* eslint-enable */
-
-const types = {
-  isBlockDevice: T_BLOCK,
-  isCharacterDevice: T_CHAR,
-  isDirectory: T_DIR,
-  isFIFO: T_FIFO,
-  isFile: T_FILE,
-  isSocket: T_SOCKET,
-  isSymbolicLink: T_SYMLINK
-}
-
-const getType = (entry) => {
-  for (const test of Object.keys(types)) {
-    if (entry[test]()) return types[test]
-  }
-}
+const entryType = require('./entry-type')
+const { DO_ABORT, DO_SKIP, DO_TERMINATE, T_DIR } = require('./definitions')
 
 let count = 0     //  Used by tick() plugin.
 
@@ -176,16 +153,8 @@ class Walker extends Sincere {
     const matches = ruler.match(name, type)
     const action = matches[0][0]
 
-    switch (action) {
-      case DO_ABORT:
-      //  Fall through
-      case DO_SKIP:
-        break
-      default:
-        //  Forward our rule parsing context to subdirectory.
-        if (type === T_DIR) {
-          return { action, ruler: ruler.clone(matches) }
-        }
+    if (type === T_DIR && !(action >= DO_SKIP)) {
+      return { action, ruler: ruler.clone(matches) }
     }
     return action
   }
@@ -295,7 +264,6 @@ class Walker extends Sincere {
    */
   walkSync (root, options = undefined) {
     const res = this.walk_(root, options)
-
     if (res.error) throw res.error
     return res
   }
@@ -331,15 +299,19 @@ class Walker extends Sincere {
     })
 
     while (paths.length && !this.terminate) {
-      const context = paths.shift(), length = paths.length
+      const length = paths.length
+      const context = paths.shift(), notRoot = context.absDir !== sep
 
       context.absDir = root + context.dir
 
       if (typeof (directory = this.safely_(closure, opendirSync, context.absDir,
         expectedOnOpendir)) !== 'object') {
+        this.trace('noOpen', context.absDir)
         continue
       }
-      context.absDir += sep   //  Handlers get `absDir` `sep` terminated!
+      //  Handlers get `absDir` `sep` terminated!
+      if (notRoot) context.absDir += sep
+      if (context.absDir.indexOf('//') >= 0) throw Error('Bad absDir')
 
       action = this.safely_(closure, onBegin, context)
       this.trace('onBegin', context, action)
@@ -351,15 +323,24 @@ class Walker extends Sincere {
           this.nextTick = t + this.interval
         }
 
-        while ((entry = directory.readSync())) {
-          context.name = entry.name
-          context.type = getType(entry)
+        while (true) {
+          action = undefined
+          try {
+            if (!(entry = directory.readSync())) break
+          } catch (error) {
+            if (error.code !== 'EBADF') throw error
+            action = DO_ABORT
+            this.registerFailure(error.message)
+          }
+          if (!action) {
+            context.name = entry.name
+            context.type = entryType(entry)
 
-          action = this.safely_(closure, onEntry, context)
-          this.trace('onEntry', context, action)
-
+            action = this.safely_(closure, onEntry, context)
+            this.trace('onEntry', context, action)
+          }
           if (action === DO_ABORT || action === DO_TERMINATE) {
-            paths.splice(length, length)
+            paths.splice(length, paths.length)
             break
           } else if (context.type === T_DIR && action !== DO_SKIP) {
             const ctx = {
@@ -369,6 +350,7 @@ class Walker extends Sincere {
               dir: context.dir + sep + context.name,
               master: undefined
             }
+            if (ctx.dir.indexOf('//') >= 0) throw Error('Bad dir')
             if (typeof action === 'object') {
               ctx.action = action.action || undefined
               ctx.current = action.current || undefined   //  Todo: necessary?
