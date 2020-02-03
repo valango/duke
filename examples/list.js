@@ -81,11 +81,12 @@ class ProWalker extends Walker {
 }
 
 const stats = { dirLength: 0, nameLength: 10, total: 0 }
-const tick = (count) => process.stdout.write('Entries processed: ' + count + '\r')
+const tick = (count) => process.stdout.write(
+  'Entries processed: ' + count + '\r')
 const opts = { defaultRules, nested: options.nested, tick, trace }
 const walker = new ProWalker(opts, stats)
 
-let threads = args.length > 1 && !options.single
+const threads = args.length > 1 && !options.single
 const task = threads
   ? () => Promise.all(args.map((d) => walker.walk(d)))
   : () => args.map((d) => walker.walkSync(d)) || {}
