@@ -2,6 +2,7 @@
 
 const { opendirSync } = require('fs')
 const { resolve, sep } = require('path')
+const { inspect } = require('util')
 const Sincere = require('sincere')
 const Ruler = require('./Ruler')
 const entryType = require('./entry-type')
@@ -229,7 +230,10 @@ class Walker extends Sincere {
       if (typeof r !== 'number') {
         const v = r instanceof Error ? r : error
         //  Remember the first error.
-        if (!closure.error) (closure.error = v).argument = argument
+        if (!closure.error) {
+          (closure.error = v).argument = argument
+          v.message += '\nARG: ' + inspect(argument)
+        }
         r = DO_TERMINATE
       }
       this.nextTick = Date.now() + this.interval
