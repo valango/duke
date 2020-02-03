@@ -24,7 +24,7 @@ const onBegin = ({ absDir, depth }) => {
 
 const onEntry = ({ type }) => add(type)
 
-const tick = (count) => process.stdout.write('Entries visited: ' + count + '\r')
+const tick = (count) => process.stdout.write('Entries processed: ' + count + '\r')
 
 const walker = new Walker({ onBegin, onEntry, tick })
 

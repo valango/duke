@@ -81,7 +81,7 @@ class ProWalker extends Walker {
 }
 
 const stats = { dirLength: 0, nameLength: 10, total: 0 }
-const tick = (count) => process.stdout.write('Entries visited: ' + count + '\r')
+const tick = (count) => process.stdout.write('Entries processed: ' + count + '\r')
 const opts = { defaultRules, nested: options.nested, tick, trace }
 const walker = new ProWalker(opts, stats)
 

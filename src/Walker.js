@@ -1,7 +1,5 @@
 'use strict'
 
-const expectedOnOpendir = ['EACCES', 'ELOOP', 'ENOENT', 'ENOTDIR', 'EPERM']
-
 const { opendirSync } = require('fs')
 const { resolve, sep } = require('path')
 const Sincere = require('sincere')
@@ -118,7 +116,7 @@ class Walker extends Sincere {
    * @returns {{directories: number, entries: number}}
    */
   static getTotals () {
-    return {directories, entries}
+    return { directories, entries }
   }
 
   onBegin (ctx) {
@@ -150,6 +148,7 @@ class Walker extends Sincere {
 
   //  NB: here we have ctx.action too.
   onEnd (ctx) {
+    if (ctx.action > DO_SKIP) return ctx.action
     if (ctx.current) {
       if (!ctx.master) {
         return 0
@@ -171,10 +170,9 @@ class Walker extends Sincere {
   }
 
   /**
-   *
    * @param {Error} errorInstance
    * @param {*} args
-   * @param {Array<string>} expected
+   * @param {Object} expected resulting actions keyed by error code.
    * @returns {*}
    *  - undefined: do default handling;
    *  - Error instance: treat this as unrecoverable
@@ -210,7 +208,7 @@ class Walker extends Sincere {
   //  Execute a function or handler, catching possible errors.
   //  Do default error handling.
   //
-  safely_ (closure, func, argument, expected = []) {
+  safely_ (closure, func, argument, expected) {
     let r
 
     try {
@@ -222,13 +220,13 @@ class Walker extends Sincere {
       this.trace('onError', { argument, error }, r)
 
       if (r === undefined) {
-        if (expected.indexOf(error.code) >= 0) {
+        if ((r = (expected || {})[error.code]) === undefined) {
+          r = error
+        } else {
           this.registerFailure(error.message)
-          return DO_SKIP
         }
-        r = error
       }
-      if (r !== DO_SKIP) {
+      if (typeof r !== 'number') {
         const v = r instanceof Error ? r : error
         //  Remember the first error.
         if (!closure.error) (closure.error = v).argument = argument
@@ -293,6 +291,7 @@ class Walker extends Sincere {
     closure = { ...this.options, ...closure }
     closure.root = root = resolve(root || '.')
 
+    const onErrors = exports.onErrors || {}
     const paths = []
     const onBegin = closure.onBegin || this.onBegin
     const onEnd = closure.onEnd || this.onEnd
@@ -315,23 +314,24 @@ class Walker extends Sincere {
       context.absDir = root + context.dir
 
       if (typeof (directory = this.safely_(closure, opendirSync, context.absDir,
-        expectedOnOpendir)) !== 'object') {
-        this.trace('noOpen', context.absDir)
-        continue
-      }
-      directories += 1
-      if ((t = Date.now()) > this.nextTick) {
-        this.nextTick = Infinity
-        this.tick(entries, directories)
-        this.nextTick = t + this.interval
-      }
-      //  Handlers get `absDir` `sep` terminated!
-      if (notRoot) context.absDir += sep
-      if (context.absDir.indexOf('//') >= 0) throw Error('Bad absDir')
+        onErrors.opendir)) === 'number') {
+        this.trace('noOpen', context.absDir, action = directory)
+        directory = undefined
+      } else {
+        directories += 1
 
-      action = this.safely_(closure, onBegin, context)
-      this.trace('onBegin', context, action)
+        if ((t = Date.now()) > this.nextTick) {
+          this.nextTick = Infinity
+          this.tick(entries, directories)
+          this.nextTick = t + this.interval
+        }
+        //  Handlers get `absDir` `sep` terminated!
+        if (notRoot) context.absDir += sep
+        // if (context.absDir.indexOf('//') >= 0) throw Error('Bad absDir')
 
+        action = this.safely_(closure, onBegin, context, onErrors.onBegin)
+        this.trace('onBegin', context, action)
+      }
       if (!(action >= DO_SKIP)) {
         while (true) {
           action = undefined
@@ -347,13 +347,10 @@ class Walker extends Sincere {
             context.type = entryType(entry)
 
             entries += 1
-            action = this.safely_(closure, onEntry, context)
+            action = this.safely_(closure, onEntry, context, onErrors.onEntry)
             this.trace('onEntry', context, action)
           }
-          if (action === DO_ABORT || action === DO_TERMINATE) {
-            paths.splice(length, paths.length)
-            break
-          } else if (context.type === T_DIR && action !== DO_SKIP) {
+          if (context.type === T_DIR && !(action >= DO_SKIP)) {
             const ctx = {
               ...context,
               action,
@@ -361,7 +358,7 @@ class Walker extends Sincere {
               dir: context.dir + sep + context.name,
               master: undefined
             }
-            if (ctx.dir.indexOf('//') >= 0) throw Error('Bad dir')
+            // if (ctx.dir.indexOf('//') >= 0) throw Error('Bad dir')
             if (typeof action === 'object') {
               ctx.action = action.action || undefined
               ctx.current = action.current || undefined   //  Todo: necessary?
@@ -373,13 +370,14 @@ class Walker extends Sincere {
           }
         }         //  end of while (entry...)
       }         //  end of if (action...)
-      directory.closeSync()
+      if (directory) directory.closeSync()
 
       context.action = action   //  Special to this handler only.
-      action = this.safely_(closure, onEnd, context)
+      action = this.safely_(closure, onEnd, context, onErrors.onEnd)
       this.trace('onEnd', context, action)
 
       if (action >= DO_ABORT) {
+        paths.splice(length, paths.length)
         break
       }
     }       //  end while (paths...)
@@ -387,4 +385,15 @@ class Walker extends Sincere {
   }
 }
 
-module.exports = Walker
+exports = module.exports = Walker
+
+exports.onErrors = {
+  opendir: {
+    EACCES: DO_SKIP,
+    ELOOP: DO_SKIP,
+    ENOENT: DO_SKIP,
+    ENOTDIR: DO_SKIP,
+    EPERM: DO_ABORT
+  },
+  readSync: { EBADF: DO_ABORT }   // Not in use yet
+}
