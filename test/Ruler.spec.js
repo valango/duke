@@ -53,6 +53,7 @@ describe(ME, () => {
   })
 
   it('should match', () => {
+    match('nomatch', T_FILE, [-1])
     match('skipa', T_FILE, [2])
     match('skipnever', T_FILE, [-1])
     match('skipnever.js', T_FILE, [7])

@@ -89,10 +89,11 @@ const walker = new ProWalker(opts, stats)
 const threads = args.length > 1 && !options.single
 const task = threads
   ? () => Promise.all(args.map((d) => walker.walk(d)))
-  : () => args.map((d) => walker.walkSync(d)) || {}
+  : () => Promise.resolve(args.map((d) => walker.walkSync(d)))
 
-measure(task).then((r) => {
-  const time = r.time
+measure(task).then((results) => {
+  const time = results.time
+
   dump(walker.failures, color.redBright, 'Total %i soft failures.',
     walker.failures.length)
 
@@ -111,9 +112,9 @@ measure(task).then((r) => {
   print('- name '.padEnd(stats.nameLength, '-'),
     '? - cnt:', '- directory '.padEnd(stats.dirLength, '-'))
   print('Total %i projects', walker.trees.length)
-  if (r instanceof Error) {
-    print(color.redBright, '%s\nArgs:  %O', r.stack, r.argument)
-  }
+
+  results.forEach((r) => r instanceof Error && print(color.redBright, r.stack))
+
   const { directories, entries } = Walker.getTotals()
   print('Total %i ms (%i µs per entry) for %i entries in %i directories%s.',
     time / 1000, time / entries, entries, directories,

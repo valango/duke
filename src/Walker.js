@@ -31,13 +31,13 @@ class Walker extends Sincere {
      */
     this.data = sharedData || {}
     /**
-     * Default Ruler instance.
+     * Default Ruler instance to be used until detect() finds something special.
      * @type {*|Ruler}
      */
     this.defaultRuler = o.defaultRuler
     /**
-     * Ruler to be used until detecting something special.
-     * @type {Ruler}
+     * Array of error messages from suppressed exceptions.
+     * @type {Array<string>}
      */
     this.failures = []
     /**
@@ -45,9 +45,8 @@ class Walker extends Sincere {
      * @type {number}
      */
     this.interval = o.interval || 200
-    this.nextTick = 0
     /**
-     * Options to be applied to walk() by default.
+     * Options to be applied to walkSync() by default.
      * @type {Object}
      */
     this.options = o
@@ -65,7 +64,6 @@ class Walker extends Sincere {
      * @type {function(number=, number=)}
      */
     this.tick = this.options.tick || (() => undefined)
-
     /**
      * Tracer API.
      * @type {function(...)}
@@ -76,6 +74,11 @@ class Walker extends Sincere {
      * @type {Array<{absDir}>}
      */
     this.trees = []
+    /**
+     * @type {number}
+     * @private
+     */
+    this._nextTick = 0
 
     //  Ensure we have ruler instance.
     if (!((o = this.defaultRuler) instanceof Ruler)) {
@@ -84,12 +87,14 @@ class Walker extends Sincere {
   }
 
   /**
-   * Check if the current directory should be recognized as special.
+   * Check if the current directory should be recognized as special and
+   * if it does then assign new values to `context.current` and `context.ruler`.
    * NB: in most cases, this method should _not_ be called from overriding one!
    * @param {Object} context
-   * @returns {*}
+   * @param {number|undefined} action - set by dir entry rule (missing at root).
+   * @returns {*} - a truey value on positive detection.
    */
-  detect (context) {
+  detect (context, action) {
   }
 
   /**
@@ -120,46 +125,63 @@ class Walker extends Sincere {
     return { directories, entries }
   }
 
-  onBegin (ctx) {
-    const { absDir, detect } = ctx
+  /**
+   * Handler called after new directory was successfully opened.
+   *
+   * @param {Object} context - may have it's `action` property set!
+   * @returns {number|*}
+   */
+  onBegin (context) {
+    const { action, absDir, detect } = context
 
+    delete context.action
     //  Check if already done - may happen when multi-threading.
     if (this.getCurrent(absDir)) {
       return DO_SKIP
     }
 
-    if ((ctx.master = this.getMaster(absDir))) {
+    if ((context.master = this.getMaster(absDir))) {
       if (!this.options.nested) {
-        ctx.current = ctx.master
+        context.current = context.master
         return
       }
     }
 
-    const res = detect.call(this, ctx)  //  May set ctx.current
-    this.trace('detect', ctx, res)
+    const res = detect.call(this, context, action)
+    this.trace('detect', context, res)
 
-    if (ctx.current) {
-      ctx.master = undefined
-      this.trees.push(ctx.current)
+    if (context.current) {
+      context.master = undefined
+      this.trees.push(context.current)
     } else {  //  Nothing was detected.
-      ctx.current = ctx.master
+      context.current = context.master
     }
     return res
   }
 
-  //  NB: here we have ctx.action too.
-  onEnd (ctx) {
-    if (ctx.action > DO_SKIP) return ctx.action
-    if (ctx.current) {
-      if (!ctx.master) {
+  /**
+   * Handler called when done with current directory.
+   *
+   * @param {Object} context - has `action` set by onBegin or last onEntry.
+   * @returns {*}
+   */
+  onEnd (context) {
+    if (context.action > DO_SKIP) return context.action
+    if (context.current) {
+      if (!context.master) {
         return 0
       }
       return DO_SKIP
     }
   }
 
-  onEntry (ctx) {
-    const { name, ruler, type } = ctx
+  /**
+   * Handler called for every directory entry.
+   * @param {Object} context - has `name` and `type` properties set.
+   * @returns {Object|number|undefined}
+   */
+  onEntry (context) {
+    const { name, ruler, type } = context
 
     const matches = ruler.match(name, type)
     const action = matches[0][0]
@@ -171,6 +193,7 @@ class Walker extends Sincere {
   }
 
   /**
+   * Handler called when error gets trapped.
    * @param {Error} errorInstance
    * @param {*} args
    * @param {Object} expected resulting actions keyed by error code.
@@ -236,7 +259,7 @@ class Walker extends Sincere {
         }
         r = DO_TERMINATE
       }
-      this.nextTick = Date.now() + this.interval
+      this._nextTick = Date.now() + this.interval
     }
     if (r === DO_TERMINATE) {
       this.terminate = true
@@ -254,7 +277,7 @@ class Walker extends Sincere {
    */
   walk (root, options = undefined) {
     return new Promise((resolve, reject) => {
-      const res = this.walk_(root, options)
+      const res = this.walkSync(root, options)
 
       if (res.error) {
         this.promises = []
@@ -267,26 +290,11 @@ class Walker extends Sincere {
   }
 
   /**
-   *  Synchronous version of walk() method.
-   *
-   * @param {string} root
-   * @param {Object<{?locals}>} options
-   * @returns {Object}
-   * @throws {Error}
-   */
-  walkSync (root, options = undefined) {
-    const res = this.walk_(root, options)
-    if (res.error) throw res.error
-    return res
-  }
-
-  /**
    * @param {string} rootPath
    * @param {Object} options
    * @returns {Object<{?error: Error}>}
-   * @private
    */
-  walk_ (rootPath, options) {
+  walkSync (rootPath, options = undefined) {
     let root = rootPath, closure = options
 
     if (root && typeof root === 'object' && options === undefined) {
@@ -302,7 +310,7 @@ class Walker extends Sincere {
     const onEntry = closure.onEntry || this.onEntry
     let action, directory, entry, t
 
-    //  Put initial context to FIFO.
+    //  Push initial context to FIFO.
     paths.push({
       /* eslint-disable */
       depth: 0, detect: closure.detect || this.detect, dir: '',
@@ -324,14 +332,13 @@ class Walker extends Sincere {
       } else {
         directories += 1
 
-        if ((t = Date.now()) > this.nextTick) {
-          this.nextTick = Infinity
+        if ((t = Date.now()) > this._nextTick) {
+          this._nextTick = Infinity
           this.tick(entries, directories)
-          this.nextTick = t + this.interval
+          this._nextTick = t + this.interval
         }
         //  Handlers get `absDir` `sep` terminated!
         if (notRoot) context.absDir += sep
-        // if (context.absDir.indexOf('//') >= 0) throw Error('Bad absDir')
 
         action = this.safely_(closure, onBegin, context, onErrors.onBegin)
         this.trace('onBegin', context, action)
@@ -365,8 +372,8 @@ class Walker extends Sincere {
             // if (ctx.dir.indexOf('//') >= 0) throw Error('Bad dir')
             if (typeof action === 'object') {
               ctx.action = action.action || undefined
-              ctx.current = action.current || undefined   //  Todo: necessary?
-              ctx.locals = action.locals || ctx.locals    //  Todo: necessary?
+              ctx.current = action.current || undefined
+              ctx.locals = action.locals || ctx.locals
               ctx.ruler = action.ruler || ctx.ruler
             }
             this.trace('push', ctx, action)
@@ -385,7 +392,7 @@ class Walker extends Sincere {
         break
       }
     }       //  end while (paths...)
-    return closure
+    return closure.error ? closure.error : {}
   }
 }
 
@@ -394,10 +401,10 @@ exports = module.exports = Walker
 exports.onErrors = {
   opendir: {
     EACCES: DO_SKIP,
+    EBADF: DO_ABORT,
     ELOOP: DO_SKIP,
     ENOENT: DO_SKIP,
     ENOTDIR: DO_SKIP,
     EPERM: DO_ABORT
-  },
-  readSync: { EBADF: DO_ABORT }   // Not in use yet
+  }
 }
