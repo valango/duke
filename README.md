@@ -8,22 +8,60 @@ alternative to globber-based directory walkers.
 **WARNING:** This is _**development** branch_ README and
 it may be lagging real bad behind actual codebase changes.
 
-Once I decided to write an utility for managing multiple npm projects.
-The first challenge was to implement a listing functionality able to identify
-identical modules used in different projects according to search criteria specified. 
+## Mission
+Once I decided to write an utility for managing multiple _npm_ projects
+(I have close to 100 on my hard disk and sometimes I'm feeling lost).
+
+My first challenge was to implement a listing functionality able to identify
+identical or similar modules used in different projects according to search criteria specified. 
 I wanted something like this:
 ![](assets/xfeed.png)
 ![](assets/listing.png)
+In example above it says `src/lib/debug/index.js` is exactly the same in `sudoku` and 
+`intuit2` projects and there are more similar files, but they are all different.
 
-by entry types and get report like this:
-```
-       directory: 4370
-            file: 38392
-         symLink: 105
-Total 1210 ms (28 µs per item), max directory depth: 8.
-The deepest directory:
-../sincere/node_modules/resolve/test/resolver/symlinked/_/node_modules
-```
+My first try was to use [glob package](https://www.npmjs.com/package/glob),
+but soon my code grew horribly complex and inefficient,
+because it had so many different things to take care of, while walking the file system:
+   1. identify projects, e.g. directories containing more or less proper `package.json` file;
+   1. avoid diving into `node_modules/`, `.git/` and similar places;
+   1. honor the rules in global and local `.gitignore` files;
+   1. be selective about projects and components in them accordingly to search rules, etc...
+
+So I decided to write a package that makes all this and similar things a piece of cake.
+
+## Overview
+The purpose of _**dwalker**_ is to:
+   1. provide an extendable rules-based API for file systems traversal and processing;
+   1. support both synchronous and asynchronous / parallel operation;
+   1. efficiently support monitoring, diagnostics and debugging.
+
+There are two tasks _dwalker_ takes care of in parallel: 
+   * walking the file directory tree and
+   * walking the rule tree, which controls how to treat every directory entry.
+
+To manage this, there are two classes - **_`Walker`_** and **_`Ruler`_** designed to work together.
+
+_`Walker`_ instance owns at least one _`Ruler`_ instance and may run several walk threads in parallel.
+Directories are traversed width-first and Walker has instance methods for handling basic cases:
+   * **`onBegin`** invoked after new directory is successfully opened;
+   * **`detect`** usually called by `onBegin` - on recognizing a pattern 
+   (like directory is likely being a root of npm project) it may switch rules and 
+   do other preparatory stuff for processing this subtree;
+   * **`onEntry`** is called for every directory entry - 
+   it usually calls Ruler instance's match(name, type) method and acts 
+   accordingly to resulting _**action code**_.
+   * **`onEnd`** is called after we've done with the directory and it can wrap up some of the results;
+   * **`onError`** is called when exception is catched and may implement some specific handling.
+
+Often it is not even necessary to derive child classes from Walker,
+because it provides a **_plug-in API_** for overriding most of it's methods.
+
+If you have read this until here, you might want to take a look
+at [examples](examples).
+
+
+
 
 How to get there? Just take a look to
 [examples/count.js](examples/count.js) 
