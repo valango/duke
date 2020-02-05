@@ -8,7 +8,13 @@ alternative to globber-based directory walkers.
 **WARNING:** This is _**development** branch_ README and
 it may be lagging real bad behind actual codebase changes.
 
-Imagine, you want to count all directory entries anywhere below given directory,
+Once I decided to write an utility for managing multiple npm projects.
+The first challenge was to implement a listing functionality able to identify
+identical modules used in different projects according to search criteria specified. 
+I wanted something like this:
+![](assets/xfeed.png)
+![](assets/listing.png)
+
 by entry types and get report like this:
 ```
        directory: 4370
