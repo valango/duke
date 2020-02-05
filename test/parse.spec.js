@@ -44,9 +44,9 @@ describe(ME, () => {
   })
 
   it('should handle inversion', () => {
-    test('!/a/  ', [XDIR, '^a$'])
-    test('!/a!;f  ', [XFIL, '^a!$'])
-    test('\\!a', [ANY, GLOB, '^!a$'])
+    test('^/a/  ', [XDIR, '^a$'])
+    test('^/a!;f  ', [XFIL, '^a!$'])
+    test('\\^a', [ANY, GLOB, '^\\^a$'])
   })
 
   it('should handle separator escape', () => {
