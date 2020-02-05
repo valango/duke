@@ -132,7 +132,8 @@ class Walker extends Sincere {
    * @returns {number|*}
    */
   onBegin (context) {
-    const { action, absDir, detect } = context
+    const { absDir, detect } = context
+    let act = context.action
 
     delete context.action
     //  Check if already done - may happen when multi-threading.
@@ -147,7 +148,11 @@ class Walker extends Sincere {
       }
     }
 
-    const res = detect.call(this, context, action)
+    //  If we are at root, then check rules as normally done by onEntry().
+    if (act === undefined && context.dir === '') {
+      act = context.ruler.match(context.root.split(sep).pop())[0][0]
+    }
+    const res = detect.call(this, context, act)
     this.trace('detect', context, res)
 
     if (context.current) {
