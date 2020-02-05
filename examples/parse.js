@@ -5,7 +5,7 @@ const MESSAGE = 'Ruler.dump() does not work in production mode'
 const HELP = `Construct and dump a rule tree as defined by command line.
  Argument containing non-screened commas, will be turned into array.
  Example:
-   examples/parse "*.js" 2 /nope`
+   examples/parse.js "*.js" 2 /nope`
 
 const {Ruler} = require('..')
 const { parseCl, print } = require('./util')

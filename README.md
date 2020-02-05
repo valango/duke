@@ -18,7 +18,7 @@ I wanted something like this:
 ![](assets/xfeed.png)
 ![](assets/listing.png)
 In example above it says `src/lib/debug/index.js` is exactly the same in `sudoku` and 
-`intuit2` projects and there are more similar files, but they are all different.
+`intuit2` projects and there's more similar files, but all those are different.
 
 My first try was to use [glob package](https://www.npmjs.com/package/glob),
 but soon my code grew horribly complex and inefficient,
@@ -28,7 +28,7 @@ because it had so many different things to take care of, while walking the file 
    1. honor the rules in global and local `.gitignore` files;
    1. be selective about projects and components in them accordingly to search rules, etc...
 
-So I decided to write a package that makes all this and similar things a piece of cake.
+So I decided to write a whole new package that makes all this and similar tasks a piece of cake.
 
 ## Overview
 The purpose of _**dwalker**_ is to:
@@ -66,7 +66,7 @@ Install with npm
 npm i dwalker
 ```
 
-If you have read this far, take a look at [examples](examples).
+If you have read this far, take a look at [examples](doc/examples.md).
 
 ### How it works
 Detailed insight is [here](doc/how-it-works.md).
@@ -85,5 +85,5 @@ I'll try to
 not update [npmjs.com](https://www.npmjs.com) too often. ;)
 
 ## Version history
-* v1.0.0 @200124: Lots of improvements + **breaking changes**: class names, action codes.
-* v0.8.3 @200123: first airworthy version.
+* v1.0.0 @20200124: Lots of improvements + **breaking changes**: class names, action codes.
+* v0.8.3 @20200123: first (remotely) airworthy version.

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 'use strict'
 
-const HELP = 'Count all files and subdirectories, excluding nothing.'
+const HELP = 'Count all files and subdirectories under directories given by arguments.'
 const color = require('chalk')
 const { Walker, typeName } = require('../src')
 const { dump, measure, parseCl, print } = require('./util')

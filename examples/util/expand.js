@@ -5,6 +5,8 @@ const { join } = require('path')
 
 /**
  * Expand every 'path/*' to all sub-dirs of the path.
+ * This is useful when running without csh, e.g. when debugging under IDE.
+ *
  * @param {Array<string>} args
  * @returns {Array<string>}
  */
