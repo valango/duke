@@ -14,7 +14,7 @@ const OPTS = {
 const
   {
     DO_ABORT, DO_SKIP, T_FILE, T_DIR,
-    Walker, Ruler, loadFile
+    Walker, Ruler, loadFile, relativize
   } = require('../src')
 
 const DO_COUNT = 1    //  Add file to count.
@@ -37,7 +37,6 @@ const color = require('chalk')
 const { join } = require('path')
 const { dump, measure, parseCl, print } = require('./util')
 const { args, options } = parseCl(OPTS, HELP, true)
-const relativePath = require('./util/relative-path')
 const trace = options.verbose && print.bind(print, color.green)
 
 class ProWalker extends Walker {
@@ -101,7 +100,7 @@ measure(task).then((results) => {
     (a, b) => a.name === b.name ? 0 : (a.name > b.name ? 1 : -1))
 
   walker.trees.forEach((p) => {
-    const dir = relativePath(p.absDir, './')
+    const dir = relativize(p.absDir, '~')
     stats.dirLength = Math.max(dir.length, stats.dirLength)
     const d = ['%s %s %s:', p.name.padEnd(stats.nameLength),
       p.promo || ' ', (p.count + '').padStart(5), dir]

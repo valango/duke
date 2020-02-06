@@ -17,5 +17,5 @@ It derives a _custom child class_ from `Walker`, demonstrates _**rule system swi
 **_parallel processing_**.
 
 ### parse.js
-[This demo](../examples/parse.js) accepts rule definitions from command line arguments,
+[This demo](../examples/parse.js) interprets command line arguments as rule definitions,
 constructs a `Ruler` instance and dumps it's contents.

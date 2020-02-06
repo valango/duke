@@ -15,10 +15,11 @@ Ruler.prototype.dump = inProduction ? noop : require('./dump')
 
 const actionName = inProduction ? noop : require('./actionname')
 const loadFile = require('./load-file')
+const relativize = require('./relativize')
 
 /**
  * @type {Object<{Ruler, Walker, actionName:function(), typeName:function()}>}
  */
 module.exports = {
-  Ruler, Walker, actionName, loadFile, ...require('./definitions')
+  Ruler, Walker, actionName, loadFile, relativize, ...require('./definitions')
 }
