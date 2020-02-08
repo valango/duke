@@ -3,7 +3,7 @@ which does most of the job. It traverses directory hierarchy width-first,
 calling application-defined handlers, as it goes. The walk() code
 is re-enterable and it can run in parallel promise instances.
 
-Simplified internal algorithm use by `walk()` and `walkSync()` methods:
+Here is simplified code of `walkSync()` method:
 ```javascript
 function walkSync (root, options) {
   let action, context, directory
@@ -30,9 +30,19 @@ function walkSync (root, options) {
   return walkContext.error ? walkContext.error : walkContext
 }
 ```
-Application - specific handlers `onBegin`, `onEnd`, `onEntry` and 
-`onError` are all optional, but 
-`Walker` just won't do much good without them.
 
-Things really get exciting, when we apply some business logic in our handlers.
-See [another example](examples/list.js).
+All handlers except `onError()` are invoked by walkSync() method with
+`context: {Object}` argument with following properties:
+   * `action: {number}` 
+   * `absDir: {string}` current directory path terminated by `path.sep`;
+   * `current: {Object}` a `trees` entry, usually set by `onBegin()`;
+   * `depth: {number}` is 0 for root directory;
+   * `detect: {function()}` instance method or _plugin_.
+   * `dir: {string}` directory path relative to `root`;
+   * `master: {Object}` a `trees` entry, usually set by `onBegin()`;
+   * `name: {string}` of current directory entry (onEntry() only);
+   * `root: {string}` root directory;
+   * `ruler: {Ruler}` currently active ruler instance.
+   * `type: {TEntry}` of current directory entry (onEntry() only);
+
+_**TEntry**_ type may have value of `T_...` constants exported by dwalker.

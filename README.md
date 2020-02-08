@@ -40,10 +40,10 @@ There are two tasks _dwalker_ takes care of in parallel:
    * walking the file directory tree and
    * walking the rule tree, which controls how to treat every directory entry.
 
-To manage this, there are two classes - **_`Walker`_** and **_`Ruler`_** designed to work together.
+To manage this, there are two classes, too - **_`Walker`_** and **_`Ruler`_** designed to work together.
 
 _`Walker`_ instance owns at least one _`Ruler`_ instance and may run several walk threads in parallel.
-Directories are traversed width-first and Walker has instance methods for handling basic cases:
+Directories are traversed width-first and Walker has _**handlers**_ - special instance methods for handling basic cases:
    * **`onBegin`** invoked after new directory is successfully opened;
    * **`detect`** usually called by `onBegin` - on recognizing a pattern 
    (like directory is likely being a root of npm project) it may switch rules and 

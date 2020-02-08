@@ -1,7 +1,9 @@
+## API
+To make debugging and diagnostics easier, both `Walker` and `Ruler` are 
+derived from [`Sincere`](https://www.npmjs.com/package/sincere) base class.
+
 ### Class `Walker`
-For flexibility, `Walker` supports overriding some it's instance methods
-by plug-ins. Maybe it will be strictened in future releases as
-usage patterns will stabilize, but until then... enjoy!
+Traverses file system, checking every directory entry for matching rules.
 
 **`constructor([options], [sharedData])`** <br />
 `sharedData={} : *` initial value assigned (not copied) to `data`.<br />
@@ -10,9 +12,10 @@ usage patterns will stabilize, but until then... enjoy!
    * `defaultRuler= : {Ruler} | *` rules or Ruler instance for defaultRuler property;
    * `detect : {function()`} plug-in override for `detect` method;
    * `talk : {function()}` used by `talk()` instance method;
-   * `tick : {function()}` plug-in to be repeatedly called during walking;
+   * `tick : {function(number)}` plug-in to be repeatedly called during walking;
    * `onBegin | onEnd | onEntry | onError' | {function(*):*}` - handler plug-ins.
 
+#### Instance properties
 **`data`**: `{*}` property <br />
 is not used by `Walker`, 
 but can be used by plug-ins or derived classes.
@@ -22,7 +25,7 @@ This property set to `sharedData` or `{}` by constructor.
 Soft error messages; can be examined any time.
 
 **`options`**: `{object}` property <br />
-is copy of constructor options. `walk()` some methods look here for plug-ins.
+is copy of constructor options. `walkSync()` some methods look here for plug-ins.
 
 **`defaultRuler`**: `{Ruler}` property <br />
 `onBegin()` method assigns it to `context.ruler` by default.
@@ -31,14 +34,18 @@ is copy of constructor options. `walk()` some methods look here for plug-ins.
 assigning _Truey_ value prevents any further walking. 
 `Walker` sets it `true`, when any `onXXX` handler returns `DO_TERMINATE`.
 
-**`tree`**: `{object[]}` property <br />
-list of recognized subtrees, e.g. Node.js projects. get... methods assume
-array members having `absDir : string` property.
+**`promises`**: `{Array<Promise>}` property <br />
+Used by asynchronous `walk()` instance method.
 
-**`detect(context)`**  method<br />
-called by `onBegin()` method.
-Should check if the current directory has special importance and if so,
-it should add and entry to `trees` instance property and possibly change `context.ruler`.
+**`trees`**: `{Array<Object>}` property <br />
+list of recognized subtrees, e.g. npm projects. `get...()` instance methods assume
+array members having `absDir : {string}` property.
+
+#### Instance methods
+**`detect(context, action)`**`{*}`  method<br />
+Check if the current directory should be recognized as special and
+if it does then assign new values to `context.current` and `context.ruler`.
+**NB:** in most cases, this method should _not_ be called from overriding one!
 
 **`getCurrent(path)`**`{object}`  method<br />
 returns `tree` instance property member with `dirPath === path` or `undefined`.
@@ -92,22 +99,26 @@ then `walk()` will return immediately.
 _`Walker`_ is not directly dependent on this class, but it is designed specially
 to work with it. **NB:** It scans it's rule tree most recently added rules first.
 
-**`constructor([options], [...rules])`** <br />
-calls if `rules` are supplied, `add()` method  invoked. Available `options` are:
+**`constructor([options], [...definitions])`** <br />
+calls if `definitions` are supplied, `add()` method  invoked. Available `options` are:
    * `defaultAction : {number}   ` - initial value for `defaultAction` property.
    * `extended : {boolean}` - enables sets '{a,b}' -> '(a|b)'; default: `true`.
    * `optimize : {boolean}` - enables rule optimization; default: `true`.
 
 **`ancestors`**: `{Array<Array>}` property <br />
-Affects results of `test( , true)` instance method call and may be mutated by it.
+Affects results of `match()` instance method and is usually set by `clone()` method.
 
-**`defaultAction`**: `{integer}` property <br />
+**`lastMatch`**: `{Array<Array>}` property <br />
+Is set to results returned by match() instance method. It is there just 
+to make debugging easier and has no effect on Ruler itself.
+
+**`nextRuleAction`**: `{integer}` property <br />
 default action to be bound to new rule.
-This value is used and possibly mutated by `add()` method.
+This value is used and mutated by `add()` method.
 
 **`add(...args)`**: `{Ruler}` method <br />
-adds new rules. Any numeric item in `args` array
-will be treated as action code for further rules and will also
+adds new rules. Argument may be a number, string, Ruler instance or array of those.
+A numeric argument will be treated as action code for further rules and will also
 mutate `defaultAction` property.
 Rules array may be nested for clarity.
 All code lines following example are functionally identical: 
@@ -118,26 +129,23 @@ r.add(['node_modules', '.*'], DO_SKIP).add([DO_DEFAULT, '*.js', 'test/*spec.js']
 ```
 The v1.0 syntax `add(definition, action)` is **_deprectated_**
 
-**`dump()`**: `{Array<Array>}` method <br />
-returns clone of the internal rule tree - useful for diagnostics and testing.
+**`clone([ancestors])`**: `{Ruler}` method <br />
+Clones the Ruler instance setting it's ancestors property.
 
-**`match(string, [ancestors])`**: `{Array<*>}` method <br />
-does the rule matching using `ancestors : {Array<*>}` context possibly resulting
-from earlier call to `match()` method.
-In most cases, it's far easier to use `test()` method instead.
+**`concat(...definitions)`**: `{Ruler}` method <br />
+Clones the Ruler instance and adds new rule definitions.
 
-**`test(string, [ancestors])`**: `{[action, ancestors]}` method <br />
-matches the string against existing rules using `ancestors : Array<*>` context. 
-The `action : {number}` part of return value is relevant to business logic;
-`ancestors` part can be used for the next call if action part is `CONTINUE`. <br />
-**NB:** this part of API will be deprecated!
+**`dump([mask])`**: `{string}` method <br />
+Creates a pretty-formatted image for debugging. If mask is given, it may be:
+   * string: a property name or list of names - used as filter;
+   * number: index of of internal rule tree node - used as filter;
+   * falsy: disable color codes.
+   
+**NB:** In _production mode_ this method just returns `undefined`.
 
-**`test(string, true)`**: `{number}` method <br />
-matches the string against existing rules using `ancestors` instance property and
-returns action code and if it is `CONTINUE`,
-then `ancestors` instance property is mutated. <br />
-NB: this is recommended API for future and `'true'` argument is here only to
-prevent existing application code from breaking.
+**`match(entryName, [entryType])`**: `{Array<*>}` method <br />
+does the rule matching using `ancestors` instance property possibly set after
+previous matches. To retrieve action code, do: `ruler.match(...)[0][0]`.
 
 ### Constants
 See [definitions](src/definitions.js). Action codes defined by application code
@@ -154,6 +162,11 @@ Returning `undefined` means the file did not exist.
 
 Setting `nicely : {boolean}` to _truey_ value prevents throwing any exception.
 If exception occur, then just `Error` instance is returned by function.
+
+**`relativize(filePath, [rootPath], [prefix])`**: `{string}` function <br />
+Opposite to `path.resolve()`. The `rootPath` parameter defaults to user's
+home directory. The prefix is prepended to relative path using `path.sep` if necessary.
+If `filePath` does not fit the `rootPath`, it is returned as is.
 
 **`typeName(type)`**: `{string | undefined}` function <br />
 translates single-character type id used by `Walker` to human-readable string.
