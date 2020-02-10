@@ -1,13 +1,10 @@
-/**
- * @module Ruler/dump
- */
 'use strict'
 const { format, formatWithOptions } = require('util')
 const actionName = require('./actionname')
 
 /**
  * Create diagnostic dump.
- * @param {Array<string>|string|number=} mask which members to show.
+ * @param {Array<string>|string|number=} options which members to show and how.
  * @param {Object|boolean=} options for native `util.inspect()`.
  * @returns {string}
  */

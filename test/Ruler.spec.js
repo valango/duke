@@ -5,7 +5,7 @@ process.env.NODE_MODULES = 'test'
 const { AssertionError } = require('assert')
 const { expect } = require('chai')
 const { CONTINUE, DO_SKIP, DO_ABORT, GLOB, NIL, T_ANY, T_DIR, T_FILE } =
-        require('../src/definitions')
+        require('../src/constants')
 const { Ruler } = require('..')
 
 const T1 = [

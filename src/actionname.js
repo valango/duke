@@ -3,7 +3,7 @@
 const { format } = require('util')
 
 const { CONTINUE, DO_SKIP, DO_ABORT, DO_TERMINATE } =
-        require('./definitions')
+        require('./constants')
 
 const _aCodes = [CONTINUE, DO_SKIP, DO_ABORT, DO_TERMINATE]
 const _aNames = [
@@ -15,9 +15,9 @@ const _aNames = [
  * @param {number} action
  * @returns {string|*}
  */
-exports = module.exports = (action, f = undefined) => {
+const actionName = (action, f = undefined) => {
   if (action && typeof action === 'object' && action.action !== undefined) {
-    return exports(action.action, '{ action: %s }')
+    return actionName(action.action, '{ action: %s }')
   }
   if (typeof action !== 'number') {
     return format(f || '%O', action)
@@ -28,3 +28,5 @@ exports = module.exports = (action, f = undefined) => {
   const v = s + (i < 0 ? `ACTION(${action})` : _aNames[i])
   return f ? format(f, v) : v
 }
+
+module.exports = actionName

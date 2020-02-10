@@ -6,11 +6,12 @@ const { inspect } = require('util')
 const Sincere = require('sincere')
 const Ruler = require('./Ruler')
 const entryType = require('./entry-type')
-const { DO_ABORT, DO_SKIP, DO_TERMINATE, T_DIR } = require('./definitions')
+const { DO_ABORT, DO_SKIP, DO_TERMINATE, T_DIR } = require('./constants')
 
 /**
  * Total number of directories and directory entries processed.
  * @type {number}
+ * @private
  */
 let directories = 0, entries = 0
 

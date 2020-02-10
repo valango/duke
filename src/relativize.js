@@ -12,7 +12,7 @@ const homeDir = require('os').homedir() + sep
  * @returns {string|*}
  * @throws {Error} on ambiguous `rootPath` and `prefix` combination.
  */
-module.exports = (path, rootPath = undefined, prefix = undefined) => {
+const relativize = (path, rootPath = undefined, prefix = undefined) => {
   let pref = prefix, root = rootPath
 
   if (!root) {
@@ -31,3 +31,5 @@ module.exports = (path, rootPath = undefined, prefix = undefined) => {
     ? (pref || '') + path.substring(root.length)
     : path
 }
+
+module.exports = relativize

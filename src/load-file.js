@@ -1,6 +1,3 @@
-/**
- * @module load-file
- */
 'use strict'
 
 const { readFileSync } = require('fs')
@@ -12,7 +9,7 @@ const { readFileSync } = require('fs')
  * @param {boolean} mildly - return error object instead of throwing it.
  * @returns {undefined|Buffer}
  */
-module.exports = (filePath, mildly = false) => {
+const loadFile = (filePath, mildly = false) => {
   try {
     return readFileSync(filePath)
   } catch (e) {
@@ -21,3 +18,5 @@ module.exports = (filePath, mildly = false) => {
     throw e
   }
 }
+
+module.exports = loadFile

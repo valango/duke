@@ -148,7 +148,7 @@ does the rule matching using `ancestors` instance property possibly set after
 previous matches. To retrieve action code, do: `ruler.match(...)[0][0]`.
 
 ### Constants
-See [definitions](src/definitions.js). Action codes defined by application code
+See [definitions](../src/constants.js). Action codes defined by application code
 should be non-negative integers - this is important!
 
 ### Helper functions

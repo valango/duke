@@ -1,12 +1,10 @@
-/**
- * Used by Walker.js
- * @module entry-type
- */
 'use strict'
 
+/* eslint-disable */
 const
   { T_BLOCK, T_CHAR, T_DIR, T_FIFO, T_FILE, T_SOCKET, T_SYMLINK } =
-    require('./definitions')
+    require('./constants')
+/* eslint-enable */
 
 const types = {
   isBlockDevice: T_BLOCK,
@@ -19,13 +17,15 @@ const types = {
 }
 
 /**
- * Get DirEntry type.
+ * Get directory entry type.
  *
- * @param entry
- * @returns {string}
+ * @param {Object} entry
+ * @returns {TEntryType}
  */
-module.exports = (entry) => {
+const entryType = (entry) => {
   for (const test of Object.keys(types)) {
     if (entry[test]()) return types[test]
   }
 }
+
+module.exports = entryType

@@ -1,6 +1,6 @@
 'use strict'
 
-const { GLOB, NIL, ROOT, CONTINUE, T_ANY, T_DIR } = require('./definitions')
+const { GLOB, NIL, ROOT, CONTINUE, T_ANY, T_DIR } = require('./constants')
 const parse = require('./parse')
 const Sincere = require('sincere')
 //  Tree node constants.
@@ -190,6 +190,14 @@ class Ruler extends Sincere {
   concat (...args) {
     const c = this.clone()
     return this.add.apply(c, args)
+  }
+
+  /**
+   * Create diagnostic dump for visual display.
+   * @param {Array<string>|string|number=} options which members to show and how.
+   * @returns {string|undefined} NB: always undefined in production mode!
+   */
+  dump (options = undefined) {
   }
 
   /**
