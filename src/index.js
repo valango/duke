@@ -15,7 +15,7 @@ const dwalker = {
   /** @see {@link Walker} */
   Walker: require('./Walker'),
   /** @see {@link actionName} */
-  actionName: inProduction ? (() => undefined) : require('./actionname'),
+  actionName: inProduction ? () => undefined : require('./actionname'),
   /** @see {@link loadFile} */
   loadFile: require('./load-file'),
   /** @see {@link relativize} */

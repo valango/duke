@@ -1,7 +1,7 @@
 'use strict'
 
 const { opendirSync } = require('fs')
-const { resolve, sep } = require('path')
+const { parse, resolve, sep } = require('path')
 const { inspect } = require('util')
 const Sincere = require('sincere')
 const Ruler = require('./Ruler')
@@ -72,7 +72,7 @@ class Walker extends Sincere {
     this.trace = this.options.trace || (() => undefined)
     /**
      * Descriptors of recognized filesystem subtrees.
-     * @type {Array<{absDir}>}
+     * @type {Array<{absDir:string}>}
      */
     this.trees = []
     /**
@@ -151,7 +151,7 @@ class Walker extends Sincere {
 
     //  If we are at root, then check rules as normally done by onEntry().
     if (act === undefined && context.dir === '') {
-      act = (r = context.ruler).match(context.root.split(sep).pop())
+      act = (r = context.ruler).match(context.rootDir.split(sep).pop())
       context.ruler = r.clone(act)
       act = act[0][0]
     }
@@ -299,42 +299,38 @@ class Walker extends Sincere {
 
   /**
    * @param {string} rootPath
-   * @param {Object} options
+   * @param {Object=} options
    * @returns {Object<{?error: Error}>}
    */
   walkSync (rootPath, options = undefined) {
-    let root = rootPath, closure = options
-
-    if (root && typeof root === 'object' && options === undefined) {
-      (closure = root) && (root = undefined)
-    }
-    closure = { ...this.options, ...closure }
-    closure.root = root = resolve(root || '.')
-
+    this.assert(!rootPath || typeof rootPath === 'string', 'walkSync',
+      "'rootPath' must be string")
+    const closure = { ...this.options, ...options }
+    const rootDir = closure.rootDir = resolve(rootPath || '.')
     const onErrors = exports.onErrors || {}
     const paths = []
     const onBegin = closure.onBegin || this.onBegin
     const onEnd = closure.onEnd || this.onEnd
     const onEntry = closure.onEntry || this.onEntry
-    let action, directory, entry, t
+    let action, directory, entry, t, notRoot = parse(rootDir).root !== rootDir
 
     //  Push initial context to FIFO.
     paths.push({
       /* eslint-disable */
       depth: 0, detect: closure.detect || this.detect, dir: '',
       locals: closure.locals || {},
-      root, ruler: this.defaultRuler
+      rootDir, ruler: this.defaultRuler
       /* eslint-enable */
     })
 
     while (paths.length && !this.terminate) {
       const length = paths.length
-      const context = paths.shift(), notRoot = context.absDir !== sep
+      const context = paths.shift()
 
-      context.absDir = root + context.dir
+      context.absDir = rootDir + context.dir
 
       if (typeof (directory = this.safely_(closure, opendirSync, context.absDir,
-        onErrors.opendir)) === 'number') {
+        onErrors.opendir)) === 'number') {  //  opendir failed -> action
         this.trace('noOpen', context.absDir, action = directory)
         directory = undefined
       } else {
@@ -348,6 +344,7 @@ class Walker extends Sincere {
         //  Handlers get `absDir` `sep` terminated!
         if (notRoot) context.absDir += sep
 
+        notRoot = true
         action = this.safely_(closure, onBegin, context, onErrors.onBegin)
         this.trace('onBegin', context, action)
       }

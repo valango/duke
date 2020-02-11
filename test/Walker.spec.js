@@ -63,11 +63,11 @@ describe(ME, () => {
 
   it('should walk synchronously', () => {
     w.defaultRuler.add([1, '/pack*.json', 1, '*.js'])
-    w.walkSync({ onEntry })
+    w.walkSync('', { onEntry })
     expect(w.failures).to.eql([], 'failures')
     expect(acts['ACTION(1)']).to.gte(15, 'ACTION(1)')
     expect(w.trees.length).to.equal(1, '#1')
-    w.walkSync({ onEntry })
+    w.walkSync('', { onEntry })
     expect(w.trees.length).to.equal(1, '#2')
   })
 
@@ -85,7 +85,7 @@ describe(ME, () => {
     expect(w.failures.length).to.eql(1, 'length')
     expect(w.failures[0]).to.match(/^ENOENT:\s/, '[0]')
     w.failures = []
-    expect(w.walkSync({
+    expect(w.walkSync(undefined, {
       onEntry: () => {
         throw Error('Test')
       }
@@ -123,7 +123,7 @@ describe(ME, () => {
     before(() => (options.nested = true))
 
     it('should process rules', () => {
-      w.walkSync({ onEntry })
+      w.walkSync('', { onEntry })
       expect(w.failures).to.eql([], 'failures')
       // expect(acts['ACTION(1)']).to.gte(15, 'ACTION(1)')
       // console.log('w.trees', w.trees)
