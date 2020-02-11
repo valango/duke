@@ -1,5 +1,4 @@
 {
   "source": {
-    "exclude": ["src/Ruler.js", "src/Walker.js"]
   }
 }

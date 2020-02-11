@@ -74,16 +74,12 @@ Detailed insight is [here](doc/how-it-works.md).
 ## API
 Detailed documentation is [here](doc/api.md).
 
-**_Deprecated:_**
-  1. v1.0.1 Ruler instance method call syntax `.add(definition, action)`;
-  1. v2.0.0 Ruler constructor `'action'` option - use `'defaultAction'`;
-  1. v2.0.0 Walker constructor `'defaultRules'` option - use `'defaultRuler'`;
-  
 Be sure to check for this README sometimes via 
 [npm](https://www.npmjs.com/package/dwalker) _homepage_ link or directly in github.
 I'll try to
 not update [npmjs.com](https://www.npmjs.com) too often. ;)
 
 ## Version history
+* v2.0.0 @20200126
 * v1.0.0 @20200124: Lots of improvements + **breaking changes**: class names, action codes.
 * v0.8.3 @20200123: first (remotely) airworthy version.

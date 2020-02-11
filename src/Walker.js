@@ -13,12 +13,12 @@ const { DO_ABORT, DO_SKIP, DO_TERMINATE, T_DIR } = require('./constants')
  * @typedef {Object} TWalkContext
  * @property {string} absDir separator-terminated absolute path
  * @property {?number} action from previous or upper (for onBegin) handler.
- * @property {?Object} current entry in {@link Ruler#trees}.
+ * @property {?Object} current entry in {@link Walker#trees}.
  * @property {*} data to be returned by {@link Walker#walkSync} method.
  * @property {number} depth 0 for `rootDir`.
  * @property {function(...)} detect plugin or instance method.
  * @property {string} dir relative to `rootDir`.
- * @property {?Object} master entry in {@link Ruler#trees}.
+ * @property {?Object} master entry in {@link Walker#trees}.
  * @property {?string} name of directory entry (onEntry only)
  * @property {string} rootDir absolute path where walking started from.
  * @property {Ruler} ruler currently active ruler instance.

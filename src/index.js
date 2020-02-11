@@ -5,22 +5,22 @@ if (process.env.NODE_ENV === undefined) process.env.NODE_ENV = 'development'
 const inProduction = process.env.NODE_ENV === 'production'
 
 /**
- * Package exports - members listed below and also the constants.
+ * Package exports - members listed below and also the [constants]{@link constants.md}.
  * @namespace dwalker
  * @mixes constants
  */
 const dwalker = {
-  /** @see {@link Ruler} */
+  /** @see [Ruler]{@link Ruler.md} */
   Ruler: require('./Ruler'),
-  /** @see {@link Walker} */
+  /** @see [Walker]{@link Walker.md} */
   Walker: require('./Walker'),
-  /** @see {@link actionName} */
+  /** @see [actionName]{@link utils.md#actionnameaction-frmt--string--} */
   actionName: inProduction ? () => undefined : require('./actionname'),
-  /** @see {@link loadFile} */
+  /** @see [loadFile]{@link utils.md#loadfilefilepath-mildly--undefined--buffer} */
   loadFile: require('./load-file'),
-  /** @see {@link relativize} */
+  /** @see [relativize]{@link utils.md#relativizepath-rootpath-prefix--string--} */
   relativize: require('./relativize'),
-  /** @see {@link typeName} */
+  /** @see [typeName]{@link utils.md#typenametype--string--undefined} */
   typeName: require('./typename'),
 
   ...require('./constants')

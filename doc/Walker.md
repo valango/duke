@@ -268,12 +268,12 @@ Data context [walkSync](#Walker+walkSync) provides handler methods / plugins wit
 | --- | --- | --- |
 | absDir | <code>string</code> | separator-terminated absolute path |
 | action | <code>number</code> | from previous or upper (for onBegin) handler. |
-| current | <code>Object</code> | entry in [Ruler#trees](Ruler#trees). |
+| current | <code>Object</code> | entry in [trees](#Walker+trees). |
 | data | <code>\*</code> | to be returned by [walkSync](#Walker+walkSync) method. |
 | depth | <code>number</code> | 0 for `rootDir`. |
 | detect | <code>function</code> | plugin or instance method. |
 | dir | <code>string</code> | relative to `rootDir`. |
-| master | <code>Object</code> | entry in [Ruler#trees](Ruler#trees). |
+| master | <code>Object</code> | entry in [trees](#Walker+trees). |
 | name | <code>string</code> | of directory entry (onEntry only) |
 | rootDir | <code>string</code> | absolute path where walking started from. |
 | ruler | <code>Ruler</code> | currently active ruler instance. |

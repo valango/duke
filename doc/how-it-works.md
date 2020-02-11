@@ -1,4 +1,5 @@
-**`Walker`** class instance has `walkSync()` method,
+**`Walker`** class instance has 
+[`walkSync()`](Walker.md#walkerwalksyncrootpath-options--object) method,
 which does most of the job. It traverses directory hierarchy width-first,
 calling application-defined handlers, as it goes. The walk() code
 is re-enterable and it can run in parallel promise instances.
@@ -32,17 +33,5 @@ function walkSync (root, options) {
 ```
 
 All handlers except `onError()` are invoked by walkSync() method with
-`context: {Object}` argument with following properties:
-   * `action: {number}` 
-   * `absDir: {string}` current directory path terminated by `path.sep`;
-   * `current: {Object}` a `trees` entry, usually set by `onBegin()`;
-   * `depth: {number}` is 0 for root directory;
-   * `detect: {function()}` instance method or _plugin_.
-   * `dir: {string}` directory path relative to `root`;
-   * `master: {Object}` a `trees` entry, usually set by `onBegin()`;
-   * `name: {string}` of current directory entry (onEntry() only);
-   * `root: {string}` root directory;
-   * `ruler: {Ruler}` currently active ruler instance.
-   * `type: {TEntry}` of current directory entry (onEntry() only);
-
-_**TEntry**_ type may have value of `T_...` constants exported by dwalker.
+[`context: {TWalkContext}`](Walker.md#twalkcontext--object)
+argument.
