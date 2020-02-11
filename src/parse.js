@@ -2,21 +2,23 @@
 
 const ANY = '.'
 const EXCL = '^'
-const SCREENED_EXCL = '\\!'
-const P_GLOB = '**'
+const GLOB = null
 const OPTIONAL = '.*'
+const P_GLOB = '**'
+const SCREENED_EXCL = '\\!'
 
 const DEFAULTS = { extended: true, optimize: true }
 const SEPARATOR = /(?<!\\)\//     //  Matches '/' only if not escaped.
 
 const assert = require('assert').strict
 const brexIt = require('brace-expansion')
-const { GLOB, T_ANY, T_DIR } = require('./constants')
+const { T_ANY, T_DIR } = require('./constants')
 
 const rxBraces = /(?<!\\){[^}]+(?<!\\)}/g   //  Detect non-escaped {...}
 
 /**
  * Convert `path` parts separated by '/' to array of RegExp instances.
+ * Used internally by Ruler.
  *
  * @param {string} path with optional type specifier separated by ';'.
  * @param {Object<{extended, optimize}>} options
@@ -86,3 +88,5 @@ exports = module.exports = (path, options = undefined) => {
   rules.unshift({ type: declaredT === null ? type : declaredT, isExclusion })
   return rules
 }
+
+exports.GLOB = GLOB

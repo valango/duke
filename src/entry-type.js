@@ -17,15 +17,13 @@ const types = {
 }
 
 /**
- * Get directory entry type.
+ * Get directory entry type. Used internally by walker.
  *
  * @param {Object} entry
  * @returns {TEntryType}
  */
-const entryType = (entry) => {
+module.exports = (entry) => {
   for (const test of Object.keys(types)) {
     if (entry[test]()) return types[test]
   }
 }
-
-module.exports = entryType

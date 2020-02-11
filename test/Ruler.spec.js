@@ -4,9 +4,10 @@ process.env.NODE_MODULES = 'test'
 
 const { AssertionError } = require('assert')
 const { expect } = require('chai')
-const { CONTINUE, DO_SKIP, DO_ABORT, GLOB, NIL, T_ANY, T_DIR, T_FILE } =
+const { DO_SKIP, DO_ABORT, T_ANY, T_DIR, T_FILE } =
         require('../src/constants')
 const { Ruler } = require('..')
+const { CONTINUE, GLOB, NIL } = Ruler
 
 const T1 = [
   DO_SKIP, '/skp-dir', 'skip*', '^skipnever*',
@@ -49,6 +50,7 @@ describe(ME, () => {
   })
 
   it('should throw on bad rule', () => {
+    expect(() => t.add(0)).to.throw(AssertionError, 'reserved')
     expect(() => t.add({})).to.throw(AssertionError, 'bad rule definition')
   })
 

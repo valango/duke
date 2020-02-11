@@ -5,24 +5,8 @@
  * Value of directory entry `type` property.
  */
 
-/**
- * @type {Object}
- */
+/** @namespace constants */
 const constants = {
-  /** Glob rule.
-   * @const {null} */
-  GLOB: null,
-  /** Index pointing to nowhere.
-   * @const {number} */
-  NIL: -1,
-  /** Root glob rule index.
-   * @const {number} */
-  ROOT: 0,
-
-  //  Action codes. App may define it's own codes between CONTINUE and DO_SKIP.
-  /** Do-nothing action code reserved for Ruler.
-   * @const {number} */
-  CONTINUE: 0,
   /** Action code: skip this directory entry.
    * @const {number} */
   DO_SKIP: Number.MAX_SAFE_INTEGER - 2,

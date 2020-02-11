@@ -1,8 +1,12 @@
 'use strict'
 
-const { GLOB, NIL, ROOT, CONTINUE, T_ANY, T_DIR } = require('./constants')
+const { T_ANY, T_DIR } = require('./constants')
 const parse = require('./parse')
 const Sincere = require('sincere')
+const CONTINUE = 0
+const { GLOB } = parse
+const NIL = -1
+const ROOT = 0
 //  Tree node constants.
 // const TYP = 0
 const RUL = 1
@@ -91,7 +95,8 @@ class Ruler extends Sincere {
   add_ (definition) {
     switch (typeof definition) {
       case 'number':
-        this.nextRuleAction = definition
+        this.assert((this.nextRuleAction = definition) !== CONTINUE,
+          'add', 'action code 0 is reserved')
         break
       case 'string':
         this.addPath_(definition)
@@ -284,3 +289,6 @@ class Ruler extends Sincere {
 }
 
 module.exports = Ruler
+
+//  These exports may be useful for testing.
+Object.assign(Ruler, { CONTINUE, GLOB, NIL, ROOT })

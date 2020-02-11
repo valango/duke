@@ -31,8 +31,8 @@ describe(ME, () => {
 
   it('actionName', () => {
     expect($.actionName({})).to.eql('{}', '{}')
-    expect($.actionName({ action: $.DO_SKIP, other: {} })).to.eql(
-      '{ action: DO_SKIP }')
+    expect($.actionName({ action: 0, other: {} })).to.eql(
+      '{ action: CONTINUE }')
     expect($.actionName($.DO_SKIP)).to.equal('DO_SKIP', 'DO_SKIP')
     expect($.actionName(1)).to.equal('ACTION(1)', 'ACTION(1)')
     expect($.actionName(-$.DO_SKIP)).to.equal('-DO_SKIP', '-DO_SKIP')
