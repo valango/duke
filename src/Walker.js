@@ -343,6 +343,7 @@ class Walker extends Sincere {
     const onEnd = closure.onEnd || this.onEnd
     const onEntry = closure.onEntry || this.onEntry
     const onError = closure.onError || this.onError
+    const promises = closure.promises
     let action, data = closure.data || {}, directory, entry, t
     let notRoot = parse(rootDir).root !== rootDir
 
@@ -358,6 +359,7 @@ class Walker extends Sincere {
       const length = paths.length
       const context = paths.shift()
 
+      if(promises) context.promises = promises
       data = context.data
       context.absDir = rootDir + context.dir
 
