@@ -359,7 +359,7 @@ class Walker extends Sincere {
       const length = paths.length
       const context = paths.shift()
 
-      if(promises) context.promises = promises
+      if (promises) context.promises = promises
       data = context.data
       context.absDir = rootDir + context.dir
 
