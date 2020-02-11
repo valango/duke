@@ -14,7 +14,9 @@
   "scripts": {
     "clean": "rimraf .nyc_output out reports t*mp *.log *.t*mp *.lcov",
     "coverage": "nyc report --reporter=text-lcov > coverage.lcov && codecov",
-    "doc": "jsdoc2md src/c*.js > doc/constants.md && jsdoc2md src/[ailrt]*.js > doc/misc.md",
+    "doc": "npm run doc1 && npm run doc2",
+    "doc1": "jsdoc2md src/R*.js > doc/Ruler.md && jsdoc2md src/W*.js > doc/Walker.md",
+    "doc2": "jsdoc2md src/i*.js > doc/exports.md && jsdoc2md src/c*.js > doc/constants.md",
     "lint": "eslint --ext .js .",
     "purge": "npm run clean && rimraf node_modules",
     "t": "nyc mocha 'test/**/Ruler.spec.js'",

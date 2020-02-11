@@ -1,5 +1,5 @@
 {
   "source": {
-    "includePattern": "[ailrt]+\\.js$"
+    "exclude": ["src/Ruler.js", "src/Walker.js"]
   }
 }
