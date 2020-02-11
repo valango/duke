@@ -5,9 +5,6 @@
 Rule-based file directory walker - ambitious 
 alternative to globber-based directory walkers.
 
-**WARNING:** This is _**development** branch_ README and
-it may be lagging real bad behind actual codebase changes.
-
 ## Mission
 Once I decided to write an utility for managing multiple _npm_ projects
 (I have close to 100 on my hard disk and sometimes I'm feeling lost).
@@ -80,6 +77,7 @@ I'll try to
 not update [npmjs.com](https://www.npmjs.com) too often. ;)
 
 ## Version history
+* v3.0.0 @20200211
 * v2.0.0 @20200126
-* v1.0.0 @20200124: Lots of improvements + **breaking changes**: class names, action codes.
+* v1.0.0 @20200124
 * v0.8.3 @20200123: first (remotely) airworthy version.
