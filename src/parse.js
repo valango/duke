@@ -22,9 +22,9 @@ const rxBraces = /(?<!\\){[^}]+(?<!\\)}/g   //  Detect non-escaped {...}
  *
  * @param {string} path with optional type specifier separated by ';'.
  * @param {Object<{extended, optimize}>} options
- * @returns {Array<*>} = the first entry is flags object
+ * @returns {Array} the first entry is flags object
  */
-exports = module.exports = (path, options = undefined) => {
+module.exports = (path, options = undefined) => {
   const check = (cond) => assert(cond, `invalid pattern '${path}'`)
   const opts = { ...DEFAULTS, ...options }, rules = []
 
@@ -89,4 +89,4 @@ exports = module.exports = (path, options = undefined) => {
   return rules
 }
 
-exports.GLOB = GLOB
+module.exports.GLOB = GLOB
