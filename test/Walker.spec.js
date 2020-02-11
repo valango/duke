@@ -85,23 +85,25 @@ describe(ME, () => {
     expect(w.failures.length).to.eql(1, 'length')
     expect(w.failures[0]).to.match(/^ENOENT:\s/, '[0]')
     w.failures = []
-    expect(w.walkSync(undefined, {
+    expect(() => w.walkSync(undefined, {
       onEntry: () => {
         throw Error('Test')
       }
-    }).message).to.match(/^Test\nARG:/)
+    })).to.throw(Error, /^Test\ncontext:\s/, 'thrown')
   })
 
   it('should walk in async mode', (done) => {
-    w.walk().then(() => done())
+    w.walk('').then(() => done())
   })
 
   it('should catch in async mode', (done) => {
-    w.walk('/nope', { onError: (e) => e }).then((r) => {
-      expect(r instanceof Error).to.equal(true, 'Error')
-      expect(r.message).to.match(/^ENOENT: /, 'ENOENT')
+    w.walk('/nope', { onError: (e) => e }).then(() => {
+      done(new Error('Failed'))
+    }).catch((e) => {
+      expect(e instanceof Error).to.equal(true, 'Error')
+      expect(e.message).to.match(/^ENOENT: /, 'ENOENT')
       done()
-    }).catch(done)
+    })
   })
 
   it('should intercept exceptions', () => {

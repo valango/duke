@@ -9,6 +9,35 @@ const entryType = require('./entry-type')
 const { DO_ABORT, DO_SKIP, DO_TERMINATE, T_DIR } = require('./constants')
 
 /**
+ * Data context {@link Walker#walkSync} provides handler methods / plugins with.
+ * @typedef {Object} TWalkContext
+ * @property {string} absDir separator-terminated absolute path
+ * @property {?number} action from previous or upper (for onBegin) handler.
+ * @property {?Object} current entry in {@link Ruler#trees}.
+ * @property {*} data to be returned by {@link Walker#walkSync} method.
+ * @property {number} depth 0 for `rootDir`.
+ * @property {function(...)} detect plugin or instance method.
+ * @property {string} dir relative to `rootDir`.
+ * @property {?Object} master entry in {@link Ruler#trees}.
+ * @property {?string} name of directory entry (onEntry only)
+ * @property {string} rootDir absolute path where walking started from.
+ * @property {Ruler} ruler currently active ruler instance.
+ * @property {?TEntryType} type of directory entry (onEntry only)
+ */
+
+/**
+ * Options for Walker#walk...() instance methods and constructor.
+ * @typedef {Object} TWalkOptions
+ * @property {?*} data               to be shared between handlers.
+ * @property {?function(...)} detect  plugin
+ * @property {?function(...)} onBegin plugin
+ * @property {?function(...)} onEnd   plugin
+ * @property {?function(...)} onEntry plugin
+ * @property {?function(...)} onError plugin
+ * @property {?Array<Promise>} promises for async walk() method only.
+ */
+
+/**
  * Total number of directories and directory entries processed.
  * @type {number}
  * @private
@@ -20,17 +49,16 @@ let directories = 0, entries = 0
  */
 class Walker extends Sincere {
   /**
-   * @param {Object<{tick,interval}>} options may also contain on...() plugins.
-   * @param {*=} sharedData - may be used by derived classes.
+   * @param {Object=} options all {@link TWalkOptions} properties,
+   * plus initial values for appropriate instance properties:
+   * @property {?*} defaultRuler
+   * @property {?number} interval msecs between tick plugin calls
+   * @property {?function(number=, number=)} tick plugin
+   * @property {?function(...)} trace plugin
    */
-  constructor (options, sharedData = undefined) {
+  constructor (options = undefined) {
     let o = { ...options }
     super()
-    /**
-     * Shared (not copied) data space - may be used by derived classes.
-     * @type {*|Object}
-     */
-    this.data = sharedData || {}
     /**
      * Default Ruler instance to be used until detect() finds something special.
      * @type {*|Ruler}
@@ -42,7 +70,7 @@ class Walker extends Sincere {
      */
     this.failures = []
     /**
-     * Minimum interval between this.tick() calls.
+     * Minimum interval between {@link Walker#tick} calls.
      * @type {number}
      */
     this.interval = o.interval || 200
@@ -52,22 +80,21 @@ class Walker extends Sincere {
      */
     this.options = o
     /**
-     * @type {Array<Promise>}
-     */
-    this.promises = []
-    /**
      * When true, walking will terminate immediately.
      * @type {boolean}
      */
     this.terminate = false
     /**
-     * Function to be called every `this.interval` while walking.
-     * @type {function(number=, number=)}
+     * Function to be called approximately periodically while walking
+     * with (entriesTotal, directoriesTotal) as arguments.
+     * @type {function(number, number)}
      */
     this.tick = this.options.tick || (() => undefined)
     /**
-     * Tracer API.
-     * @type {function(...)}
+     * Tracer plugin function called after every handler with
+     * (handlerName, context, action).
+     * A pseudo name 'noOpen' is used after opendir failure.
+     * @type {function(name, context, action)}
      */
     this.trace = this.options.trace || (() => undefined)
     /**
@@ -91,10 +118,11 @@ class Walker extends Sincere {
    * Check if the current directory should be recognized as special and
    * if it does then assign new values to `context.current` and `context.ruler`.
    * NB: in most cases, this method should _not_ be called from overriding one!
-   * @param {Object} context
+   * @param {TWalkContext} context
    * @param {number|undefined} action - set by dir entry rule (missing at root).
    * @returns {*} - a truey value on positive detection.
    */
+  //  istanbul ignore next
   detect (context, action) {
   }
 
@@ -129,7 +157,7 @@ class Walker extends Sincere {
   /**
    * Handler called after new directory was successfully opened.
    *
-   * @param {Object} context - may have it's `action` property set!
+   * @param {TWalkContext} context - may have it's `action` property set!
    * @returns {number|*}
    */
   onBegin (context) {
@@ -170,7 +198,7 @@ class Walker extends Sincere {
   /**
    * Handler called when done with current directory.
    *
-   * @param {Object} context - has `action` set by onBegin or last onEntry.
+   * @param {TWalkContext} context - has `action` set by onBegin or last onEntry.
    * @returns {*}
    */
   onEnd (context) {
@@ -185,7 +213,7 @@ class Walker extends Sincere {
 
   /**
    * Handler called for every directory entry.
-   * @param {Object} context - has `name` and `type` properties set.
+   * @param {TWalkContext} context - has `name` and `type` properties set.
    * @returns {Object|number|undefined}
    */
   onEntry (context) {
@@ -203,7 +231,7 @@ class Walker extends Sincere {
   /**
    * Handler called when error gets trapped.
    * @param {Error} errorInstance
-   * @param {*} args
+   * @param {*} context
    * @param {Object} expected resulting actions keyed by error code.
    * @returns {*}
    *  - undefined: do default handling;
@@ -211,7 +239,7 @@ class Walker extends Sincere {
    *  - other: DO_SKIP, DO_ABORT, DO_TERMINATE
    */
   //  istanbul ignore next
-  onError (errorInstance, args, expected) {
+  onError (errorInstance, context, expected) {
   }
 
   /**
@@ -237,19 +265,24 @@ class Walker extends Sincere {
     directories = entries = 0
   }
 
-  //  Execute a function or handler, catching possible errors.
-  //  Do default error handling.
-  //
-  safely_ (closure, func, argument, expected) {
+  /**
+   * Execute a function, handle expected errors.
+   * @param {function(...)} method
+   * @param {*} context or argument
+   * @param {function(...)} onError
+   * @param {Array<string>=} expected error codes
+   * @returns {number} action code
+   * @throws {Error} which was not handled.
+   * @private
+   */
+  safely_ (method, context, onError, expected) {
     let r
 
     try {
-      r = func.call(this, argument)
+      r = method.call(this, context)
     } catch (error) {
-      const onError = closure.onError || this.onError
-
-      r = onError.call(this, error, argument, expected)
-      this.trace('onError', { argument, error }, r)
+      r = onError.call(this, error, context, expected)
+      this.trace('onError', { context, error }, r)
 
       if (r === undefined) {
         if ((r = (expected || {})[error.code]) === undefined) {
@@ -259,13 +292,9 @@ class Walker extends Sincere {
         }
       }
       if (typeof r !== 'number') {
-        const v = r instanceof Error ? r : error
-        //  Remember the first error.
-        if (!closure.error) {
-          (closure.error = v).argument = argument
-          v.message += '\nARG: ' + inspect(argument)
-        }
-        r = DO_TERMINATE
+        const e = r instanceof Error ? r : error
+        e.message += '\ncontext: ' + inspect(context)
+        throw e
       }
       this._nextTick = Date.now() + this.interval
     }
@@ -276,31 +305,32 @@ class Walker extends Sincere {
   }
 
   /**
-   *  Process directory tree asynchronously width-first starting from `root`
-   *  and invoke appropriate on... method.
+   *  Process directory tree asynchronously width-first starting from `rootPath`
+   *  and invoke appropriate onXxx method.
    *
-   * @param {string} root
-   * @param {Object<{?locals}>} options
-   * @returns {Promise}
+   * @param {string} rootPath
+   * @param {TWalkOptions=} options
+   * @returns {Promise<Array>} the first item is data returned by walkSync().
    */
-  walk (root, options = undefined) {
-    return new Promise((resolve, reject) => {
-      const res = this.walkSync(root, options)
+  walk (rootPath, options = undefined) {
+    const closure = { ...this.options, ...options }
 
-      if (res.error) {
-        this.promises = []
-        return reject(res.error)
-      }
-      Promise.all(this.promises).then(() => {
-        resolve(res)
-      })
+    if (!closure.promises) closure.promises = []
+
+    return new Promise((resolve, reject) => {
+      closure.promises.unshift(this.walkSync(rootPath, closure))
+
+      return Promise.all(closure.promises).then(resolve).catch(reject)
     })
   }
 
   /**
+   *  Process directory tree synchronously width-first starting from `rootPath`
+   *  and invoke appropriate onXxx methods.
+   *
    * @param {string} rootPath
-   * @param {Object=} options
-   * @returns {Object<{?error: Error}>}
+   * @param {TWalkOptions=} options
+   * @returns {Object} 'data` member of internal context.
    */
   walkSync (rootPath, options = undefined) {
     this.assert(!rootPath || typeof rootPath === 'string', 'walkSync',
@@ -312,13 +342,14 @@ class Walker extends Sincere {
     const onBegin = closure.onBegin || this.onBegin
     const onEnd = closure.onEnd || this.onEnd
     const onEntry = closure.onEntry || this.onEntry
-    let action, directory, entry, t, notRoot = parse(rootDir).root !== rootDir
+    const onError = closure.onError || this.onError
+    let action, data = closure.data || {}, directory, entry, t
+    let notRoot = parse(rootDir).root !== rootDir
 
     //  Push initial context to FIFO.
     paths.push({
       /* eslint-disable */
-      depth: 0, detect: closure.detect || this.detect, dir: '',
-      locals: closure.locals || {},
+      data, depth: 0, detect: closure.detect || this.detect, dir: '',
       rootDir, ruler: this.defaultRuler
       /* eslint-enable */
     })
@@ -327,9 +358,10 @@ class Walker extends Sincere {
       const length = paths.length
       const context = paths.shift()
 
+      data = context.data
       context.absDir = rootDir + context.dir
 
-      if (typeof (directory = this.safely_(closure, opendirSync, context.absDir,
+      if (typeof (directory = this.safely_(opendirSync, context.absDir, onError,
         onErrors.opendir)) === 'number') {  //  opendir failed -> action
         this.trace('noOpen', context.absDir, action = directory)
         directory = undefined
@@ -345,7 +377,7 @@ class Walker extends Sincere {
         if (notRoot) context.absDir += sep
 
         notRoot = true
-        action = this.safely_(closure, onBegin, context, onErrors.onBegin)
+        action = this.safely_(onBegin, context, onError, onErrors.onBegin)
         this.trace('onBegin', context, action)
       }
       if (!(action >= DO_SKIP)) {
@@ -353,7 +385,7 @@ class Walker extends Sincere {
           action = undefined
           try {
             if (!(entry = directory.readSync())) break
-          } catch (error) {
+          } catch (error) /* istanbul ignore next */ {
             if (error.code !== 'EBADF') throw error
             action = DO_ABORT
             this.registerFailure(error.message)
@@ -363,7 +395,7 @@ class Walker extends Sincere {
             context.type = entryType(entry)
 
             entries += 1
-            action = this.safely_(closure, onEntry, context, onErrors.onEntry)
+            action = this.safely_(onEntry, context, onError, onErrors.onEntry)
             this.trace('onEntry', context, action)
           }
           if (context.type === T_DIR && !(action >= DO_SKIP)) {
@@ -378,7 +410,7 @@ class Walker extends Sincere {
             if (typeof action === 'object') {
               ctx.action = action.action || undefined
               ctx.current = action.current || undefined
-              ctx.locals = action.locals || ctx.locals
+              ctx.data = action.data || ctx.data
               ctx.ruler = action.ruler || ctx.ruler
             }
             this.trace('push', ctx, action)
@@ -389,7 +421,7 @@ class Walker extends Sincere {
       if (directory) directory.closeSync()
 
       context.action = action   //  Special to this handler only.
-      action = this.safely_(closure, onEnd, context, onErrors.onEnd)
+      action = this.safely_(onEnd, context, onError, onErrors.onEnd)
       this.trace('onEnd', context, action)
 
       if (action >= DO_ABORT) {
@@ -397,7 +429,7 @@ class Walker extends Sincere {
         break
       }
     }       //  end while (paths...)
-    return closure.error ? closure.error : {}
+    return data
   }
 }
 

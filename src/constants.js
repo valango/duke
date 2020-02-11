@@ -1,7 +1,7 @@
 'use strict'
 
 /**
- * @typedef TEntryType {string}
+ * @typedef {string} TEntryType
  * Value of directory entry `type` property.
  */
 

@@ -44,13 +44,13 @@ class ProWalker extends Walker {
    * @param {Object} context
    */
   detect (context) {
-    const { absDir } = context
+    const { absDir, data } = context
     let v = loadFile(join(absDir, 'package.json'))
 
     if (v) {
       v = JSON.parse(v.toString())
       const name = v.name || '', funny = !name
-      this.data.nameLength = Math.max(name.length, this.data.nameLength)
+      data.nameLength = Math.max(name.length, data.nameLength)
       context.ruler = projectRules
       context.current = { absDir, count: 0, funny, name, promo: '' }
       if (context.master) {
@@ -74,16 +74,16 @@ class ProWalker extends Walker {
         current.promo = current.promo || 'T'
         return DO_SKIP
     }
-    this.data.total += 1
     return action
   }
 }
 
-const stats = { dirLength: 0, nameLength: 10, total: 0 }
+//  Working data to be shared with all threads / entries.
+const data = { dirLength: 0, nameLength: 10, total: 0 }
 const tick = (count) => process.stdout.write(
   'Entries processed: ' + count + '\r')
-const opts = { defaultRules, nested: options.nested, tick, trace }
-const walker = new ProWalker(opts, stats)
+const opts = { data, defaultRules, nested: options.nested, tick, trace }
+const walker = new ProWalker(opts)
 
 const threads = args.length > 1 && !options.single
 const task = threads
@@ -101,18 +101,16 @@ measure(task).then((results) => {
 
   walker.trees.forEach((p) => {
     const dir = relativize(p.absDir, '~')
-    stats.dirLength = Math.max(dir.length, stats.dirLength)
-    const d = ['%s %s %s:', p.name.padEnd(stats.nameLength),
+    data.dirLength = Math.max(dir.length, data.dirLength)
+    const d = ['%s %s %s:', p.name.padEnd(data.nameLength),
       p.promo || ' ', (p.count + '').padStart(5), dir]
     if (p.count === 0) p.funny = true
     if (p.funny) d.unshift(color.redBright)
     print.apply(undefined, d)
   })
-  print('- name '.padEnd(stats.nameLength, '-'),
-    '? - cnt:', '- directory '.padEnd(stats.dirLength, '-'))
+  print('- name '.padEnd(data.nameLength, '-'),
+    '? - cnt:', '- directory '.padEnd(data.dirLength, '-'))
   print('Total %i projects', walker.trees.length)
-
-  results.forEach((r) => r instanceof Error && print(color.redBright, r.stack))
 
   const { directories, entries } = Walker.getTotals()
   print('Total %i ms (%i µs per entry) for %i entries in %i directories%s.',
