@@ -94,7 +94,7 @@ class Walker extends Sincere {
      * Tracer plugin function called after every handler with
      * (handlerName, context, action).
      * A pseudo name 'noOpen' is used after opendir failure.
-     * @type {function(name, context, action)}
+     * @type {function(name:string, context:*, action:*)}
      */
     this.trace = this.options.trace || (() => undefined)
     /**
