@@ -397,7 +397,6 @@ class Walker extends Sincere {
             entries += 1
             action = this.safely_(onEntry, context, onError, onErrors.onEntry)
             this.trace('onEntry', context, action)
-            delete context.name && delete context.type
           }
           if (context.type === T_DIR && !(action >= DO_SKIP)) {
             const ctx = {
@@ -414,6 +413,7 @@ class Walker extends Sincere {
               ctx.data = action.data || ctx.data
               ctx.ruler = action.ruler || ctx.ruler
             }
+            delete ctx.name && delete ctx.type
             this.trace('push', ctx, action)
             paths.push(ctx)
           }

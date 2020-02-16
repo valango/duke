@@ -37,7 +37,12 @@ const options = {
   onEnd: function (ctx) {
     return /skipped$/.test(ctx.dir) ? DO_ABORT : this.onEnd(ctx)
   },
-  talk: (...args) => told.push(args)
+  xtrace: (what, ctx, act) => {
+    if (what === 'onBegin' || what === 'onEnd') {
+      console.log('-', what, ctx.absDir)
+    }
+    if (what === 'push') console.log('-', what, ctx.absDir, ctx.dir)
+  }
 }
 
 const onEntry = function (ctx) {
@@ -62,10 +67,10 @@ describe(ME, () => {
   })
 
   it('should walk synchronously', () => {
-    w.defaultRuler.add([1, '/pack*.json', 1, '*.js'])
+    w.projectRuler.add([1, '/pack*.json', 1, '*.js;f'])
     w.walkSync('', { onEntry })
     expect(w.failures).to.eql([], 'failures')
-    expect(acts['ACTION(1)']).to.gte(15, 'ACTION(1)')
+    expect(acts['ACTION(1)']).to.gte(2, 'ACTION(1)')
     expect(w.trees.length).to.equal(1, '#1')
     w.walkSync('', { onEntry })
     expect(w.trees.length).to.equal(1, '#2')
@@ -125,7 +130,7 @@ describe(ME, () => {
     before(() => (options.nested = true))
 
     it('should process rules', () => {
-      w.walkSync('', { onEntry })
+      w.walkSync('.', { onEntry })
       expect(w.failures).to.eql([], 'failures')
       // expect(acts['ACTION(1)']).to.gte(15, 'ACTION(1)')
       // console.log('w.trees', w.trees)
