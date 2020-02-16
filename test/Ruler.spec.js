@@ -32,15 +32,7 @@ const match = (str, type, exp, anc = undefined) => {
   return v
 }
 
-const check = (name, type, expected, anc = undefined) => {
-  if (anc) {
-    if (anc === -1) {
-      anc = [CONTINUE, -1]
-    } else {
-      anc = anc.map(i => [t.treeCopy[i][2], i])
-    }
-    t = t.clone(anc)
-  }
+const check = (name, type, expected) => {
   const res = t.check(name, type)
   const act = actionName(res), exp = actionName(expected)
   expect(res).to.equal(expected, `${name};${type} got ${act} not ${exp}`)
@@ -93,11 +85,12 @@ describe(ME, () => {
     check('skipnever.js', T_FILE, 2)
     check('any.js', T_FILE, 2)
     check('src', T_DIR, CONTINUE)
-    check('abort', T_FILE, DO_ABORT, [4])
-    check('skip.js', T_FILE, DO_SKIP, [4])
+    t = t.clone(true)
+    check('abort', T_FILE, DO_ABORT)
+    check('skip.js', T_FILE, DO_SKIP)
     expect(t.hasAction(2)).to.equal(true)
     expect(t.hasAction(3)).to.equal(true)
-    check('skipnever.js', T_FILE, 3, [4])
+    check('skipnever.js', T_FILE, 3)
     t = new Ruler()
     check('skipa', T_FILE, CONTINUE)
   })

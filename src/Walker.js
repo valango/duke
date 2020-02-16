@@ -179,9 +179,8 @@ class Walker extends Sincere {
 
     //  If we are at root, then check rules as normally done by onEntry().
     if (act === undefined && context.dir === '') {
-      act = (r = context.ruler).match(context.rootDir.split(sep).pop())
-      context.ruler = r.clone(act)
-      act = act[0][0]
+      act = (r = context.ruler).check(context.rootDir.split(sep).pop())
+      context.ruler = r.clone(true)
     }
     r = context.detect.call(this, context, act)
     this.trace('detect', context, r)
@@ -219,11 +218,10 @@ class Walker extends Sincere {
   onEntry (context) {
     const { name, ruler, type } = context
 
-    const matches = ruler.match(name, type)
-    const action = matches[0][0]
+    const action = ruler.check(name, type)
 
     if (type === T_DIR && !(action >= DO_SKIP)) {
-      return { action, ruler: ruler.clone(matches) }
+      return { action, ruler: ruler.clone(true) }
     }
     return action
   }
