@@ -59,7 +59,7 @@ module.exports = (path, options = undefined) => {
 
     if (rule === P_GLOB) {
       if (rules.length) {
-        if ((rule = rules.pop()) !== GLOB && rule !== ANY) {
+        if ((rule = rules.pop()) !== GLOB) {
           rules.push(rule)
         }
       }
