@@ -4,9 +4,8 @@ process.env.NODE_MODULES = 'test'
 
 const { AssertionError } = require('assert')
 const { expect } = require('chai')
-const { DO_SKIP, DO_ABORT, T_ANY, T_DIR, T_FILE } =
-        require('../src/constants')
-const { Ruler } = require('..')
+const { Ruler, DO_SKIP, DO_ABORT, T_ANY, T_DIR, T_FILE, actionName } =
+        require('..')
 const { CONTINUE, GLOB, NIL } = Ruler
 
 const T1 = [
@@ -22,7 +21,7 @@ const match = (str, type, exp, anc = undefined) => {
     if (anc === -1) {
       anc = [CONTINUE, -1]
     } else {
-      anc = anc.map(i => [t._tree[i][2], i])
+      anc = anc.map(i => [t.treeCopy[i][2], i])
     }
     t = t.clone(anc)
   }
@@ -31,6 +30,20 @@ const match = (str, type, exp, anc = undefined) => {
   str += ';' + type
   expect(v).to.eql(exp, anc === NIL ? str : str + ' @' + ++n)
   return v
+}
+
+const check = (name, type, expected, anc = undefined) => {
+  if (anc) {
+    if (anc === -1) {
+      anc = [CONTINUE, -1]
+    } else {
+      anc = anc.map(i => [t.treeCopy[i][2], i])
+    }
+    t = t.clone(anc)
+  }
+  const res = t.check(name, type)
+  const act = actionName(res), exp = actionName(expected)
+  expect(res).to.equal(expected, `${name};${type} got ${act} not ${exp}`)
 }
 
 describe(ME, () => {
@@ -56,7 +69,10 @@ describe(ME, () => {
 
   it('should match', () => {
     match('nomatch', T_FILE, [-1])
+    expect(t.hasAction(DO_SKIP)).to.equal(false, 1)
     match('skipa', T_FILE, [2])
+    expect(t.hasAction(DO_SKIP)).to.equal(true, 2)
+    expect(t.hadAction(DO_SKIP)).to.equal(false, 3)
     match('skipnever', T_FILE, [-1])
     match('skipnever.js', T_FILE, [7])
     match('any.js', T_FILE, [7])
@@ -66,6 +82,24 @@ describe(ME, () => {
     match('skipnever.js', T_FILE, [8, 7, 6, 5], [4])
     t = new Ruler()
     match('skipa', T_FILE, [-1])
+  })
+
+  it('should check', () => {
+    expect(t.hadAction(CONTINUE)).to.equal(true)
+    expect(t.hasAction(CONTINUE)).to.equal(false)
+    check('nomatch', T_FILE, CONTINUE)
+    check('skipa', T_FILE, DO_SKIP)
+    check('skipnever', T_FILE, CONTINUE)
+    check('skipnever.js', T_FILE, 2)
+    check('any.js', T_FILE, 2)
+    check('src', T_DIR, CONTINUE)
+    check('abort', T_FILE, DO_ABORT, [4])
+    check('skip.js', T_FILE, DO_SKIP, [4])
+    expect(t.hasAction(2)).to.equal(true)
+    expect(t.hasAction(3)).to.equal(true)
+    check('skipnever.js', T_FILE, 3, [4])
+    t = new Ruler()
+    check('skipa', T_FILE, CONTINUE)
   })
 
   it('should clone', () => {

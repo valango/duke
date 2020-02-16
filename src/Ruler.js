@@ -56,7 +56,7 @@ class Ruler extends Sincere {
     this.ancestors = [[CONTINUE, NIL]]
 
     /**
-     * Most recent result returned by match() method - for debugging.
+     * Most recent result from internal match_() method.
      * @type {Array|undefined}
      */
     this.lastMatch = undefined
@@ -172,6 +172,33 @@ class Ruler extends Sincere {
   }
 
   /**
+   * Check the `itemName` against rules, mutating `lastMatch` item property.
+   *
+   * The results array never contains ROOT node, which will be added
+   * on every run.
+   * If a node of special action is matched, then only this node is returned.
+   *
+   * @param {string} itemName of item
+   * @param {string=} itemType of item
+   * @returns {number} the most prevailing action among matches.
+   */
+  check (itemName, itemType = T_ANY) {
+    const globs = [], tree = this._tree
+
+    const anc = (this.ancestors || [])
+      .map(([a, i]) => {
+        if (i > ROOT && tree[i][RUL] === GLOB) globs.push([a, i])
+        return i
+      })
+
+    anc.push(ROOT)    //  Always!
+
+    this.lastMatch = this.match_(itemName, itemType, anc, []).concat(globs)
+
+    return Math.max.apply(Math, this.lastMatch.map(([a]) => a))
+  }
+
+  /**
    * Create copy of the instance.
    * @param {Array=} ancestors
    * @returns {Ruler}
@@ -203,6 +230,34 @@ class Ruler extends Sincere {
    * @returns {string|undefined} NB: always undefined in production mode!
    */
   dump (options = undefined) {
+  }
+
+  /**
+   * Check if given results array contains entry with given action.
+   * @param {Array<*>[]} results
+   * @param {number} action
+   * @returns {boolean}
+   */
+  static hasActionIn (results, action) {
+    return !!(results && results.find(([a]) => a === action))
+  }
+
+  /**
+   * Check if any of ancestors contains given action.
+   * @param {number} action
+   * @returns {boolean}
+   */
+  hadAction (action) {
+    return Ruler.hasActionIn(this.ancestors, action)
+  }
+
+  /**
+   * Check if results from recent match contain given action.
+   * @param {number} action
+   * @returns {boolean}
+   */
+  hasAction (action) {
+    return Ruler.hasActionIn(this.lastMatch, action)
   }
 
   /**
@@ -257,7 +312,8 @@ class Ruler extends Sincere {
   }
 
   /**
-   * Match the `itemName` against rules, without mutating object state.
+   * Match the `itemName` against rules. NB: will be deprecated - use `check()`,
+   * `hasAction()` and `lastMatch` instead!
    *
    * The results array never contains ROOT node, which will be added
    * on every run.
@@ -283,6 +339,10 @@ class Ruler extends Sincere {
     return (this.lastMatch = res.sort(([a], [b]) => b - a))
   }
 
+  /**
+   * Get copy of rule tree - for testing only!
+   * @type {Array<*>[]}
+   */
   get treeCopy () {
     return this._tree.slice()
   }
