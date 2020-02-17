@@ -36,6 +36,7 @@ const options = {
       v = JSON.parse(v.toString())
       context.ruler = this.projectRuler
       context.current = { absDir, name: v.name || '?' }
+      this.trees.push(context.current)
     }
   },
   onBegin: function (ctx) {

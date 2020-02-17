@@ -117,6 +117,7 @@ class Walker extends Sincere {
   /**
    * Check if the current directory should be recognized as special and
    * if it does then assign new values to `context.current` and `context.ruler`.
+   * Probably the `context.current` should be added to `trees`, to.
    * NB: in most cases, this method should _not_ be called from overriding one!
    * @param {TWalkContext} context
    * @returns {*} - a truey value on positive detection.
