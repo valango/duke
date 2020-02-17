@@ -240,7 +240,7 @@ class Ruler extends Sincere {
 
   /**
    * Check if given results array contains entry with given action.
-   * @param {Array<*>[]} results
+   * @param {Array<Array<number>>} results
    * @param {number} action
    * @returns {boolean}
    */
@@ -271,7 +271,7 @@ class Ruler extends Sincere {
    * @param {string} itemType
    * @param {Array<number>} ancestors
    * @param {Array} res
-   * @returns {Array<Array>}
+   * @returns {Array<Array<number>>}
    * @private
    */
   match_ (itemName, itemType, ancestors, res) {
@@ -327,7 +327,7 @@ class Ruler extends Sincere {
    *
    * @param {string} itemName of item
    * @param {string=} itemType of item
-   * @returns {Array<Array>} array of [action, index]
+   * @returns {Array<Array<number>>} array of [action, index]
    */
   match (itemName, itemType = T_ANY) {
     const globs = [], tree = this._tree
@@ -347,7 +347,7 @@ class Ruler extends Sincere {
 
   /**
    * Get copy of rule tree - for testing only!
-   * @type {Array<*>[]}
+   * @type {Array<Array<*>>}
    */
   get treeCopy () {
     return this._tree.slice()

@@ -43,8 +43,8 @@ Walks a directory tree according to rules.
         * [.terminate](#Walker+terminate) : <code>boolean</code>
         * [.tick](#Walker+tick) : <code>function</code>
         * [.trace](#Walker+trace) : <code>function</code>
-        * [.trees](#Walker+trees) : <code>Array.&lt;{absDir:string}&gt;</code>
-        * [.detect(context, action)](#Walker+detect) ⇒ <code>\*</code>
+        * [.trees](#Walker+trees) : <code>Array.&lt;{Object}&gt;</code>
+        * [.detect(context)](#Walker+detect) ⇒ <code>\*</code>
         * [.getCurrent(dir)](#Walker+getCurrent) ⇒ <code>Object</code> \| <code>undefined</code>
         * [.getMaster(dir)](#Walker+getMaster) ⇒ <code>Object</code> \| <code>undefined</code>
         * [.onBegin(context)](#Walker+onBegin) ⇒ <code>number</code> \| <code>\*</code>
@@ -113,24 +113,24 @@ A pseudo name 'noOpen' is used after opendir failure.
 **Kind**: instance property of [<code>Walker</code>](#Walker)  
 <a name="Walker+trees"></a>
 
-### walker.trees : <code>Array.&lt;{absDir:string}&gt;</code>
+### walker.trees : <code>Array.&lt;{Object}&gt;</code>
 Descriptors of recognized filesystem subtrees.
 
 **Kind**: instance property of [<code>Walker</code>](#Walker)  
 <a name="Walker+detect"></a>
 
-### walker.detect(context, action) ⇒ <code>\*</code>
+### walker.detect(context) ⇒ <code>\*</code>
 Check if the current directory should be recognized as special and
 if it does then assign new values to `context.current` and `context.ruler`.
+Probably the `context.current` should be added to `trees`, to.
 NB: in most cases, this method should _not_ be called from overriding one!
 
 **Kind**: instance method of [<code>Walker</code>](#Walker)  
-**Returns**: <code>\*</code> - - a truey value on positive detection.  
+**Returns**: <code>\*</code> - - non-numeric value has no effect for Walker class.  
 
-| Param | Type | Description |
-| --- | --- | --- |
-| context | [<code>TWalkContext</code>](#TWalkContext) |  |
-| action | <code>number</code> \| <code>undefined</code> | set by dir entry rule (missing at root). |
+| Param | Type |
+| --- | --- |
+| context | [<code>TWalkContext</code>](#TWalkContext) | 
 
 <a name="Walker+getCurrent"></a>
 
@@ -146,7 +146,7 @@ Get descriptor for the current directory if it was recognized.
 <a name="Walker+getMaster"></a>
 
 ### walker.getMaster(dir) ⇒ <code>Object</code> \| <code>undefined</code>
-Find tree above the current directory.
+Get descriptor for the parent directory if it was recognized.
 
 **Kind**: instance method of [<code>Walker</code>](#Walker)  
 
@@ -161,9 +161,9 @@ Handler called after new directory was successfully opened.
 
 **Kind**: instance method of [<code>Walker</code>](#Walker)  
 
-| Param | Type | Description |
-| --- | --- | --- |
-| context | [<code>TWalkContext</code>](#TWalkContext) | may have it's `action` property set! |
+| Param | Type |
+| --- | --- |
+| context | [<code>TWalkContext</code>](#TWalkContext) | 
 
 <a name="Walker+onEnd"></a>
 
@@ -174,7 +174,7 @@ Handler called when done with current directory.
 
 | Param | Type | Description |
 | --- | --- | --- |
-| context | [<code>TWalkContext</code>](#TWalkContext) | has `action` set by onBegin or last onEntry. |
+| context | [<code>TWalkContext</code>](#TWalkContext) | has `action` from `onBegin` or last `onEntry`. |
 
 <a name="Walker+onEntry"></a>
 
@@ -267,13 +267,11 @@ Data context [walkSync](#Walker+walkSync) provides handler methods / plugins wit
 | Name | Type | Description |
 | --- | --- | --- |
 | absDir | <code>string</code> | separator-terminated absolute path |
-| action | <code>number</code> | from previous or upper (for onBegin) handler. |
 | current | <code>Object</code> | entry in [trees](#Walker+trees). |
 | data | <code>\*</code> | to be returned by [walkSync](#Walker+walkSync) method. |
 | depth | <code>number</code> | 0 for `rootDir`. |
 | detect | <code>function</code> | plugin or instance method. |
 | dir | <code>string</code> | relative to `rootDir`. |
-| master | <code>Object</code> | entry in [trees](#Walker+trees). |
 | name | <code>string</code> | of directory entry (onEntry only) |
 | rootDir | <code>string</code> | absolute path where walking started from. |
 | ruler | <code>Ruler</code> | currently active ruler instance. |

@@ -7,15 +7,22 @@ Rule tree and intermediate state of searches.
 
 * [Ruler](#Ruler)
     * [new Ruler([options], ...definitions)](#new_Ruler_new)
-    * [.ancestors](#Ruler+ancestors) : <code>Array.&lt;Array&gt;</code> \| <code>undefined</code>
-    * [.lastMatch](#Ruler+lastMatch) : <code>Array</code> \| <code>undefined</code>
-    * [.nextRuleAction](#Ruler+nextRuleAction) : <code>number</code>
-    * [.options](#Ruler+options) : <code>Object</code>
-    * [.add(...args)](#Ruler+add) ⇒ [<code>Ruler</code>](#Ruler)
-    * [.clone([ancestors])](#Ruler+clone) ⇒ [<code>Ruler</code>](#Ruler)
-    * [.concat(...args)](#Ruler+concat) ⇒ [<code>Ruler</code>](#Ruler)
-    * [.dump(options)](#Ruler+dump) ⇒ <code>string</code> \| <code>undefined</code>
-    * [.match(itemName, [itemType])](#Ruler+match) ⇒ <code>Array.&lt;Array&gt;</code>
+    * _instance_
+        * [.ancestors](#Ruler+ancestors) : <code>Array.&lt;Array&gt;</code> \| <code>undefined</code>
+        * [.lastMatch](#Ruler+lastMatch) : <code>Array</code> \| <code>undefined</code>
+        * [.nextRuleAction](#Ruler+nextRuleAction) : <code>number</code>
+        * [.options](#Ruler+options) : <code>Object</code>
+        * [.treeCopy](#Ruler+treeCopy) : <code>Array.&lt;Array.&lt;\*&gt;&gt;</code>
+        * [.add(...args)](#Ruler+add) ⇒ [<code>Ruler</code>](#Ruler)
+        * [.check(itemName, [itemType])](#Ruler+check) ⇒ <code>number</code>
+        * [.clone([ancestors])](#Ruler+clone) ⇒ [<code>Ruler</code>](#Ruler)
+        * [.concat(...args)](#Ruler+concat) ⇒ [<code>Ruler</code>](#Ruler)
+        * [.dump(options)](#Ruler+dump) ⇒ <code>string</code> \| <code>undefined</code>
+        * [.hadAction(action)](#Ruler+hadAction) ⇒ <code>boolean</code>
+        * [.hasAction(action)](#Ruler+hasAction) ⇒ <code>boolean</code>
+        * [.match(itemName, [itemType])](#Ruler+match) ⇒ <code>Array.&lt;Array.&lt;number&gt;&gt;</code>
+    * _static_
+        * [.hasActionIn(results, action)](#Ruler.hasActionIn) ⇒ <code>boolean</code>
 
 <a name="new_Ruler_new"></a>
 
@@ -35,7 +42,7 @@ Used and mutated by test() method.
 <a name="Ruler+lastMatch"></a>
 
 ### ruler.lastMatch : <code>Array</code> \| <code>undefined</code>
-Most recent result returned by match() method - for debugging.
+Most recent result from internal match_() method.
 
 **Kind**: instance property of [<code>Ruler</code>](#Ruler)  
 <a name="Ruler+nextRuleAction"></a>
@@ -48,6 +55,12 @@ Action to be bound to next rule - used and possibly mutated by add().
 
 ### ruler.options : <code>Object</code>
 Options for string parser.
+
+**Kind**: instance property of [<code>Ruler</code>](#Ruler)  
+<a name="Ruler+treeCopy"></a>
+
+### ruler.treeCopy : <code>Array.&lt;Array.&lt;\*&gt;&gt;</code>
+Get copy of rule tree - for testing only!
 
 **Kind**: instance property of [<code>Ruler</code>](#Ruler)  
 <a name="Ruler+add"></a>
@@ -65,6 +78,23 @@ action code for following rule(s). Array may be nested.
 | --- | --- | --- |
 | ...args | <code>\*</code> | any of {Array|Ruler|number|string} |
 
+<a name="Ruler+check"></a>
+
+### ruler.check(itemName, [itemType]) ⇒ <code>number</code>
+Check the `itemName` against rules, mutating `lastMatch` item property.
+
+The results array never contains ROOT node, which will be added
+on every run.
+If a node of special action is matched, then only this node is returned.
+
+**Kind**: instance method of [<code>Ruler</code>](#Ruler)  
+**Returns**: <code>number</code> - the most prevailing action among matches.  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| itemName | <code>string</code> | of item |
+| [itemType] | <code>string</code> | of item |
+
 <a name="Ruler+clone"></a>
 
 ### ruler.clone([ancestors]) ⇒ [<code>Ruler</code>](#Ruler)
@@ -72,9 +102,9 @@ Create copy of the instance.
 
 **Kind**: instance method of [<code>Ruler</code>](#Ruler)  
 
-| Param | Type |
-| --- | --- |
-| [ancestors] | <code>Array</code> | 
+| Param | Type | Default | Description |
+| --- | --- | --- | --- |
+| [ancestors] | <code>\*</code> | <code>false</code> | array or:   - `true` means use `lastMatch` instance property w fallback to ancestors   - falsy value means use `ancestors` property. |
 
 <a name="Ruler+concat"></a>
 
@@ -99,20 +129,55 @@ Create diagnostic dump for visual display.
 | --- | --- | --- |
 | options | <code>Array.&lt;string&gt;</code> \| <code>string</code> \| <code>number</code> | which members to show and how. |
 
+<a name="Ruler+hadAction"></a>
+
+### ruler.hadAction(action) ⇒ <code>boolean</code>
+Check if any of ancestors contains given action.
+
+**Kind**: instance method of [<code>Ruler</code>](#Ruler)  
+
+| Param | Type |
+| --- | --- |
+| action | <code>number</code> | 
+
+<a name="Ruler+hasAction"></a>
+
+### ruler.hasAction(action) ⇒ <code>boolean</code>
+Check if results from recent match contain given action.
+
+**Kind**: instance method of [<code>Ruler</code>](#Ruler)  
+
+| Param | Type |
+| --- | --- |
+| action | <code>number</code> | 
+
 <a name="Ruler+match"></a>
 
-### ruler.match(itemName, [itemType]) ⇒ <code>Array.&lt;Array&gt;</code>
-Match the `itemName` against rules, without mutating object state.
+### ruler.match(itemName, [itemType]) ⇒ <code>Array.&lt;Array.&lt;number&gt;&gt;</code>
+Match the `itemName` against rules. NB: will be deprecated - use `check()`,
+`hasAction()` and `lastMatch` instead!
 
 The results array never contains ROOT node, which will be added
 on every run.
 If a node of special action is matched, then only this node is returned.
 
 **Kind**: instance method of [<code>Ruler</code>](#Ruler)  
-**Returns**: <code>Array.&lt;Array&gt;</code> - array of [action, index]  
+**Returns**: <code>Array.&lt;Array.&lt;number&gt;&gt;</code> - array of [action, index]  
 
 | Param | Type | Description |
 | --- | --- | --- |
 | itemName | <code>string</code> | of item |
 | [itemType] | <code>string</code> | of item |
+
+<a name="Ruler.hasActionIn"></a>
+
+### Ruler.hasActionIn(results, action) ⇒ <code>boolean</code>
+Check if given results array contains entry with given action.
+
+**Kind**: static method of [<code>Ruler</code>](#Ruler)  
+
+| Param | Type |
+| --- | --- |
+| results | <code>Array.&lt;Array.&lt;number&gt;&gt;</code> | 
+| action | <code>number</code> | 
 

@@ -12,13 +12,11 @@ const { DO_ABORT, DO_SKIP, DO_TERMINATE, T_DIR } = require('./constants')
  * Data context {@link Walker#walkSync} provides handler methods / plugins with.
  * @typedef {Object} TWalkContext
  * @property {string} absDir separator-terminated absolute path
- * @property {?number} action from previous or upper (for onBegin) handler.
  * @property {?Object} current entry in {@link Walker#trees}.
  * @property {*} data to be returned by {@link Walker#walkSync} method.
  * @property {number} depth 0 for `rootDir`.
  * @property {function(...)} detect plugin or instance method.
  * @property {string} dir relative to `rootDir`.
- * @property {?Object} master entry in {@link Walker#trees}.
  * @property {?string} name of directory entry (onEntry only)
  * @property {string} rootDir absolute path where walking started from.
  * @property {Ruler} ruler currently active ruler instance.
@@ -94,12 +92,12 @@ class Walker extends Sincere {
      * Tracer plugin function called after every handler with
      * (handlerName, context, action).
      * A pseudo name 'noOpen' is used after opendir failure.
-     * @type {function(name:string, context:*, action:*)}
+     * @type {function(string, *, *)}
      */
     this.trace = this.options.trace || (() => undefined)
     /**
      * Descriptors of recognized filesystem subtrees.
-     * @type {Array<{absDir:string}>}
+     * @type {Array<{Object}>}
      */
     this.trees = []
     /**
@@ -120,7 +118,7 @@ class Walker extends Sincere {
    * Probably the `context.current` should be added to `trees`, to.
    * NB: in most cases, this method should _not_ be called from overriding one!
    * @param {TWalkContext} context
-   * @returns {*} - a truey value on positive detection.
+   * @returns {*} - non-numeric value has no effect for Walker class.
    */
   //  istanbul ignore next
   detect (context) {
@@ -157,14 +155,14 @@ class Walker extends Sincere {
   /**
    * Handler called after new directory was successfully opened.
    *
-   * @param {TWalkContext} context - may have it's `action` property set!
+   * @param {TWalkContext} context
    * @returns {number|*}
    */
   onBegin (context) {
     const { absDir } = context
     let action = 0, r
 
-    //  Check if already done - may happen when multi-threading.
+    //  Check if directory is already done - may happen when multi-threading.
     if (this.getCurrent(absDir)) {
       return DO_SKIP
     }
@@ -186,7 +184,7 @@ class Walker extends Sincere {
   /**
    * Handler called when done with current directory.
    *
-   * @param {TWalkContext} context - has `action` set by onBegin or last onEntry.
+   * @param {TWalkContext} context - has `action` from `onBegin` or last `onEntry`.
    * @returns {*}
    */
   onEnd (context) {
@@ -360,7 +358,7 @@ class Walker extends Sincere {
         action = this.safely_(onBegin, context, onError, onErrors.onBegin)
         this.trace('onBegin', context, action)
       }
-      if (!(action >= DO_SKIP)) {
+      if (action < DO_SKIP) {
         do {
           try {
             action = 0
@@ -371,31 +369,29 @@ class Walker extends Sincere {
             if (error.code !== 'EBADF') throw error
             action = DO_ABORT
             this.registerFailure(error.message)
+            break
           }
-          if (!action) {
-            context.name = entry.name
-            context.type = entryType(entry)
 
-            entries += 1
-            action = this.safely_(onEntry, context, onError, onErrors.onEntry)
-            this.trace('onEntry', context, action)
-          }
+          context.name = entry.name
+          context.type = entryType(entry)
+          entries += 1
+
+          action = this.safely_(onEntry, context, onError, onErrors.onEntry)
+          this.trace('onEntry', context, action)
+
           if (context.type === T_DIR && !(action >= DO_SKIP)) {
             const ctx = {
               ...context,
-              action,
               depth: context.depth + 1,
               dir: context.dir + sep + context.name,
-              master: undefined,
               ruler: context.ruler.clone(true)
             }
             delete ctx.name && delete ctx.type
-            this.trace('push', ctx, action)
             paths.push(ctx)
           }
         } while (action <= DO_SKIP)        //  end of while (entry...)
       }         //  end of if (action...)
-      this.trace('after', context, action)
+
       if (directory) directory.closeSync()
 
       context.action = action   //  Special to this handler only.
