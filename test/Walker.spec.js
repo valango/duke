@@ -21,6 +21,13 @@ const projectRules = [
 let w, told, acts
 
 const options = {
+  /*
+  trace: (what, ctx, act) => {
+    if (what === 'onBegin' || what === 'onEnd') {
+      console.log('-', what, ctx.absDir)
+    }
+    if (what === 'push') console.log('-', what, ctx.absDir, ctx.dir)
+  }, */
   detect: function (context) {
     const { absDir } = context
     let v = loadFile(absDir + 'package.json')
@@ -36,12 +43,6 @@ const options = {
   },
   onEnd: function (ctx) {
     return /skipped$/.test(ctx.dir) ? DO_ABORT : this.onEnd(ctx)
-  },
-  xtrace: (what, ctx, act) => {
-    if (what === 'onBegin' || what === 'onEnd') {
-      console.log('-', what, ctx.absDir)
-    }
-    if (what === 'push') console.log('-', what, ctx.absDir, ctx.dir)
   }
 }
 
