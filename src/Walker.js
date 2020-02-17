@@ -19,7 +19,7 @@ const { DO_ABORT, DO_SKIP, DO_TERMINATE, T_DIR } = require('./constants')
  * @property {string} dir relative to `rootDir`.
  * @property {?string} name of directory entry (onEntry only)
  * @property {string} rootDir absolute path where walking started from.
- * @property {Ruler} ruler currently active ruler instance.
+ * @property {Ruler} ruler currently active Ruler instance.
  * @property {?TEntryType} type of directory entry (onEntry only)
  */
 
@@ -275,18 +275,19 @@ class Walker extends Sincere {
    *  and invoke appropriate onXxx method.
    *
    * @param {string} rootPath
-   * @param {TWalkOptions=} options
+   * @param {TWalkOptions=} walkOptions
    * @returns {Promise<Array>} the first item is data returned by walkSync().
    */
-  walk (rootPath, options = undefined) {
-    const closure = { ...this.options, ...options }
+  walk (rootPath, walkOptions = undefined) {
+    /** @type {TWalkOptions} */
+    const options = { ...this.options, ...walkOptions }
 
-    if (!closure.promises) closure.promises = []
+    if (!options.promises) options.promises = []
 
     return new Promise((resolve, reject) => {
-      closure.promises.unshift(this.walkSync(rootPath, closure))
+      options.promises.unshift(this.walkSync(rootPath, options))
 
-      return Promise.all(closure.promises).then(resolve).catch(reject)
+      return Promise.all(options.promises).then(resolve).catch(reject)
     })
   }
 
@@ -295,28 +296,28 @@ class Walker extends Sincere {
    *  and invoke appropriate onXxx methods.
    *
    * @param {string} rootPath
-   * @param {TWalkOptions=} options
+   * @param {TWalkOptions=} walkOptions
    * @returns {Object} 'data` member of internal context.
    */
-  walkSync (rootPath, options = undefined) {
+  walkSync (rootPath, walkOptions = undefined) {
     this.assert(!rootPath || typeof rootPath === 'string', 'walkSync',
       "'rootPath' must be string")
-    const closure = { ...this.options, ...options }
-    const rootDir = closure.rootDir = resolve(rootPath || '.')
+    const options = { ...this.options, ...walkOptions }
+    const rootDir = options.rootDir = resolve(rootPath || '.')
     const onErrors = exports.onErrors || {}
-    const onBegin = closure.onBegin || this.onBegin
-    const onEnd = closure.onEnd || this.onEnd
-    const onEntry = closure.onEntry || this.onEntry
-    const onError = closure.onError || this.onError
-    const promises = closure.promises
-    let action, data = closure.data || {}, directory, entry, t
+    const onBegin = options.onBegin || this.onBegin
+    const onEnd = options.onEnd || this.onEnd
+    const onEntry = options.onEntry || this.onEntry
+    const onError = options.onError || this.onError
+    const promises = options.promises
+    let action, data = options.data || {}, directory, entry, t
     let notRoot = parse(rootDir).root !== rootDir
     let paths = []
 
     //  Push initial context to FIFO.
     paths.push({
       /* eslint-disable */
-      data, depth: 0, detect: closure.detect || this.detect, dir: '',
+      data, depth: 0, detect: options.detect || this.detect, dir: '',
       rootDir, ruler: this.defaultRuler
       /* eslint-enable */
     })
@@ -350,9 +351,9 @@ class Walker extends Sincere {
       if (action < DO_SKIP) {
         do {
           try {
-            action = 0
             if (!(entry = directory.readSync())) {
-              break
+              action = 0
+              break       //  No more entries in directory.
             }
           } catch (error) /* istanbul ignore next */ {
             if (error.code !== 'EBADF') throw error
@@ -378,12 +379,12 @@ class Walker extends Sincere {
             delete ctx.name && delete ctx.type
             paths.push(ctx)
           }
-        } while (action <= DO_SKIP)        //  end of while (entry...)
+        } while (action <= DO_SKIP)        //  end of do
       }         //  end of if (action...)
 
       if (directory) directory.closeSync()
 
-      context.action = action   //  Special to this handler only.
+      context.action = action     //  Special to onEnd() handler only!
       action = this.safely_(onEnd, context, onError, onErrors.onEnd)
       this.trace('onEnd', context, action)
 
@@ -391,7 +392,7 @@ class Walker extends Sincere {
         const dir = context.dir + sep
         paths = paths.filter((p) => p.dir.indexOf(dir) !== 0)
       }
-    }       //  end while (paths...)
+    }       //  end of while (paths...)
     return data
   }
 }

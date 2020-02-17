@@ -51,8 +51,8 @@ Walks a directory tree according to rules.
         * [.onEntry(context)](#Walker+onEntry) ⇒ <code>number</code>
         * [.onError(errorInstance, context, expected)](#Walker+onError) ⇒ <code>\*</code>
         * [.registerFailure(failure, [comment])](#Walker+registerFailure) ⇒ [<code>Walker</code>](#Walker)
-        * [.walk(rootPath, [options])](#Walker+walk) ⇒ <code>Promise.&lt;Array&gt;</code>
-        * [.walkSync(rootPath, [options])](#Walker+walkSync) ⇒ <code>Object</code>
+        * [.walk(rootPath, [walkOptions])](#Walker+walk) ⇒ <code>Promise.&lt;Array&gt;</code>
+        * [.walkSync(rootPath, [walkOptions])](#Walker+walkSync) ⇒ <code>Object</code>
     * _static_
         * [.getTotals()](#Walker.getTotals) ⇒ <code>Object</code>
         * [.reset()](#Walker.reset)
@@ -206,7 +206,7 @@ when the walk is over.
 
 <a name="Walker+walk"></a>
 
-### walker.walk(rootPath, [options]) ⇒ <code>Promise.&lt;Array&gt;</code>
+### walker.walk(rootPath, [walkOptions]) ⇒ <code>Promise.&lt;Array&gt;</code>
 Process directory tree asynchronously width-first starting from `rootPath`
  and invoke appropriate onXxx method.
 
@@ -216,11 +216,11 @@ Process directory tree asynchronously width-first starting from `rootPath`
 | Param | Type |
 | --- | --- |
 | rootPath | <code>string</code> | 
-| [options] | [<code>TWalkOptions</code>](#TWalkOptions) | 
+| [walkOptions] | [<code>TWalkOptions</code>](#TWalkOptions) | 
 
 <a name="Walker+walkSync"></a>
 
-### walker.walkSync(rootPath, [options]) ⇒ <code>Object</code>
+### walker.walkSync(rootPath, [walkOptions]) ⇒ <code>Object</code>
 Process directory tree synchronously width-first starting from `rootPath`
  and invoke appropriate onXxx methods.
 
@@ -230,7 +230,7 @@ Process directory tree synchronously width-first starting from `rootPath`
 | Param | Type |
 | --- | --- |
 | rootPath | <code>string</code> | 
-| [options] | [<code>TWalkOptions</code>](#TWalkOptions) | 
+| [walkOptions] | [<code>TWalkOptions</code>](#TWalkOptions) | 
 
 <a name="Walker.getTotals"></a>
 
@@ -262,7 +262,7 @@ Data context [walkSync](#Walker+walkSync) provides handler methods / plugins wit
 | dir | <code>string</code> | relative to `rootDir`. |
 | name | <code>string</code> | of directory entry (onEntry only) |
 | rootDir | <code>string</code> | absolute path where walking started from. |
-| ruler | <code>Ruler</code> | currently active ruler instance. |
+| ruler | <code>Ruler</code> | currently active Ruler instance. |
 | type | <code>TEntryType</code> | of directory entry (onEntry only) |
 
 <a name="TWalkOptions"></a>
