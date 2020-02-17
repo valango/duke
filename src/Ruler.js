@@ -201,15 +201,18 @@ class Ruler extends Sincere {
   /**
    * Create copy of the instance.
    * @param {*=} ancestors array or:
-   *   - `true` means use `lastMatch` instance property,
+   *   - `true` means use `lastMatch` instance property w fallback to ancestors
    *   - falsy value means use `ancestors` property.
    * @returns {Ruler}
    */
   clone (ancestors = false) {
-    const a = (ancestors ? this.lastMatch : this.ancestors) || []
+    let a = ancestors
     const c = new Ruler(this.options)
 
-    c.ancestors = Array.isArray(ancestors) ? ancestors.slice() : a.slice()
+    if (!Array.isArray(a)) {
+      a = (a && this.lastMatch) || this.ancestors || []
+    }
+    c.ancestors = a.slice()
     c.nextRuleAction = this.nextRuleAction
     c._tree = this._tree.slice()
 

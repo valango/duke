@@ -18,7 +18,7 @@ const projectRules = [
   COUNT, '*.js'
 ]
 
-let w, told, acts
+let w, acts
 
 const options = {
   /*
@@ -56,7 +56,6 @@ const onEntry = function (ctx) {
 describe(ME, () => {
   beforeEach(() => {
     acts = {}
-    told = []
     w = new Walker(options)
     w.defaultRuler = new Ruler(defaultRules)
     w.projectRuler = new Ruler(projectRules)

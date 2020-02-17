@@ -119,11 +119,10 @@ class Walker extends Sincere {
    * if it does then assign new values to `context.current` and `context.ruler`.
    * NB: in most cases, this method should _not_ be called from overriding one!
    * @param {TWalkContext} context
-   * @param {number|undefined} action - set by dir entry rule (missing at root).
    * @returns {*} - a truey value on positive detection.
    */
   //  istanbul ignore next
-  detect (context, action) {
+  detect (context) {
   }
 
   /**
@@ -136,7 +135,7 @@ class Walker extends Sincere {
   }
 
   /**
-   * Find tree above the current directory.
+   * Get descriptor for the parent directory if it was recognized.
    * @param {string} dir
    * @returns {{absDir, '...'}|undefined}
    */
@@ -162,36 +161,25 @@ class Walker extends Sincere {
    */
   onBegin (context) {
     const { absDir } = context
-    let act = context.action, r
+    let action = 0, r
 
-    delete context.action
     //  Check if already done - may happen when multi-threading.
     if (this.getCurrent(absDir)) {
       return DO_SKIP
     }
 
-    if ((context.master = this.getMaster(absDir))) {
-      if (!this.options.nested) {
-        context.current = context.master
-        return
-      }
-    }
-
     //  If we are at root, then check rules as normally done by onEntry().
-    if (act === undefined && context.dir === '') {
-      act = (r = context.ruler).check(context.rootDir.split(sep).pop())
+    if (context.dir === '') {
+      action = (r = context.ruler).check(context.rootDir.split(sep).pop())
+      if (action >= DO_SKIP) return action
       context.ruler = r.clone(true)
     }
-    r = context.detect.call(this, context, act)
-    this.trace('detect', context, r)
-
-    if (context.current) {
-      context.master = undefined
-      this.trees.push(context.current)
-    } else {  //  Nothing was detected.
-      context.current = context.master
+    if (!context.current || this.options.nested) {
+      action = context.detect.call(this, context)
+      this.trace('detect', context, action)
     }
-    return r
+
+    return typeof action === 'number' ? action : 0
   }
 
   /**
@@ -201,13 +189,7 @@ class Walker extends Sincere {
    * @returns {*}
    */
   onEnd (context) {
-    if (context.action > DO_SKIP) return context.action
-    if (context.current) {
-      if (!context.master) {
-        return 0
-      }
-      return DO_SKIP
-    }
+    return typeof context.action === 'number' ? context.action : 0
   }
 
   /**
@@ -218,12 +200,7 @@ class Walker extends Sincere {
   onEntry (context) {
     const { name, ruler, type } = context
 
-    const action = ruler.check(name, type)
-
-    if (type === T_DIR && !(action >= DO_SKIP)) {
-      return { action, ruler: ruler.clone(true) }
-    }
-    return action
+    return ruler.check(name, type)
   }
 
   /**
@@ -299,6 +276,9 @@ class Walker extends Sincere {
     if (r === DO_TERMINATE) {
       this.terminate = true
     }
+    if (typeof context !== 'string') {  //  If not opendir call.
+      this.assert(typeof r === 'number', 'Walker.safely_', 'not a number %O', r)
+    }
     return r
   }
 
@@ -336,7 +316,6 @@ class Walker extends Sincere {
     const closure = { ...this.options, ...options }
     const rootDir = closure.rootDir = resolve(rootPath || '.')
     const onErrors = exports.onErrors || {}
-    const paths = []
     const onBegin = closure.onBegin || this.onBegin
     const onEnd = closure.onEnd || this.onEnd
     const onEntry = closure.onEntry || this.onEntry
@@ -344,6 +323,7 @@ class Walker extends Sincere {
     const promises = closure.promises
     let action, data = closure.data || {}, directory, entry, t
     let notRoot = parse(rootDir).root !== rootDir
+    let paths = []
 
     //  Push initial context to FIFO.
     paths.push({
@@ -354,7 +334,6 @@ class Walker extends Sincere {
     })
 
     while (paths.length && !this.terminate) {
-      const length = paths.length
       const context = paths.shift()
 
       if (promises) context.promises = promises
@@ -381,10 +360,12 @@ class Walker extends Sincere {
         this.trace('onBegin', context, action)
       }
       if (!(action >= DO_SKIP)) {
-        while (true) {
-          action = undefined
+        do {
           try {
-            if (!(entry = directory.readSync())) break
+            action = 0
+            if (!(entry = directory.readSync())) {
+              break
+            }
           } catch (error) /* istanbul ignore next */ {
             if (error.code !== 'EBADF') throw error
             action = DO_ABORT
@@ -404,30 +385,25 @@ class Walker extends Sincere {
               action,
               depth: context.depth + 1,
               dir: context.dir + sep + context.name,
-              master: undefined
-            }
-            // if (ctx.dir.indexOf('//') >= 0) throw Error('Bad dir')
-            if (typeof action === 'object') {
-              ctx.action = action.action || undefined
-              ctx.current = action.current || undefined
-              ctx.data = action.data || ctx.data
-              ctx.ruler = action.ruler || ctx.ruler
+              master: undefined,
+              ruler: context.ruler.clone(true)
             }
             delete ctx.name && delete ctx.type
             this.trace('push', ctx, action)
             paths.push(ctx)
           }
-        }         //  end of while (entry...)
+        } while (action <= DO_SKIP)        //  end of while (entry...)
       }         //  end of if (action...)
+      this.trace('after', context, action)
       if (directory) directory.closeSync()
 
       context.action = action   //  Special to this handler only.
       action = this.safely_(onEnd, context, onError, onErrors.onEnd)
       this.trace('onEnd', context, action)
 
-      if (action >= DO_ABORT) {
-        paths.splice(length, paths.length)
-        break
+      if (action >= DO_ABORT) {   //  Discard all child directories
+        const dir = context.dir + sep
+        paths = paths.filter((p) => p.dir.indexOf(dir) !== 0)
       }
     }       //  end while (paths...)
     return data

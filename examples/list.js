@@ -14,7 +14,7 @@ const OPTS = {
 const
   {
     DO_ABORT, DO_SKIP, T_FILE, T_DIR,
-    Walker, Ruler, loadFile, relativize
+    Walker, Ruler, actionName, loadFile, relativize
   } = require('../src')
 
 const DO_COUNT = 1    //  Add file to count.
@@ -37,14 +37,20 @@ const color = require('chalk')
 const { join } = require('path')
 const { dump, measure, parseCl, print } = require('./util')
 const { args, options } = parseCl(OPTS, HELP, true)
-const trace = options.verbose && print.bind(print, color.green)
+const trace = options.verbose && ((w, c, a) => {
+  if (typeof c === 'object') {
+    print(w, c.absDir, c.dir || '', c.name || '', actionName(a))
+  } else {
+    print(w, c)
+  }
+})
 
 class ProWalker extends Walker {
   /**
    * @param {Object} context
    */
   detect (context) {
-    const { absDir, data } = context
+    const { absDir, current, data } = context
     let v = loadFile(join(absDir, 'package.json'))
 
     if (v) {
@@ -53,17 +59,23 @@ class ProWalker extends Walker {
       data.nameLength = Math.max(name.length, data.nameLength)
       context.ruler = projectRules
       context.current = { absDir, count: 0, funny, name, promo: '' }
-      if (context.master) {
-        context.master = undefined
+      this.trees.push(context.current)
+      if (current) {
         context.current.promo = 'N'
       }
+      return 1
     }
+    return 0
   }
 
   onEntry (context) {
     const action = super.onEntry(context)
     const { current, type } = context
 
+    if (current) {
+      this.assert(context.absDir.indexOf(current.absDir) === 0, 'ABS',
+        '\nA=%s\nC=%s', context.absDir, current.absDir)
+    }
     switch (action) {
       case DO_COUNT:
         if (type !== T_FILE) break

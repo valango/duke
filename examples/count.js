@@ -18,8 +18,10 @@ const add = (key) => (counts[key] = ((counts[key] || 0) + 1))
 //  but do not do it here.
 
 const onBegin = ({ absDir, depth }) => {
-  if (depth <= d.maxDepth) return
-  (d.deepest = absDir) && (d.maxDepth = depth)
+  if (depth > d.maxDepth) {
+    (d.deepest = absDir) && (d.maxDepth = depth)
+  }
+  return 0
 }
 
 const onEntry = ({ type }) => add(type)
