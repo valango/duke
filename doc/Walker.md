@@ -46,10 +46,9 @@ Walks a directory tree according to rules.
         * [.trees](#Walker+trees) : <code>Array.&lt;{Object}&gt;</code>
         * [.detect(context)](#Walker+detect) ⇒ <code>\*</code>
         * [.getCurrent(dir)](#Walker+getCurrent) ⇒ <code>Object</code> \| <code>undefined</code>
-        * [.getMaster(dir)](#Walker+getMaster) ⇒ <code>Object</code> \| <code>undefined</code>
-        * [.onBegin(context)](#Walker+onBegin) ⇒ <code>number</code> \| <code>\*</code>
-        * [.onEnd(context)](#Walker+onEnd) ⇒ <code>\*</code>
-        * [.onEntry(context)](#Walker+onEntry) ⇒ <code>Object</code> \| <code>number</code> \| <code>undefined</code>
+        * [.onBegin(context)](#Walker+onBegin) ⇒ <code>number</code>
+        * [.onEnd(context)](#Walker+onEnd) ⇒ <code>number</code>
+        * [.onEntry(context)](#Walker+onEntry) ⇒ <code>number</code>
         * [.onError(errorInstance, context, expected)](#Walker+onError) ⇒ <code>\*</code>
         * [.registerFailure(failure, [comment])](#Walker+registerFailure) ⇒ [<code>Walker</code>](#Walker)
         * [.walk(rootPath, [options])](#Walker+walk) ⇒ <code>Promise.&lt;Array&gt;</code>
@@ -126,7 +125,7 @@ Probably the `context.current` should be added to `trees`, to.
 NB: in most cases, this method should _not_ be called from overriding one!
 
 **Kind**: instance method of [<code>Walker</code>](#Walker)  
-**Returns**: <code>\*</code> - - non-numeric value has no effect for Walker class.  
+**Returns**: <code>\*</code> - - non-numeric value has no effect on Walker#onBegin.  
 
 | Param | Type |
 | --- | --- |
@@ -143,20 +142,9 @@ Get descriptor for the current directory if it was recognized.
 | --- | --- |
 | dir | <code>string</code> | 
 
-<a name="Walker+getMaster"></a>
-
-### walker.getMaster(dir) ⇒ <code>Object</code> \| <code>undefined</code>
-Get descriptor for the parent directory if it was recognized.
-
-**Kind**: instance method of [<code>Walker</code>](#Walker)  
-
-| Param | Type |
-| --- | --- |
-| dir | <code>string</code> | 
-
 <a name="Walker+onBegin"></a>
 
-### walker.onBegin(context) ⇒ <code>number</code> \| <code>\*</code>
+### walker.onBegin(context) ⇒ <code>number</code>
 Handler called after new directory was successfully opened.
 
 **Kind**: instance method of [<code>Walker</code>](#Walker)  
@@ -167,7 +155,7 @@ Handler called after new directory was successfully opened.
 
 <a name="Walker+onEnd"></a>
 
-### walker.onEnd(context) ⇒ <code>\*</code>
+### walker.onEnd(context) ⇒ <code>number</code>
 Handler called when done with current directory.
 
 **Kind**: instance method of [<code>Walker</code>](#Walker)  
@@ -178,7 +166,7 @@ Handler called when done with current directory.
 
 <a name="Walker+onEntry"></a>
 
-### walker.onEntry(context) ⇒ <code>Object</code> \| <code>number</code> \| <code>undefined</code>
+### walker.onEntry(context) ⇒ <code>number</code>
 Handler called for every directory entry.
 
 **Kind**: instance method of [<code>Walker</code>](#Walker)  

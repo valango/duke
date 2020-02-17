@@ -118,7 +118,7 @@ class Walker extends Sincere {
    * Probably the `context.current` should be added to `trees`, to.
    * NB: in most cases, this method should _not_ be called from overriding one!
    * @param {TWalkContext} context
-   * @returns {*} - non-numeric value has no effect for Walker class.
+   * @returns {*} - non-numeric value has no effect on Walker#onBegin.
    */
   //  istanbul ignore next
   detect (context) {
@@ -134,17 +134,6 @@ class Walker extends Sincere {
   }
 
   /**
-   * Get descriptor for the parent directory if it was recognized.
-   * @param {string} dir
-   * @returns {{absDir, '...'}|undefined}
-   */
-  getMaster (dir) {
-    return this.trees.find(
-      (p) => dir.indexOf(p.absDir) === 0 && dir !== p.absDir
-    )
-  }
-
-  /**
    * Get total counts.
    * @returns {{directories: number, entries: number}}
    */
@@ -156,7 +145,7 @@ class Walker extends Sincere {
    * Handler called after new directory was successfully opened.
    *
    * @param {TWalkContext} context
-   * @returns {number|*}
+   * @returns {number}
    */
   onBegin (context) {
     const { absDir } = context
@@ -185,7 +174,7 @@ class Walker extends Sincere {
    * Handler called when done with current directory.
    *
    * @param {TWalkContext} context - has `action` from `onBegin` or last `onEntry`.
-   * @returns {*}
+   * @returns {number}
    */
   onEnd (context) {
     return typeof context.action === 'number' ? context.action : 0
@@ -194,7 +183,7 @@ class Walker extends Sincere {
   /**
    * Handler called for every directory entry.
    * @param {TWalkContext} context - has `name` and `type` properties set.
-   * @returns {Object|number|undefined}
+   * @returns {number}
    */
   onEntry (context) {
     const { name, ruler, type } = context
@@ -245,7 +234,7 @@ class Walker extends Sincere {
    * @param {*} context or argument
    * @param {function(...)} onError
    * @param {Array<string>=} expected error codes
-   * @returns {number} action code
+   * @returns {*} directory object or numeric action code
    * @throws {Error} which was not handled.
    * @private
    */
