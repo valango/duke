@@ -55,6 +55,8 @@ module.exports = function dump (options = true) {
     let val = this[key]
     if (key === 'ancestors') {
       val = val && val.map(([, i]) => i)
+    } else if (key === 'lastMatch') {
+      val = val && val.map(([a, i]) => [actionName(a), i])
     } else if (key.indexOf('Action') >= 0) val = actionName(val)
     res.push(formatWithOptions(opts, '%s: %O', key.padStart(w), val))
   })
