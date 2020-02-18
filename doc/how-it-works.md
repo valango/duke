@@ -1,6 +1,6 @@
 ## [`Walker` class](Walker.md)
 `Walker` instance has 
-[`walkSync()`](Walker.md#walkerwalksyncrootpath-options--object) method,
+[`walkSync()`](Walker.md#Walker+walkSync) method,
 which does most of the job. It traverses directory hierarchy width-first,
 calling application-defined handlers, as it goes. The walkSync() code
 is re-enterable and it can run in parallel promise instances.
@@ -93,3 +93,8 @@ the ruler instance methods would work like this:
 | foo/index.js | 2 | true | true |
 | test/bar.js | 0 | false | false |
 | test/index.js | 2 | true | false |
+
+Try it yourself with [examples/parse.js](../examples/parse.js), like this:
+```
+   $ examples/parse.js 1 "*.js" "^test/**/*" 2 index.js 0 foo/bar.js
+```

@@ -128,15 +128,8 @@ class Walker extends Sincere {
    * Descriptor of expected (recoverable) errors.
    * @type {{opendir: {EPERM, ENOTDIR, ELOOP, EACCES, ENOENT, EBADF}}}
    */
-  static expectedErrors = {
-    opendir: {
-      EACCES: DO_SKIP,
-      EBADF: DO_ABORT,
-      ELOOP: DO_SKIP,
-      ENOENT: DO_SKIP,
-      ENOTDIR: DO_SKIP,
-      EPERM: DO_ABORT
-    }
+  get expectedErrors () {
+    return exports.expected
   }
 
   /**
@@ -319,7 +312,7 @@ class Walker extends Sincere {
       "'rootPath' must be string")
     const options = { ...this.options, ...walkOptions }
     const rootDir = options.rootDir = resolve(rootPath || '.')
-    const expErrs = Walker.expectedErrors || {}
+    const expErrs = this.expectedErrors
     const onBegin = options.onBegin || this.onBegin
     const onEnd = options.onEnd || this.onEnd
     const onEntry = options.onEntry || this.onEntry
@@ -409,4 +402,15 @@ class Walker extends Sincere {
   }
 }
 
-module.exports = Walker
+exports = module.exports = Walker
+
+exports.expected = {
+  opendir: {
+    EACCES: DO_SKIP,
+    EBADF: DO_ABORT,
+    ELOOP: DO_SKIP,
+    ENOENT: DO_SKIP,
+    ENOTDIR: DO_SKIP,
+    EPERM: DO_ABORT
+  }
+}
