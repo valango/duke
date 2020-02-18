@@ -77,6 +77,13 @@ I'll try to
 not update [npmjs.com](https://www.npmjs.com) too often. ;)
 
 ## Version history
+* v4.0.0 @20200218
+   - several important fixes;
+   - Walker throws error if on illegal action code returned by handler;
+   - added: Walker#expectedErrors, removed: Walker#getMaster;
+   - added: check(), hadAction(), hasAction() to Ruler, removed: match();
+   - up-to-date documentation;
+* v3.1.0 @20200217
 * v3.0.0 @20200211
 * v2.0.0 @20200126
 * v1.0.0 @20200124

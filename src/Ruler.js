@@ -330,7 +330,7 @@ class Ruler extends Sincere {
    * @param {string=} itemType of item
    * @returns {Array<Array<number>>} array of [action, index]
    */
-  match (itemName, itemType = T_ANY) {
+  /* match (itemName, itemType = T_ANY) {
     const globs = [], tree = this._tree
 
     const ancestors = (this.ancestors || [])
@@ -344,7 +344,7 @@ class Ruler extends Sincere {
     const res = this.match_(itemName, itemType, ancestors, [], []).concat(globs)
 
     return (this.lastMatch = res.sort(([a], [b]) => b - a))
-  }
+  } */
 
   /**
    * Get copy of rule tree - for testing only!
