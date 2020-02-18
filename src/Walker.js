@@ -125,6 +125,21 @@ class Walker extends Sincere {
   }
 
   /**
+   * Descriptor of expected (recoverable) errors.
+   * @type {{opendir: {EPERM, ENOTDIR, ELOOP, EACCES, ENOENT, EBADF}}}
+   */
+  static expectedErrors = {
+    opendir: {
+      EACCES: DO_SKIP,
+      EBADF: DO_ABORT,
+      ELOOP: DO_SKIP,
+      ENOENT: DO_SKIP,
+      ENOTDIR: DO_SKIP,
+      EPERM: DO_ABORT
+    }
+  }
+
+  /**
    * Get descriptor for the current directory if it was recognized.
    * @param {string} dir
    * @returns {{absDir, '...'}|undefined}
@@ -304,7 +319,7 @@ class Walker extends Sincere {
       "'rootPath' must be string")
     const options = { ...this.options, ...walkOptions }
     const rootDir = options.rootDir = resolve(rootPath || '.')
-    const onErrors = exports.onErrors || {}
+    const expErrs = Walker.expectedErrors || {}
     const onBegin = options.onBegin || this.onBegin
     const onEnd = options.onEnd || this.onEnd
     const onEntry = options.onEntry || this.onEntry
@@ -312,25 +327,22 @@ class Walker extends Sincere {
     const promises = options.promises
     let action, data = options.data || {}, directory, entry, t
     let notRoot = parse(rootDir).root !== rootDir
-    let paths = []
-
-    //  Push initial context to FIFO.
-    paths.push({
+    let fifo = [{
       /* eslint-disable */
       data, depth: 0, detect: options.detect || this.detect, dir: '',
       rootDir, ruler: this.defaultRuler
       /* eslint-enable */
-    })
+    }]
 
-    while (paths.length && !this.terminate) {
-      const context = paths.shift()
+    while (fifo.length && !this.terminate) {
+      const context = fifo.shift()
 
       if (promises) context.promises = promises
       data = context.data
       context.absDir = rootDir + context.dir
 
       if (typeof (directory = this.safely_(opendirSync, context.absDir, onError,
-        onErrors.opendir)) === 'number') {  //  opendir failed -> action
+        expErrs.opendir)) === 'number') {  //  opendir failed -> action
         this.trace('noOpen', context.absDir, action = directory)
         directory = undefined
       } else {
@@ -345,7 +357,7 @@ class Walker extends Sincere {
         if (notRoot) context.absDir += sep
 
         notRoot = true
-        action = this.safely_(onBegin, context, onError, onErrors.onBegin)
+        action = this.safely_(onBegin, context, onError, expErrs.onBegin)
         this.trace('onBegin', context, action)
       }
       if (action < DO_SKIP) {
@@ -366,7 +378,7 @@ class Walker extends Sincere {
           context.type = entryType(entry)
           entries += 1
 
-          action = this.safely_(onEntry, context, onError, onErrors.onEntry)
+          action = this.safely_(onEntry, context, onError, expErrs.onEntry)
           this.trace('onEntry', context, action)
 
           if (context.type === T_DIR && !(action >= DO_SKIP)) {
@@ -377,7 +389,7 @@ class Walker extends Sincere {
               ruler: context.ruler.clone(true)
             }
             delete ctx.name && delete ctx.type
-            paths.push(ctx)
+            fifo.push(ctx)
           }
         } while (action <= DO_SKIP)        //  end of do
       }         //  end of if (action...)
@@ -385,27 +397,16 @@ class Walker extends Sincere {
       if (directory) directory.closeSync()
 
       context.action = action     //  Special to onEnd() handler only!
-      action = this.safely_(onEnd, context, onError, onErrors.onEnd)
+      action = this.safely_(onEnd, context, onError, expErrs.onEnd)
       this.trace('onEnd', context, action)
 
       if (action >= DO_ABORT) {   //  Discard all child directories
         const dir = context.dir + sep
-        paths = paths.filter((p) => p.dir.indexOf(dir) !== 0)
+        fifo = fifo.filter((p) => p.dir.indexOf(dir) !== 0)
       }
-    }       //  end of while (paths...)
+    }       //  end of while (fifo...)
     return data
   }
 }
 
-exports = module.exports = Walker
-
-exports.onErrors = {
-  opendir: {
-    EACCES: DO_SKIP,
-    EBADF: DO_ABORT,
-    ELOOP: DO_SKIP,
-    ENOENT: DO_SKIP,
-    ENOTDIR: DO_SKIP,
-    EPERM: DO_ABORT
-  }
-}
+module.exports = Walker

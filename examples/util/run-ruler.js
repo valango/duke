@@ -5,7 +5,6 @@
 'use strict'
 const { T_DIR, T_FILE } = require('../..')
 
-
 /**
  * Simulate how Ruler is used by Walker.
  *

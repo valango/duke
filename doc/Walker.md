@@ -44,6 +44,7 @@ Walks a directory tree according to rules.
         * [.tick](#Walker+tick) : <code>function</code>
         * [.trace](#Walker+trace) : <code>function</code>
         * [.trees](#Walker+trees) : <code>Array.&lt;{Object}&gt;</code>
+        * [.expectedErrors](#Walker+expectedErrors) : <code>Object</code>
         * [.detect(context)](#Walker+detect) ⇒ <code>\*</code>
         * [.getCurrent(dir)](#Walker+getCurrent) ⇒ <code>Object</code> \| <code>undefined</code>
         * [.onBegin(context)](#Walker+onBegin) ⇒ <code>number</code>
@@ -114,6 +115,12 @@ A pseudo name 'noOpen' is used after opendir failure.
 
 ### walker.trees : <code>Array.&lt;{Object}&gt;</code>
 Descriptors of recognized filesystem subtrees.
+
+**Kind**: instance property of [<code>Walker</code>](#Walker)  
+<a name="Walker+expectedErrors"></a>
+
+### walker.expectedErrors : <code>Object</code>
+Descriptor of expected (recoverable) errors.
 
 **Kind**: instance property of [<code>Walker</code>](#Walker)  
 <a name="Walker+detect"></a>
