@@ -193,7 +193,7 @@ class Ruler extends Sincere {
 
     anc.push(ROOT)    //  Always!
 
-    this.lastMatch = this.match_(itemName, itemType, anc, []).concat(globs)
+    this.lastMatch = this.match_(itemName, itemType, anc, [], []).concat(globs)
 
     return Math.max.apply(Math, this.lastMatch.map(([a]) => a))
   }
@@ -271,12 +271,13 @@ class Ruler extends Sincere {
    * @param {string} itemType
    * @param {Array<number>} ancestors
    * @param {Array} res
+   * @param {Array} toDisclaim
    * @returns {Array<Array<number>>}
    * @private
    */
-  match_ (itemName, itemType, ancestors, res) {
+  match_ (itemName, itemType, ancestors, res, toDisclaim) {
     const lowest = -1  //  Todo: think if we can finish looping earlier.
-    const tree = this._tree, toDisclaim = []
+    const tree = this._tree
 
     // Scan the three for nodes matching any of the ancestors.
     for (let i = tree.length; --i > lowest;) {
@@ -296,7 +297,7 @@ class Ruler extends Sincere {
         }
         if (rule === GLOB) {
           //  In case of GLOB, check it's descendants immediately.
-          this.match_(itemName, itemType, [i], res)
+          this.match_(itemName, itemType, [i], res, toDisclaim)
           if (i === ROOT) continue
         }
         //  We got a real match!
@@ -340,7 +341,7 @@ class Ruler extends Sincere {
 
     ancestors.push(ROOT)    //  Always!
 
-    const res = this.match_(itemName, itemType, ancestors, []).concat(globs)
+    const res = this.match_(itemName, itemType, ancestors, [], []).concat(globs)
 
     return (this.lastMatch = res.sort(([a], [b]) => b - a))
   }
