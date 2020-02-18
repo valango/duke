@@ -12,23 +12,34 @@ const HELP = `Construct and dump a rule tree as defined by command line.
    Example:
      examples/parse.js "*.js" 2 /nope "*/**/some" 0 a/b/c/some`
 
-const { parseCl, print } = require('./util')
+const OPTS = {
+  verbose: ['v', 'dump intermediate states of Ruler instance']
+}
 
 const convert = (str) => {
   const v = Number.parseInt(str)
   return Number.isNaN(v) ? str : v
 }
 
-const defs = []
+const dump = (ruler, action, name) => {
+  print("'%s' -> %s", name, actionName(action))
+  print(ruler.dump() || MSG)
+}
 
-parseCl({}, HELP).args.forEach((s) => {
+const { parseCl, print } = require('./util')
+const { args, options } = parseCl(OPTS, HELP), defs = []
+
+args.forEach((s) => {
   const parts = s.split(/(?<!\\),/)
   defs.push(parts.length > 1 ? parts.map(convert) : convert(s))
 })
 
 const i = defs.indexOf(0)
+let r
 
-const ruler = i < 0
-  ? new Ruler(defs) : run(new Ruler(defs.slice(0, i)), defs[i + 1])
-
-print('ACTION: %s\nRULER:\n%s', actionName(run.action), ruler.dump() || MSG)
+if (i < 0) {
+  print('Ruler:\n%s', new Ruler(defs).dump() || MSG)
+} else {
+  r = run(new Ruler(defs.slice(0, i)), defs[i + 1], options.verbose && dump)
+  dump(r, run.action, defs[i + 1])
+}

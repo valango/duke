@@ -10,20 +10,22 @@ const { T_DIR, T_FILE } = require('../..')
  *
  * @param {Ruler} ruler
  * @param {string} path - slash-delimited
+ * @param cb
  * @returns {Ruler}
  */
-const run = (ruler, path) => {
+const run = (ruler, path, cb = undefined) => {
   const parts = path.split('/'), last = parts.length - 1
   let r = ruler, action = 0
 
-  for (let i = 0; i <= last; i += 1) {
-    if (parts[i]) {
+  for (let i = 0, part; i <= last; i += 1) {
+    if ((part = parts[i])) {
       if (i < last) {
-        action = r.check(parts[i], T_DIR)
+        action = r.check(part, T_DIR)
+        if (cb) cb(r, action, part)
         r = r.clone(true)
         continue
       }
-      action = r.check(parts[i], T_FILE)
+      action = r.check(part, T_FILE)
     }
   }
   run.action = action
