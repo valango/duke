@@ -9,7 +9,6 @@ Package exports - members listed below and also the [constants](constants.md).
 * [dwalker](#dwalker) : <code>object</code>
     * [.Ruler](#dwalker.Ruler)
     * [.Walker](#dwalker.Walker)
-    * [.actionName](#dwalker.actionName)
     * [.loadFile](#dwalker.loadFile)
     * [.relativize](#dwalker.relativize)
     * [.typeName](#dwalker.typeName)
@@ -24,11 +23,6 @@ Package exports - members listed below and also the [constants](constants.md).
 ### dwalker.Walker
 **Kind**: static property of [<code>dwalker</code>](#dwalker)  
 **See**: [Walker](Walker.md)  
-<a name="dwalker.actionName"></a>
-
-### dwalker.actionName
-**Kind**: static property of [<code>dwalker</code>](#dwalker)  
-**See**: [actionName](utils.md#actionnameaction-frmt--string--)  
 <a name="dwalker.loadFile"></a>
 
 ### dwalker.loadFile

@@ -1,6 +1,5 @@
 'use strict'
 const { format, formatWithOptions } = require('util')
-const actionName = require('./actionname')
 
 /**
  * Create diagnostic dump.
@@ -22,7 +21,7 @@ module.exports = function dump (options = true) {
     const [t, r, p, a] = tree[i]
     return formatWithOptions(opts, '%s: %O %O,%s%O, %O',
       (i + '').padStart(w), t.padStart(2),
-      r, ''.padStart(rm - rw[i] + 4 - (p + '').length), p, actionName(a))
+      r, ''.padStart(rm - rw[i] + 4 - (p + '').length), p, a)
   }
 
   if (opts) {
@@ -52,13 +51,7 @@ module.exports = function dump (options = true) {
   const res = indexes.map((i) => dumpNode(i))
 
   mask.sort().forEach((key) => {
-    let val = this[key]
-    if (key === 'ancestors') {
-      val = val && val.map(([, i]) => i)
-    } else if (key === 'lastMatch') {
-      val = val && val.map(([a, i]) => [actionName(a), i])
-    } else if (key.indexOf('Action') >= 0) val = actionName(val)
-    res.push(formatWithOptions(opts, '%s: %O', key.padStart(w), val))
+    res.push(formatWithOptions(opts, '%s: %O', key.padStart(w), this[key]))
   })
   return res.join(',\n') + '\n'
 }

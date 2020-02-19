@@ -3,11 +3,7 @@ const ME = 'Walker'
 process.env.NODE_MODULES = 'test'
 
 const { expect } = require('chai')
-const
-  {
-    DO_ABORT, DO_SKIP, // T_DIR,
-    actionName, loadFile, Ruler, Walker
-  } = require('../src')
+const { DO_ABORT, DO_SKIP, loadFile, Ruler, Walker } = require('../src')
 const COUNT = 1
 const defaultRules = [
   DO_SKIP, 'node_modules', '.*'
@@ -49,8 +45,8 @@ const options = {
 
 const onEntry = function (ctx) {
   const r = this.onEntry(ctx), a = typeof r === 'object' ? r.action : r
-  const k = actionName(a), n = acts[k] || 0
-  acts[k] = n + 1
+  const n = acts[a] || 0
+  acts[a] = n + 1
   return r
 }
 
@@ -71,7 +67,7 @@ describe(ME, () => {
     w.projectRuler.add([1, '/pack*.json', 1, '*.js;f'])
     w.walkSync('', { onEntry })
     expect(w.failures).to.eql([], 'failures')
-    expect(acts['ACTION(1)']).to.gte(2, 'ACTION(1)')
+    expect(acts[1]).to.gte(2, 'ACTION(1)')
     expect(w.trees.length).to.equal(1, '#1')
     w.walkSync('', { onEntry })
     expect(w.trees.length).to.equal(1, '#2')

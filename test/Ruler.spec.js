@@ -4,7 +4,7 @@ process.env.NODE_MODULES = 'test'
 
 const { AssertionError } = require('assert')
 const { expect } = require('chai')
-const { Ruler, DO_SKIP, DO_ABORT, T_ANY, T_DIR, T_FILE, actionName } =
+const { Ruler, DO_SKIP, DO_ABORT, T_ANY, T_DIR, T_FILE } =
         require('..')
 const { CONTINUE, GLOB, NIL } = Ruler
 
@@ -16,26 +16,9 @@ const T1 = [
 
 let n = 0, t
 
-const match = (str, type, exp, anc = undefined) => {
-  if (anc) {
-    if (anc === -1) {
-      anc = [CONTINUE, -1]
-    } else {
-      anc = anc.map(i => [t.treeCopy[i][2], i])
-    }
-    t = t.clone(anc)
-  }
-  const r = t.match(str, type, anc)
-  const v = r.map(o => o[1])
-  str += ';' + type
-  expect(v).to.eql(exp, anc === NIL ? str : str + ' @' + ++n)
-  return v
-}
-
 const check = (name, type, expected) => {
   const res = t.check(name, type)
-  const act = actionName(res), exp = actionName(expected)
-  expect(res).to.equal(expected, `${name};${type} got ${act} not ${exp}`)
+  expect(res).to.equal(expected, `${name};${type} got ${res} not ${expected}`)
 }
 
 describe(ME, () => {

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 'use strict'
-const { Ruler, actionName } = require('..')
+const { Ruler } = require('..')
 const run = require('./util/run-ruler')
 
 const MSG = 'Ruler.dump() does not work in production mode'
@@ -22,7 +22,7 @@ const convert = (str) => {
 }
 
 const dump = (ruler, action, name) => {
-  print("'%s' -> %s", name, actionName(action))
+  print("'%s' -> %s", name, action)
   print(ruler.dump() || MSG)
 }
 

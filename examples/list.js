@@ -14,7 +14,7 @@ const OPTS = {
 const
   {
     DO_ABORT, DO_SKIP, T_FILE, T_DIR,
-    Walker, Ruler, actionName, loadFile, relativize
+    Walker, Ruler, loadFile, relativize
   } = require('../src')
 
 const DO_COUNT = 1    //  Add file to count.
@@ -39,7 +39,7 @@ const { dump, measure, parseCl, print } = require('./util')
 const { args, options } = parseCl(OPTS, HELP, true)
 const trace = options.verbose && ((w, c, a) => {
   if (typeof c === 'object') {
-    print(w, c.absDir, c.dir || '', c.name || '', actionName(a))
+    print(w, c.absDir, c.dir || '', c.name || '', a)
   } else {
     print(w, c)
   }

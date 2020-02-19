@@ -14,8 +14,6 @@ const dwalker = {
   Ruler: require('./Ruler'),
   /** @see [Walker]{@link Walker.md} */
   Walker: require('./Walker'),
-  /** @see [actionName]{@link utils.md#actionnameaction-frmt--string--} */
-  actionName: inProduction ? () => undefined : require('./actionname'),
   /** @see [loadFile]{@link utils.md#loadfilefilepath-mildly--undefined--buffer} */
   loadFile: require('./load-file'),
   /** @see [relativize]{@link utils.md#relativizepath-rootpath-prefix--string--} */

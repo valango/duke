@@ -9,13 +9,13 @@
 const constants = {
   /** Action code: skip this directory entry.
    * @const {number} */
-  DO_SKIP: Number.MAX_SAFE_INTEGER - 2,
+  DO_SKIP: 10001,
   /** Action code: Discard all in current directory.
    * @const {number} */
-  DO_ABORT: Number.MAX_SAFE_INTEGER - 1,
+  DO_ABORT: 10002,
   /** Action code: Discard all in current directory; terminate all walking.
    * @const {number} */
-  DO_TERMINATE: Number.MAX_SAFE_INTEGER,
+  DO_TERMINATE: 10003,
 
   /** @const {TEntryType} */
   T_ANY: '',

@@ -20,7 +20,6 @@ Rule tree and intermediate state of searches.
         * [.dump(options)](#Ruler+dump) ⇒ <code>string</code> \| <code>undefined</code>
         * [.hadAction(action)](#Ruler+hadAction) ⇒ <code>boolean</code>
         * [.hasAction(action)](#Ruler+hasAction) ⇒ <code>boolean</code>
-        * [.match(itemName, [itemType])](#Ruler+match) ⇒ <code>Array.&lt;Array.&lt;number&gt;&gt;</code>
     * _static_
         * [.hasActionIn(results, action)](#Ruler.hasActionIn) ⇒ <code>boolean</code>
 
@@ -150,24 +149,6 @@ Check if results from recent match contain given action.
 | Param | Type |
 | --- | --- |
 | action | <code>number</code> | 
-
-<a name="Ruler+match"></a>
-
-### ruler.match(itemName, [itemType]) ⇒ <code>Array.&lt;Array.&lt;number&gt;&gt;</code>
-Match the `itemName` against rules. NB: will be deprecated - use `check()`,
-`hasAction()` and `lastMatch` instead!
-
-The results array never contains ROOT node, which will be added
-on every run.
-If a node of special action is matched, then only this node is returned.
-
-**Kind**: instance method of [<code>Ruler</code>](#Ruler)  
-**Returns**: <code>Array.&lt;Array.&lt;number&gt;&gt;</code> - array of [action, index]  
-
-| Param | Type | Description |
-| --- | --- | --- |
-| itemName | <code>string</code> | of item |
-| [itemType] | <code>string</code> | of item |
 
 <a name="Ruler.hasActionIn"></a>
 
