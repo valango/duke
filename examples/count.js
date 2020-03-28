@@ -13,7 +13,7 @@ const d = { deepest: '', maxDepth: 0 }
 
 const add = (key) => (counts[key] = ((counts[key] || 0) + 1))
 
-//  Use plugin strategy to avoid class declaration.
+//  Use plugin pattern to avoid class declaration.
 //  In general case, we should call Walker instance method,
 //  but do not do it here.
 

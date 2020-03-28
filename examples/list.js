@@ -37,11 +37,12 @@ const color = require('chalk')
 const { join } = require('path')
 const { dump, measure, parseCl, print } = require('./util')
 const { args, options } = parseCl(OPTS, HELP, true)
+
 const trace = options.verbose && ((w, c, a) => {
   if (typeof c === 'object') {
     print(w, c.absDir, c.dir || '', c.name || '', a)
   } else {
-    print(w, c)
+    print(w, c)     //  Happens with opendir() only.
   }
 })
 
