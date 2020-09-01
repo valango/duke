@@ -19,6 +19,7 @@
 **Kind**: global namespace  
 
 * [constants](#constants) : <code>object</code>
+    * [.DO_NOTHING](#constants.DO_NOTHING) : <code>number</code>
     * [.DO_SKIP](#constants.DO_SKIP) : <code>number</code>
     * [.DO_ABORT](#constants.DO_ABORT) : <code>number</code>
     * [.DO_TERMINATE](#constants.DO_TERMINATE) : <code>number</code>
@@ -31,6 +32,12 @@
     * [.T_SOCKET](#constants.T_SOCKET) : [<code>TEntryType</code>](#TEntryType)
     * [.T_SYMLINK](#constants.T_SYMLINK) : [<code>TEntryType</code>](#TEntryType)
 
+<a name="constants.DO_NOTHING"></a>
+
+### constants.DO\_NOTHING : <code>number</code>
+Action code, reserved for internal use: do not use this in rule definition!
+
+**Kind**: static constant of [<code>constants</code>](#constants)  
 <a name="constants.DO_SKIP"></a>
 
 ### constants.DO\_SKIP : <code>number</code>
@@ -40,13 +47,13 @@ Action code: skip this directory entry.
 <a name="constants.DO_ABORT"></a>
 
 ### constants.DO\_ABORT : <code>number</code>
-Action code: Discard all in current directory.
+Action code: discard all in the current directory.
 
 **Kind**: static constant of [<code>constants</code>](#constants)  
 <a name="constants.DO_TERMINATE"></a>
 
 ### constants.DO\_TERMINATE : <code>number</code>
-Action code: Discard all in current directory; terminate all walking.
+Action code: discard all in the current directory; terminate all walking.
 
 **Kind**: static constant of [<code>constants</code>](#constants)  
 <a name="constants.T_ANY"></a>

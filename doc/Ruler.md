@@ -7,21 +7,12 @@ Rule tree and intermediate state of searches.
 
 * [Ruler](#Ruler)
     * [new Ruler([options], ...definitions)](#new_Ruler_new)
-    * _instance_
-        * [.ancestors](#Ruler+ancestors) : <code>Array.&lt;Array&gt;</code> \| <code>undefined</code>
-        * [.lastMatch](#Ruler+lastMatch) : <code>Array</code> \| <code>undefined</code>
-        * [.nextRuleAction](#Ruler+nextRuleAction) : <code>number</code>
-        * [.options](#Ruler+options) : <code>Object</code>
-        * [.treeCopy](#Ruler+treeCopy) : <code>Array.&lt;Array.&lt;\*&gt;&gt;</code>
-        * [.add(...args)](#Ruler+add) ⇒ [<code>Ruler</code>](#Ruler)
-        * [.check(itemName, [itemType])](#Ruler+check) ⇒ <code>number</code>
-        * [.clone([ancestors])](#Ruler+clone) ⇒ [<code>Ruler</code>](#Ruler)
-        * [.concat(...args)](#Ruler+concat) ⇒ [<code>Ruler</code>](#Ruler)
-        * [.dump(options)](#Ruler+dump) ⇒ <code>string</code> \| <code>undefined</code>
-        * [.hadAction(action)](#Ruler+hadAction) ⇒ <code>boolean</code>
-        * [.hasAction(action)](#Ruler+hasAction) ⇒ <code>boolean</code>
-    * _static_
-        * [.hasActionIn(results, action)](#Ruler.hasActionIn) ⇒ <code>boolean</code>
+    * [.add(...args)](#Ruler+add) ⇒ [<code>Ruler</code>](#Ruler)
+    * [.check(itemName, [itemType])](#Ruler+check) ⇒ <code>number</code>
+    * [.clone([ancestors])](#Ruler+clone) ⇒ [<code>Ruler</code>](#Ruler)
+    * [.dump(options)](#Ruler+dump) ⇒ <code>string</code> \| <code>undefined</code>
+    * [.hadAction(action)](#Ruler+hadAction) ⇒ <code>boolean</code>
+    * [.hasAction(action)](#Ruler+hasAction) ⇒ <code>boolean</code>
 
 <a name="new_Ruler_new"></a>
 
@@ -32,36 +23,6 @@ Rule tree and intermediate state of searches.
 | [options] | <code>Object.&lt;{action:number, extended, optimize}&gt;</code> | 
 | ...definitions | <code>\*</code> | 
 
-<a name="Ruler+ancestors"></a>
-
-### ruler.ancestors : <code>Array.&lt;Array&gt;</code> \| <code>undefined</code>
-Used and mutated by test() method.
-
-**Kind**: instance property of [<code>Ruler</code>](#Ruler)  
-<a name="Ruler+lastMatch"></a>
-
-### ruler.lastMatch : <code>Array</code> \| <code>undefined</code>
-Most recent result from internal match_() method.
-
-**Kind**: instance property of [<code>Ruler</code>](#Ruler)  
-<a name="Ruler+nextRuleAction"></a>
-
-### ruler.nextRuleAction : <code>number</code>
-Action to be bound to next rule - used and possibly mutated by add().
-
-**Kind**: instance property of [<code>Ruler</code>](#Ruler)  
-<a name="Ruler+options"></a>
-
-### ruler.options : <code>Object</code>
-Options for string parser.
-
-**Kind**: instance property of [<code>Ruler</code>](#Ruler)  
-<a name="Ruler+treeCopy"></a>
-
-### ruler.treeCopy : <code>Array.&lt;Array.&lt;\*&gt;&gt;</code>
-Get copy of rule tree - for testing only!
-
-**Kind**: instance property of [<code>Ruler</code>](#Ruler)  
 <a name="Ruler+add"></a>
 
 ### ruler.add(...args) ⇒ [<code>Ruler</code>](#Ruler)
@@ -80,7 +41,7 @@ action code for following rule(s). Array may be nested.
 <a name="Ruler+check"></a>
 
 ### ruler.check(itemName, [itemType]) ⇒ <code>number</code>
-Check the `itemName` against rules, mutating `lastMatch` item property.
+Check the `itemName` against rules, mutating `lastMatch` instance property.
 
 The results array never contains ROOT node, which will be added
 on every run.
@@ -88,6 +49,7 @@ If a node of special action is matched, then only this node is returned.
 
 **Kind**: instance method of [<code>Ruler</code>](#Ruler)  
 **Returns**: <code>number</code> - the most prevailing action among matches.  
+**Affects**: this._lastMatch  
 
 | Param | Type | Description |
 | --- | --- | --- |
@@ -105,21 +67,10 @@ Create copy of the instance.
 | --- | --- | --- | --- |
 | [ancestors] | <code>\*</code> | <code>false</code> | array or:   - `true` means use `lastMatch` instance property w fallback to ancestors   - falsy value means use `ancestors` property. |
 
-<a name="Ruler+concat"></a>
-
-### ruler.concat(...args) ⇒ [<code>Ruler</code>](#Ruler)
-Create a new instance with new rules appended.
-
-**Kind**: instance method of [<code>Ruler</code>](#Ruler)  
-
-| Param | Type | Description |
-| --- | --- | --- |
-| ...args | <code>\*</code> | rule definitions |
-
 <a name="Ruler+dump"></a>
 
 ### ruler.dump(options) ⇒ <code>string</code> \| <code>undefined</code>
-Create diagnostic dump for visual display.
+A plug-in socket for diagnostic dump method.
 
 **Kind**: instance method of [<code>Ruler</code>](#Ruler)  
 **Returns**: <code>string</code> \| <code>undefined</code> - NB: always undefined in production mode!  
@@ -148,17 +99,5 @@ Check if results from recent match contain given action.
 
 | Param | Type |
 | --- | --- |
-| action | <code>number</code> | 
-
-<a name="Ruler.hasActionIn"></a>
-
-### Ruler.hasActionIn(results, action) ⇒ <code>boolean</code>
-Check if given results array contains entry with given action.
-
-**Kind**: static method of [<code>Ruler</code>](#Ruler)  
-
-| Param | Type |
-| --- | --- |
-| results | <code>Array.&lt;Array.&lt;number&gt;&gt;</code> | 
 | action | <code>number</code> | 
 

@@ -7,13 +7,16 @@
 
 /** @namespace constants */
 const constants = {
+  /** Action code, reserved for internal use: do not use this in rule definition!
+   * @const {number} */
+  DO_NOTHING: 0,
   /** Action code: skip this directory entry.
    * @const {number} */
   DO_SKIP: 10001,
-  /** Action code: Discard all in current directory.
+  /** Action code: discard all in the current directory.
    * @const {number} */
   DO_ABORT: 10002,
-  /** Action code: Discard all in current directory; terminate all walking.
+  /** Action code: discard all in the current directory; terminate all walking.
    * @const {number} */
   DO_TERMINATE: 10003,
 

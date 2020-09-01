@@ -1,32 +1,31 @@
 'use strict'
 const ME = 'Walker'
-process.env.NODE_MODULES = 'test'
 
 const { expect } = require('chai')
 const { DO_ABORT, DO_SKIP, loadFile, Ruler, Walker } = require('../src')
-const COUNT = 1
+const FILES = 1
+const DIRS = 2
+const ROOT = 'test/directory'
 const defaultRules = [
   DO_SKIP, 'node_modules', '.*'
 ]
+
 const projectRules = [
   DO_ABORT, '*.html',
   DO_SKIP, '/node_modules/', '.*',
-  COUNT, '*.js'
+  FILES, 'item*.txt',
+  DIRS, '*/', '!*skipped/'
 ]
 
-let w, acts
+let w, actionCounts
 
 const options = {
-  /*
-  trace: (what, ctx, act) => {
-    if (what === 'onBegin' || what === 'onEnd') {
-      console.log('-', what, ctx.absDir)
-    }
-    if (what === 'push') console.log('-', what, ctx.absDir, ctx.dir)
-  }, */
+  // trace: (what, ctx, act) => console.log(what + `\t'${ctx.dir}' '${ctx.name}' ${act}`),
+
   detect: function (context) {
     const { absDir } = context
     let v = loadFile(absDir + 'package.json')
+    // console.log(`detect(${absDir}) --> ${!!v}`)
 
     if (v) {
       v = JSON.parse(v.toString())
@@ -43,33 +42,34 @@ const options = {
   }
 }
 
+//  Plugin function calls Walker method and builds diagnostics.
 const onEntry = function (ctx) {
-  const r = this.onEntry(ctx), a = typeof r === 'object' ? r.action : r
-  const n = acts[a] || 0
-  acts[a] = n + 1
-  return r
+  const action = this.onEntry(ctx)
+  actionCounts[action] = (actionCounts[action] || 0) + 1
+  return action
 }
 
 describe(ME, () => {
   beforeEach(() => {
-    acts = {}
+    actionCounts = {}
     w = new Walker(options)
     w.defaultRuler = new Ruler(defaultRules)
     w.projectRuler = new Ruler(projectRules)
   })
 
   it('should construct w defaults', () => {
+    // console.log(w.projectRuler.dump())
     expect(w.failures).to.eql([])
     expect(w.terminate).to.equal(false)
   })
 
   it('should walk synchronously', () => {
-    w.projectRuler.add([1, '/pack*.json', 1, '*.js;f'])
-    w.walkSync('', { onEntry })
+    w.walkSync(ROOT, { onEntry })
     expect(w.failures).to.eql([], 'failures')
-    expect(acts[1]).to.gte(2, 'ACTION(1)')
+    expect(actionCounts[FILES]).to.equal(2, 'FILES')
+    expect(actionCounts[DIRS]).to.equal(2, 'DIRS')
     expect(w.trees.length).to.equal(1, '#1')
-    w.walkSync('', { onEntry })
+    w.walkSync(ROOT, { onEntry })
     expect(w.trees.length).to.equal(1, '#2')
   })
 
@@ -98,7 +98,7 @@ describe(ME, () => {
     w.walk('').then(() => done())
   })
 
-  it('should catch in async mode', (done) => {
+  /* it('should catch in async mode', (done) => {
     w.walk('/nope', { onError: (e) => e }).then(() => {
       done(new Error('Failed'))
     }).catch((e) => {
@@ -106,7 +106,7 @@ describe(ME, () => {
       expect(e.message).to.match(/^ENOENT: /, 'ENOENT')
       done()
     })
-  })
+  }) does not increase coverage */
 
   it('should intercept exceptions', () => {
     let data, error
@@ -127,9 +127,8 @@ describe(ME, () => {
     before(() => (options.nested = true))
 
     it('should process rules', () => {
-      w.walkSync('.', { onEntry })
+      w.walkSync(ROOT, { onEntry })
       expect(w.failures).to.eql([], 'failures')
-      // expect(acts['ACTION(1)']).to.gte(15, 'ACTION(1)')
       // console.log('w.trees', w.trees)
       expect(w.trees.length).to.equal(2, 'trees.length')
     })

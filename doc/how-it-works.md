@@ -93,7 +93,7 @@ the ruler instance methods would work like this:
 | test/bar.js | 0 | false | false |
 | test/index.js | 2 | true | false |
 
-Try it yourself with [examples/parse.js](../examples/parse.js), like this:
+Try it yourself with [examples/parsePath.js](../examples/parse.js), like this:
 ```
-   $ examples/parse.js 1 "*.js" "^test/**/*" 2 index.js 0 foo/bar.js
+   $ examples/parsePath.js 1 "*.js" "^test/**/*" 2 index.js 0 foo/bar.js
 ```

@@ -237,16 +237,16 @@ class Walker extends Sincere {
   }
 
   /**
-   * Execute a function, handle expected errors.
+   * Execute a probe function or opendir, handle expected errors.
    * @param {function(...)} method
-   * @param {*} context or argument
+   * @param {Object|string} context or directory path.
    * @param {function(...)} onError
    * @param {Array<string>=} expected error codes
    * @returns {*} directory object or numeric action code
    * @throws {Error} which was not handled.
    * @private
    */
-  safely_ (method, context, onError, expected) {
+  execute_ (method, context, onError, expected) {
     let r
 
     try {
@@ -256,7 +256,7 @@ class Walker extends Sincere {
       this.trace('onError', { context, error }, r)
 
       if (r === undefined) {
-        if ((r = (expected || {})[error.code]) === undefined) {
+        if ((r = (expected && expected[error.code])) === undefined) {
           r = error
         } else {
           this.registerFailure(error.message)
@@ -272,8 +272,8 @@ class Walker extends Sincere {
     if (r === DO_TERMINATE) {
       this.terminate = true
     }
-    if (typeof context !== 'string') {  //  If not opendir call.
-      this.assert(typeof r === 'number', 'Walker.safely_', 'not a number %O', r)
+    if (typeof context !== 'string') {  //  A probe should return numeric action code.
+      this.assert(typeof r === 'number', 'Walker.execute_', 'not a number %O', r)
     }
     return r
   }
@@ -334,7 +334,7 @@ class Walker extends Sincere {
       data = context.data
       context.absDir = rootDir + context.dir
 
-      if (typeof (directory = this.safely_(opendirSync, context.absDir, onError,
+      if (typeof (directory = this.execute_(opendirSync, context.absDir, onError,
         expErrs.opendir)) === 'number') {  //  opendir failed -> action
         this.trace('noOpen', context.absDir, action = directory)
         directory = undefined
@@ -350,7 +350,7 @@ class Walker extends Sincere {
         if (notRoot) context.absDir += sep
 
         notRoot = true
-        action = this.safely_(onBegin, context, onError, expErrs.onBegin)
+        action = this.execute_(onBegin, context, onError, expErrs.onBegin)
         this.trace('onBegin', context, action)
       }
       if (action < DO_SKIP) {
@@ -371,7 +371,7 @@ class Walker extends Sincere {
           context.type = entryType(entry)
           entries += 1
 
-          action = this.safely_(onEntry, context, onError, expErrs.onEntry)
+          action = this.execute_(onEntry, context, onError, expErrs.onEntry)
           this.trace('onEntry', context, action)
 
           if (context.type === T_DIR && !(action >= DO_SKIP)) {
@@ -390,7 +390,7 @@ class Walker extends Sincere {
       if (directory) directory.closeSync()
 
       context.action = action     //  Special to onEnd() handler only!
-      action = this.safely_(onEnd, context, onError, expErrs.onEnd)
+      action = this.execute_(onEnd, context, onError, expErrs.onEnd)
       this.trace('onEnd', context, action)
 
       if (action >= DO_ABORT) {   //  Discard all child directories
