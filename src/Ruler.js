@@ -319,34 +319,6 @@ class Ruler extends Sincere {
   }
 
   /**
-   * Match the `itemName` against rules. NB: will be deprecated - use `check()`,
-   * `hasAction()` and `lastMatch` instead!
-   *
-   * The results array never contains ROOT node, which will be added
-   * on every run.
-   * If a node of special action is matched, then only this node is returned.
-   *
-   * @param {string} itemName of item
-   * @param {string=} itemType of item
-   * @returns {Array<Array<number>>} array of [action, index]
-   */
-  /* match (itemName, itemType = T_ANY) {
-    const globs = [], tree = this._tree
-
-    const ancestors = (this.ancestors || [])
-      .map(([a, i]) => {
-        if (i > ROOT && tree[i][RUL] === GLOB) globs.push([a, i])
-        return i
-      })
-
-    ancestors.push(ROOT)    //  Always!
-
-    const res = this.match_(itemName, itemType, ancestors, [], []).concat(globs)
-
-    return (this.lastMatch = res.sort(([a], [b]) => b - a))
-  } */
-
-  /**
    * Get copy of rule tree - for testing only!
    * @type {Array<Array<*>>}
    */

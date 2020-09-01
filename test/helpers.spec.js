@@ -1,6 +1,5 @@
 'use strict'
 const ME = 'helpers'
-process.env.NODE_ENV = 'test'
 
 const { expect } = require('chai')
 const { name } = require('../package.json')

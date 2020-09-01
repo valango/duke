@@ -1,5 +1,4 @@
 'use strict'
-process.env.NODE_MODULES = 'test'
 const ME = 'parse'
 
 const { AssertionError } = require('assert')

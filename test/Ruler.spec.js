@@ -1,11 +1,9 @@
 'use strict'
 const ME = 'Ruler'
-process.env.NODE_MODULES = 'test'
 
 const { AssertionError } = require('assert')
 const { expect } = require('chai')
-const { Ruler, DO_SKIP, DO_ABORT, T_ANY, T_DIR, T_FILE } =
-        require('..')
+const { Ruler, DO_SKIP, DO_ABORT, T_ANY, T_DIR, T_FILE } = require('..')
 const { CONTINUE, GLOB, NIL } = Ruler
 
 const T1 = [
