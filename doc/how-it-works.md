@@ -74,12 +74,11 @@ Proprietary action codes between `0` and `DO_SKIP` can be defined by application
 Probably this class has little use outside of `Walker`. However, it may be useful
 to understand it's basics.
 
-**`Ruler#check()`** method returns a single _action code_, but this is just the highest one
-among possible others. This is so, because while analyzing the directory entries,
-there may be several rules that match. Because of this, it is reasonable not to
-rely to this single value, but to use `hasAction()` (affected by the most recent check())
-and `hadAction()` (affected by the last check before `clone(true)` was called)
-instance methods instead.
+**`Ruler#check()`** method returns a numeric _action code_, which is just the highest of possible others.
+This is because there may be several rules that match a particular node.
+Sometimes it is better to use `hasAction()` (affected by the most recent check()) and 
+`hadAction()` (affected by the last check before `clone(true)` was called)
+instance methods, not to rely on `check()` return value only.
 
 Rule exclusions can be defined, prefixing rule definition path with '^' symbol.
 It has similar effect to '!' symbol in _.gitignore_ file.
