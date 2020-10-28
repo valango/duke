@@ -1,20 +1,19 @@
 'use strict'
 
-const ANY = '.'
-const EXCL = '^'
-const GLOB = null
-const OPTIONAL = '.*'
-const P_GLOB = '**'
-const SCREENED_EXCL = '\\!'
+/**
+ * A special rule matching any or missing sequence of subdirectories.
+ * @const {null} OPTIONAL_DIRS
+ * @default
+ */
+const OPTIONAL_DIRS = null
 
-const DEFAULTS = { extended: true, optimize: true }
-const SEPARATOR = /(?<!\\)\//     //  Matches '/' only if not escaped.
+const anyChar = '.'
+const optionalChars = '.*'
+const doubleStar = '**'
 
 const assert = require('assert').strict
 const brexIt = require('brace-expansion')
 const { T_ANY, T_DIR } = require('./constants')
-
-const rxBraces = /(?<!\\){[^}]+(?<!\\)}/g   //  Detect non-escaped {...}
 
 /**
  * Convert `path` parts separated by '/' to array of RegExp instances.
@@ -26,7 +25,7 @@ const rxBraces = /(?<!\\){[^}]+(?<!\\)}/g   //  Detect non-escaped {...}
  */
 module.exports = (path, options = undefined) => {
   const check = (cond) => assert(cond, `invalid pattern '${path}'`)
-  const opts = { ...DEFAULTS, ...options }, rules = []
+  const opts = { extended: true, optimize: true, ...options }, rules = []
 
   let pattern = path.replace(/\\\s/g, '\\s').trimEnd()  //  Normalize spaces.
   let isExclusion = false, type = T_ANY
@@ -34,18 +33,20 @@ module.exports = (path, options = undefined) => {
 
   if (declaredT) (pattern = declaredT[1]) && (declaredT = declaredT[2])
 
-  if (pattern[0] === EXCL) {
+  if (pattern[0] === '^') {                 //  Exclusion character starting a line.
     (isExclusion = true) && (pattern = pattern.substring(1))
-  } else if (pattern.indexOf(SCREENED_EXCL) === 0) {
+  } else if (pattern.indexOf('\\!') === 0) {  //  Screened exclusion.
     pattern = pattern.substring(1)
   }
   if (opts.extended) {
-    pattern = pattern.replace(rxBraces, (p) => '(' + brexIt(p).join('|') + ')')
+    //  Detect non-escaped '{'...'}'.
+    pattern = pattern.replace(/(?<!\\){[^}]+(?<!\\)}/g,
+      (p) => '(' + brexIt(p).join('|') + ')')
   }
   pattern = pattern.replace(/\./g, '\\.')   //  Screen dot characters.
-  const parts = pattern.split(SEPARATOR)
-  if (parts[0] !== P_GLOB) {
-    parts[0] ? parts.unshift(P_GLOB) : parts.shift()
+  const parts = pattern.split(/(?<!\\)\//)  //  Matches '/' only if not escaped.
+  if (parts[0] !== doubleStar) {
+    parts[0] ? parts.unshift(doubleStar) : parts.shift()
   }
   let last = parts.length - 1
 
@@ -57,23 +58,23 @@ module.exports = (path, options = undefined) => {
 
     check(rule)
 
-    if (rule === P_GLOB) {
+    if (rule === doubleStar) {
       if (rules.length) {
-        if ((rule = rules.pop()) !== GLOB) {
+        if ((rule = rules.pop()) !== OPTIONAL_DIRS) {
           rules.push(rule)
         }
       }
-      rule = GLOB
+      rule = OPTIONAL_DIRS
     }
-    if (rule !== GLOB) {
-      rule = rule.replace(/\*+/g, OPTIONAL).replace(/\?/g, ANY)
+    if (rule !== OPTIONAL_DIRS) {
+      rule = rule.replace(/\*+/g, optionalChars).replace(/\?/g, anyChar)
 
       if (!opts.optimize) {
         rule = '^' + rule + '$'
-      } else if (rule === OPTIONAL || rule === ANY) {
-        rule = ANY
+      } else if (rule === optionalChars || rule === anyChar) {
+        rule = anyChar
       } else {
-        rule = rule.indexOf(OPTIONAL) === 0 ? rule.substring(2) : '^' + rule
+        rule = rule.indexOf(optionalChars) === 0 ? rule.substring(2) : '^' + rule
         rule = /\.\*$/.test(rule)
           ? rule.substring(0, rule.length - 2) : rule + '$'
       }
@@ -81,12 +82,12 @@ module.exports = (path, options = undefined) => {
     rules.push(rule)
   }
 
-  const any = opts.optimize ? ANY : '^.*$', l = rules.length - 1
+  const any = opts.optimize ? anyChar : '^.*$', l = rules.length - 1
   //  a/**$ --> a/$
   if (rules[l] === null) (type = T_DIR) && rules.pop()
-  check(!(rules.length === 1 && (rules[0] === ANY || rules[0] === any)))
+  check(!(rules.length === 1 && (rules[0] === anyChar || rules[0] === any)))
   rules.unshift({ type: declaredT === null ? type : declaredT, isExclusion })
   return rules
 }
 
-module.exports.GLOB = GLOB
+module.exports.OPTIONAL_DIRS = OPTIONAL_DIRS

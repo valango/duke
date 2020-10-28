@@ -4,14 +4,14 @@ const { T_ANY, T_DIR } = require('./constants')
 const parse = require('./parse')
 const Sincere = require('sincere')
 const CONTINUE = 0
-const { GLOB } = parse
+const { OPTIONAL_DIRS } = parse
 const NIL = -1
 const ROOT = 0
 //  Tree node constants.
 // const TYP = 0
-const RUL = 1
-const PAR = 2
-const ACT = 3
+const RULE = 1
+const PARENT = 2
+const ACTION = 3
 
 const rule_ = (r) => r ? new RegExp(r) : r
 
@@ -43,11 +43,11 @@ class Ruler extends Sincere {
     super()
 
     /**
-     * Rule tree of nodes [rule, parent, action].
+     * Rule tree of nodes [entryType, rule, parent, action].
      * @type Array<Array<*>>
      * @private
      */
-    this._tree = [[T_DIR, GLOB, NIL, CONTINUE]]
+    this._tree = [[T_DIR, OPTIONAL_DIRS, NIL, CONTINUE]]
 
     /**
      * Used and mutated by test() method.
@@ -119,13 +119,13 @@ class Ruler extends Sincere {
     const dst = this._tree
 
     src.forEach(([typ, rul, par, act], i) => {
-      const grandPa = par === NIL ? NIL : src[par][PAR]
+      const grandPa = par === NIL ? NIL : src[par][PARENT]
       let j = dst.findIndex(
         ([t, r, p]) => p === grandPa && t === typ && (r ? r.source : r) === rul)
       if (j < 0) {
         j = dst.push([typ, rule_(rul), grandPa, act]) - 1
       }
-      src[i][PAR] = j
+      src[i][PARENT] = j
     })
     return this
   }
@@ -140,7 +140,7 @@ class Ruler extends Sincere {
       const nodeIndex = tree.findIndex(
         ([typ, rul, par, act]) => {
           const y0 = par === parentIndex && typeMatch_(t, typ)
-          const y1 = (rul === GLOB ? rul : rul.source) === rule
+          const y1 = (rul === OPTIONAL_DIRS ? rul : rul.source) === rule
           const y2 = ruleIndex < last || (act === action) || act === CONTINUE
           return y0 && y1 && y2
         })
@@ -152,7 +152,7 @@ class Ruler extends Sincere {
       }
     })
     this.assert(parentIndex >= 0, 'addRules_', 'no node created')
-    tree[parentIndex][ACT] = action
+    tree[parentIndex][ACTION] = action
   }
 
   /**
@@ -187,7 +187,7 @@ class Ruler extends Sincere {
 
     const anc = (this.ancestors || [])
       .map(([a, i]) => {
-        if (i > ROOT && tree[i][RUL] === GLOB) globs.push([a, i])
+        if (i > ROOT && tree[i][RULE] === OPTIONAL_DIRS) globs.push([a, i])
         return i
       })
 
@@ -291,12 +291,12 @@ class Ruler extends Sincere {
         }
         if (anc !== par) continue
 
-        if (rule !== GLOB &&
+        if (rule !== OPTIONAL_DIRS &&
           !(typeMatch_(itemType, type) && rule.test(itemName))) {
           continue
         }
-        if (rule === GLOB) {
-          //  In case of GLOB, check it's descendants immediately.
+        if (rule === OPTIONAL_DIRS) {
+          //  In case of OPTIONAL_DIRS, check it's descendants immediately.
           this.match_(itemName, itemType, [i], res, toDisclaim)
           if (i === ROOT) continue
         }
@@ -330,4 +330,4 @@ class Ruler extends Sincere {
 module.exports = Ruler
 
 //  These exports may be useful for testing.
-Object.assign(Ruler, { CONTINUE, GLOB, NIL, ROOT })
+Object.assign(Ruler, { CONTINUE, OPTIONAL_DIRS, NIL, ROOT })

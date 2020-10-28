@@ -3,7 +3,8 @@ const ME = 'Walker'
 
 const { expect } = require('chai')
 const { DO_ABORT, DO_SKIP, loadFile, Ruler, Walker } = require('../src')
-const COUNT = 1
+const FILES = 1
+const DIRS = 2
 const ROOT = 'test/directory'
 const defaultRules = [
   DO_SKIP, 'node_modules', '.*'
@@ -12,18 +13,19 @@ const defaultRules = [
 const projectRules = [
   DO_ABORT, '*.html',
   DO_SKIP, '/node_modules/', '.*',
-  COUNT, 'item*.txt'
+  FILES, 'item*.txt',
+  DIRS, '/src'
 ]
 
 let w, actionCounts
 
 const options = {
-  // trace: (what, ctx, act) => console.log(what + `\t'${ctx.dir}' '${ctx.name}' ${act}`),
+  trace: (what, ctx, act) => console.log(what + `\t'${ctx.dir}' '${ctx.name}' ${act}`),
 
   detect: function (context) {
     const { absDir } = context
     let v = loadFile(absDir + 'package.json')
-    // console.log(`detect(${absDir}) --> ${!!v}`)
+    console.log(`detect(${absDir}) --> ${!!v}`)
 
     if (v) {
       v = JSON.parse(v.toString())
@@ -64,11 +66,12 @@ describe(ME, () => {
   it('should walk synchronously', () => {
     w.walkSync(ROOT, { onEntry })
     expect(w.failures).to.eql([], 'failures')
-    expect(actionCounts[COUNT]).to.equal(2, 'ACTION(COUNT)')
+    expect(actionCounts[FILES]).to.equal(2, 'ACTION(FILES)')
+    expect(actionCounts[DIRS]).to.equal(2)
     expect(w.trees.length).to.equal(1, '#1')
     w.walkSync(ROOT, { onEntry })
     expect(w.trees.length).to.equal(1, '#2')
-  })
+  }) /*
 
   it('should register failure', () => {
     expect(w.registerFailure('test', '1').failures[0]).to.eql('test\n  1')
@@ -129,5 +132,5 @@ describe(ME, () => {
       // console.log('w.trees', w.trees)
       expect(w.trees.length).to.equal(2, 'trees.length')
     })
-  })
+  }) */
 })
