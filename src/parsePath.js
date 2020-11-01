@@ -2,7 +2,7 @@
 
 const assert = require('assert').strict
 const brexIt = require('brace-expansion')
-const { T_ANY, T_DIR } = require('./constants')
+const { T_DIR } = require('./constants')
 
 const anyChar = '.'
 const doubleStar = '**'
@@ -22,10 +22,10 @@ module.exports = (path, options = undefined) => {
   const opts = { extended: true, optimize: true, ...options }, rules = []
 
   let pattern = path.replace(/\\\s/g, '\\s').trimEnd()  //  Normalize spaces.
-  let isExclusion = false, type = T_ANY
+  let isExclusion = false, type
   let givenType = /^([^;]+);(.*)$/.exec(pattern)        //  null, if type is not declared.
 
-  if (givenType) (pattern = givenType[1]) && (givenType = givenType[2])
+  if (givenType) (pattern = givenType[1]) && (givenType = givenType[2] || undefined)
 
   if (pattern[0] === '!') {                     //  Exclusion character starting a line.
     (isExclusion = true) && (pattern = pattern.substring(1))

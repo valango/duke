@@ -46,7 +46,7 @@ module.exports = function dump (options = true) {
   const dumpNode = (i) => {
     const [t, r, p, a] = tree[i]
     return formatWithOptions(opts, '%s: %O %O,%s%O, %O',
-      (i + '').padStart(w), t.padStart(2),
+      (i + '').padStart(w), (t || ' '),
       r, ''.padStart(rm - rw[i] + 4 - (p + '').length), p, a)
   }
   const res = indexes.map((i) => dumpNode(i))

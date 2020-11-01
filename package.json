@@ -75,10 +75,12 @@
     "all": true,
     "check-coverage": true,
     "exclude": [
-      "src/index.js"
+      "src/index.js",
+      "src/typedefs.js"
     ],
     "include": [
-      "src/**/*.js"
+      "src/**/*.js",
+      "stubs/**/*.js"
     ],
     "reporter": [
       "lcov",

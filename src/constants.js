@@ -21,12 +21,14 @@ const constants = {
   DO_TERMINATE: 10003,
 
   /** @const {TEntryType} */
-  T_ANY: '',
-  /** @const {TEntryType} */
   T_BLOCK: 'B',
   /** @const {TEntryType} */
   T_CHAR: 'C',
-  /** @const {TEntryType} */
+  /**
+   * Directory type flag - the only one with special meaning for Ruler.
+   * @const {TEntryType}
+   * @default
+   */
   T_DIR: 'd',
   /** @const {TEntryType} */
   T_FIFO: 'F',

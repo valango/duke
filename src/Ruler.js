@@ -1,6 +1,6 @@
 'use strict'
 
-const { DO_NOTHING, T_ANY, T_DIR } = require('./constants')
+const { DO_NOTHING, T_DIR } = require('./constants')
 const parsePath = require('./parsePath')
 const Sincere = require('sincere')
 
@@ -200,7 +200,7 @@ class Ruler extends Sincere {
    * @affects this._lastMatch
    * @returns {number} the most prevailing action among matches.
    */
-  check (itemName, itemType = T_ANY) {
+  check (itemName, itemType = undefined) {
     const { _tree } = this, globs = []  //  Rules possibly globbing some directories.
 
     const ancestors = this._ancestors.map(([a, i]) => {    //  (action, ruleIndex)

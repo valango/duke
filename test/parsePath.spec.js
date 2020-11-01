@@ -3,11 +3,11 @@ const ME = 'parsePath'
 
 const { AssertionError } = require('assert')
 const { expect } = require('chai')
-const { T_ANY, T_DIR, T_FILE } = require('../src/constants')
+const { T_DIR, T_FILE } = require('../src/constants')
 const target = require('../src/' + ME)
 const OPTIONAL_DIRS = null
 const R_ANY = '.'
-const ANY = { type: T_ANY, isExclusion: false }
+const ANY = { type: undefined, isExclusion: false }
 const DIR = { type: T_DIR, isExclusion: false }
 const XDIR = { type: T_DIR, isExclusion: true }
 const XFIL = { type: T_FILE, isExclusion: true }
