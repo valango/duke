@@ -95,11 +95,10 @@ describe(ME, () => {
     expect(res).to.equal(undefined)
     expect(w.terminate.locus).to.equal('opendir')
     expect(data.inst).to.equal(w, 'instance')
-    expect(data.args).to.match(/\/nope$/, 'args')
+    expect(data.args[0]).to.match(/\/nope\/$/, 'args')
     expect(w.failures.length).to.eql(1, 'length')
     expect(w.failures[0].message).to.match(/^ENOENT:\s/, '[0]')
     w.reset()
-
     try {
       await w.walk(undefined, { onEntry: throwTest })
       expect(false).to.eql(true)
@@ -111,7 +110,7 @@ describe(ME, () => {
 
   it('should fail w bad return value', async () => {
     try {
-      await w.walk(undefined, { onFinal: () => 'bad-value' })
+      await w.walk(undefined, { onFinal: async () => 'bad-value' })
       expect(false).to.eql(true)
     } catch (error) {
       expect(w.terminate).to.be.equal(undefined)
@@ -124,23 +123,16 @@ describe(ME, () => {
     expect(r).to.equal(undefined)
     expect(w.visited.size).to.equal(1)
     expect(w.visited.get(process.cwd() + '/')).to.equal('stringy')
-    await w.walk(undefined, { onDir: throwTest })
-    expect(w.visited.size).to.equal(1)
   })
 
-  xit('should intercept exceptions', () => {
-    let data, error
-
-    const onError = (e, d) => {
-      error = e
-      data = d
-      return DO_SKIP
+  it('onDir throwing', async () => {
+    try {
+      await w.walk(undefined, { onDir: throwTest })
+    } catch (error) {
+      expect(error.message).to.equal('Test')
+      expect(error.context.locus).to.equal('onDir')
     }
-
-    w.walkSync('nope', { onError })
-    expect(error.code).to.eql('ENOENT')
-    expect(data).to.match(/nope$/)
-    expect(w.failures).to.eql([])
+    expect(w.visited.size).to.equal(0)
   })
 
   /* xdescribe('nested mode', () => {

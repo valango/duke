@@ -16,9 +16,10 @@ const constants = {
   /** Action code: discard all in the current directory.
    * @const {number} */
   DO_ABORT: 10002,
+  DO_RETRY: 10003,
   /** Action code: discard all in the current directory; terminate all walking.
    * @const {number} */
-  DO_TERMINATE: 10003,
+  DO_TERMINATE: 10004,
 
   /** @const {TEntryType} */
   T_BLOCK: 'B',
