@@ -4,63 +4,24 @@ const { resolve, sep } = require('path')
 const fs = require('fs')
 const translateDirEntry = require('./translateDirEntry')
 const Ruler = require('./Ruler')
-const { DO_ABORT, DO_NOTHING, DO_RETRY, DO_SKIP, DO_TERMINATE, T_DIR } = require('./constants')
+const { DO_ABORT, DO_NOTHING, DO_RETRY, DO_SKIP, DO_HALT, T_DIR } = require('./constants')
 const nothing = Symbol('nothing')
 const { isNaN } = Number
 const noop = () => undefined
-const shadow = { reject: undefined, resolve: undefined }
 
 /**
- * Data context {@link Walker#walk} provides handler methods / plugins with.
- * @typedef {Object} TWalkContext
- * @property {string} absPath         separator-terminated absolute path
- * @property {?Object} current        entry in {@link Walker#visited}.
- * @property {*} data                 to be returned by {@link Walker#walk} method.
- * @property {number} depth           0 for `rootDir`.
- * @property {string} dirPath         relative to `rootDir`.
- * @property {string} locus           used for diagnostics and execute_().
- * @property {string} rootPath        absolute path where walking started from.
- * @property {Ruler} ruler            currently active Ruler instance.
- * @property {number} threadCount
- */
-
-/**
- * Options for Walker#walk...() instance methods and constructor.
- * @typedef {Object} TWalkOptions
- * @property {*} [data]               to be shared between handlers.
- * @property {function(Object)} [onDir]   plugin
- * @property {function(Object,Object)} [onEntry]  plugin
- * @property {function(Object,Object[])} [onFinal] plugin
- * @property {function(...)} [tick]    plugin
- * @property {function(...)} [trace]   plugin
- * @property {Ruler} [ruler]            currently active Ruler instance.
- */
-
-/**
- * Total number of directories and directory entries processed.
- * @type {number}
- * @private
- */
-
-// let directories = 0, entries = 0
-
-/**
- * @param {Object=} options all {@link TWalkOptions} properties,
- * plus initial values for appropriate instance properties:
- * @property {?*} defaultRuler
- * @property {?number} interval msecs between tick plugin calls
- * @property {?function(number=, number=)} tick plugin
- * @property {?function(...)} trace plugin
+ * @param {TWalkerOptions=} options
+ * @constructor
  */
 function Walker (options = {}) {
   this.data = undefined
   /**
-   * Array of error messages from suppressed exceptions.
+   * Array of error instances (with `context` property) from overridden exceptions.
    * @type {Array<Error>}
    */
   this.failures = undefined
   /**
-   * Minimum interval between {@link Walker#tick} calls.
+   * Minimum milliseconds between {@link Walker#tick} calls (default: 200).
    * @type {number}
    */
   this.interval = options.interval || 200
@@ -70,9 +31,9 @@ function Walker (options = {}) {
   this.ruler = options.rules instanceof Ruler ? options.rules : new Ruler(options.rules)
   /**
    * Global Terminal Condition, unless undefined.
-   * @type {*}
+   * @type {TWalkContext}
    */
-  this.termination = undefined
+  this.halted = undefined
   /**
    * Descriptors of recognized filesystem subtrees.
    * @type {Map}
@@ -84,7 +45,10 @@ function Walker (options = {}) {
    * @private
    */
   this._nextTick = 0
-
+  /**
+   * @type {number}
+   * @private
+   */
   this._nEntries = 0
 
   this.reset(({ data: nothing, ...options }).data)
@@ -95,154 +59,167 @@ function Walker (options = {}) {
  * @param {string} dir
  * @returns {{absDir, '...'}|undefined}
  */
-
 Walker.prototype.getCurrent = function (dir) {  //  Todo: we need this?
   return this.trees.find((p) => p.absDir === dir)
 }
 
 /**
  * Get total counts.
- * @returns {Object}
+ * @returns {Object.<{entries: number}>}
  */
 Walker.prototype.getTotals = function () {
   return { entries: this._nEntries }
 }
 
-Walker.prototype.onDir = function (context) {
-  return 0
+/**
+ * Handler called immediately after directory has been opened.
+ * @param {TWalkContext} context
+ * @param {*=} currentValue
+ * @returns {*}  numeric action code or special value to for `visited` collection.
+ */
+Walker.prototype.onDir = function (context, currentValue = nothing) {
+  context.current = currentValue === nothing ? {} : currentValue
+  return DO_NOTHING
 }
 
 /**
  * Handler called for every directory entry.
- * @param {TWalkContext} context - has `name` and `type` properties set.
+ * @param {string} name
+ * @param {TEntryType} type
+ * @param {TWalkContext} context
  * @returns {number}
  */
-Walker.prototype.onEntry = function (context, { name, type }) {
+Walker.prototype.onEntry = function ({ name, type }, context) {
   return context.ruler.check(name, type)
 }
 
-Walker.prototype.onFinal = async function () {
-  return 0
+/**
+ * Handler called after all entries been scanned and directory closed.
+ * @async
+ * @param {TWalkContext} context
+ * @returns {Promise<number>}
+ */
+Walker.prototype.onFinal = async function (context) {
+  return DO_NOTHING
 }
 
 /**
  * Translate error if applicable.
- * @param {Error} error
- * @param {string} locus
- * @returns {Error | number}
- *  - Error instance: treat this as unrecoverable
- *  - other: DO_SKIP, DO_ABORT, DO_TERMINATE
+ *
+ * @param {Error} error   - with `context` property set.
+ * @returns {number|Error|undefined}
  */
-Walker.prototype.onError = function (error, locus) {
-  let override = exports.expected[locus]  //  Todo: better provide context argument here!
+Walker.prototype.onError = function (error) {
+  const override = exports.overrides[error.context.locus]
 
-  if (override && (override = override[error.code]) !== undefined) {
-    if (override !== DO_NOTHING) this.failures.push(error)
-    return override
-  }
-  return error
+  return override && override[error.code]
 }
 
 /**
  * Reset counters for getTotals().
+ * @returns {Walker}
  */
 Walker.prototype.reset = function (data = nothing) {
   this.data = data === nothing ? {} : data
   this.failures = []
-  this.termination = undefined
+  this.halted = undefined
   this.visited.clear()
   this._nEntries = 0
+  this._nextTick = 0
   return this
 }
 
-Walker.prototype.checkReturn_ = function (value, context, closure) {
+Walker.prototype.checkReturn_ = function (value, context, closure, locus) {
   if (value && typeof value !== 'number') {
     value = closure.end(null, value)
-  } else if (value === DO_TERMINATE) {
-    value = closure.end(null, context.data) || this.terminate_(context)
+  } else if (value === DO_HALT) {
+    value = closure.end(null, context.data) || this.halt_(context, locus)
   }
   return value
 }
 
 /**
  * Execute an asynchronous call and handle possible rejections.
- * @param fn
- * @param {TWalkContext} context
  * @param {Object} closure
+ * @param {string} name
+ * @param {TWalkContext} context
  * @param args
  * @returns {Promise<*>}
  * @private
  */
-Walker.prototype.execAsync_ = function (fn, context, closure, ...args) {
-  return fn.apply(this, args)
+Walker.prototype.execAsync_ = function (closure, name, context, ...args) {
+  return closure[name].apply(this, args)
     .catch(error => {
-      return this.onError_(error, fn, context, closure, args)
+      return this.onError_(error, name, context, closure, args)
     })
-    .then(value => {
-      if (!isNaN(context.threadCount)) {
-        if (fn.name !== 'opendir') {
-          value = this.checkReturn_(value, context, closure)
+    .then(result => {
+      if (!isNaN(closure.threadCount)) {
+        closure.trace(name, result, closure, args)
+        if (name !== 'opendir') {
+          result = this.checkReturn_(result, context, closure, name)
         }
       }
-      return value
+      return result
     })
 }
 
-Walker.prototype.execSync_ = function (fn, context, closure, ...args) {
+Walker.prototype.execSync_ = function (closure, name, context, ...args) {
   let result
 
   try {
-    result = fn.apply(this, args)
+    result = closure[name].apply(this, args)
+    closure.trace(name, result, closure, args)
+    if (name === 'onDir' && typeof result !== 'number') return result
   } catch (error) {
-    result = this.onError_(error, fn, context, closure, args)
+    result = this.onError_(error, name, context, closure, args)
   }
-  return this.checkReturn_(result, context, closure)
+  return this.checkReturn_(result, context, closure, name)
 }
 
 /**
- * Handle error if possible, terminate/reject if necessary.
+ * Handle error if possible, register, terminate/reject if necessary.
  * @private
  */
-Walker.prototype.onError_ = function (error, fn, context, closure, args) {
-  const locus = context.locus || fn.name
+Walker.prototype.onError_ = function (error, name, context, closure, args) {
+  error.context = { ...context, args, locus: name }
 
-  error.context = { args, ...context, locus, ...shadow }
+  let r = this.onError(error)
 
-  let r = this.onError(error, locus)
-
-  if (r === undefined) r = error
-
-  if (r instanceof Error) {
-    r = closure.end(r) || this.terminate_(context)
+  if (typeof r === 'number') {
+    if (r) {
+      error.context.override = r
+      this.failures.push(error)
+    }
+  } else {
+    if (!(r instanceof Error)) r = error
+    closure.end(r) || this.halt_(context, name)
+    r = DO_ABORT
   }
   return r
 }
 
-Walker.prototype.terminate_ = function (context) {
-  if (this.termination === undefined) {
-    this.termination = context
+Walker.prototype.halt_ = function (context, locus) {
+  if (this.halted === undefined) {
+    this.halted = { ...context, locus }
+    delete this.halted.ruler
   }
   return DO_ABORT
 }
 
 /**
- *  Process directory tree synchronously width-first starting from `rootPath`
+ *  Process directory tree synchronously width-first starting from `startPath`
  *  and invoke appropriate onXxx methods.
  *
  * @param {string} startPath
  * @param {TWalkOptions} opts
  * @param {function(*,*=)} callback
+ * @private
  */
 Walker.prototype.walk_ = function (startPath, opts, callback) {
   const data = { ...opts.data }
   const rootPath = resolve(startPath || '.')
-  const onDir = opts.onDir || this.onDir
-  const onEntry = opts.onEntry || this.onEntry
-  const onFinal = opts.onFinal || this.onFinal
   const tick = opts.tick || this.tick || noop
-  const trace = opts.trace || this.trace || noop
   const { interval } = this
-  const { opendir } = exports
   const closure = {
     end: function (error, value = null) {
       if (!isNaN(this.threadCount)) {
@@ -250,39 +227,37 @@ Walker.prototype.walk_ = function (startPath, opts, callback) {
         callback(error, value)
       }
     },
-    threadCount: 0
+    onDir: opts.onDir || this.onDir,
+    onEntry: opts.onEntry || this.onEntry,
+    onFinal: opts.onFinal || this.onFinal,
+    opendir: exports.opendir,
+    threadCount: 0,
+    trace: opts.trace || this.trace || noop
   }
-
-  let t, doDirs = () => undefined
+  /* eslint-disable-next-line */
+  let doDirs
 
   const fifo = [{
-    absPath: undefined,
+    absPath: /\/$/.test(rootPath) ? rootPath : rootPath + sep,
+    current: undefined,
     data,
     depth: 0,
     entries: undefined,
-    dirPath: '',
-    locus: undefined,
-    rootPath,
     ruler: opts.ruler || this.ruler
   }]
 
   const doDir = async (context) => {
-    let res, pushed
+    let res
 
-    // Todo: fix vague semantics of directory paths!
     if (context.entries === undefined) {      //  We are in new directory.
-      const path = rootPath + context.dirPath, entries = []
-
-      context.absPath = (context.dirPath || !/\/$/.test(path)) ? path + sep : path
-
       if (this.visited.has(context.absPath)) {
         return
       }
-
-      closure.threadCount += 1
+      const entries = []
       let dir, entry
 
-      res = await this.execAsync_(opendir, context, closure, context.absPath)
+      closure.threadCount += 1
+      res = await this.execAsync_(closure, 'opendir', context, context.absPath)
 
       if (typeof res !== 'object') {
         if (res === DO_RETRY) {
@@ -290,22 +265,27 @@ Walker.prototype.walk_ = function (startPath, opts, callback) {
         }
       } else {
         dir = res
-        if (!((res = this.execSync_(onDir, context, closure, context))) < DO_SKIP) {
-          for await (entry of dir) {
-            entry = translateDirEntry(entry)
-            res = this.execSync_(onEntry, context, closure, context, entry)
-            if (!(res < DO_ABORT)) break
-            if (res < DO_SKIP) entries.push(entry)
+        res = this.execSync_(closure, 'onDir', context, context)
+        if (!(res >= DO_ABORT)) {        //  onDir may return anything.
+          this.visited.set(context.absPath, res)
+          if (!(res >= DO_SKIP)) {
+            for await (entry of dir) {
+              entry = translateDirEntry(entry)
+              res = this.execSync_(closure, 'onEntry', context, entry, context)
+              this._nEntries += 1
+              if (!(res < DO_ABORT)) break
+              if (res < DO_SKIP) entries.push(entry)
+            }
           }
         }
         try {
           await dir.close()
         } catch (error) {
-          res = Math.max(res, this.onError_(error, dir.close, context, closure, []))
+          res = Math.max(res, this.onError_(error, 'closedir', context, closure, []))
         }
-        this.checkReturn_(res, context, closure)
+        this.checkReturn_(res, context, closure, 'closedir')
       }
-      if (isNaN(closure.threadCount || this.termination)) {
+      if (isNaN(closure.threadCount || this.halted)) {
         return
       }
       if (res < DO_ABORT) {
@@ -315,27 +295,33 @@ Walker.prototype.walk_ = function (startPath, opts, callback) {
       closure.threadCount -= 1
     } else {  //  Phase II
       closure.threadCount += 1
-      if ((res = await this.execAsync_(onFinal, context, closure, context)) < DO_SKIP) {
-        const { dirPath, entries } = context
+      if (await this.execAsync_(closure, 'onFinal', context, context) < DO_SKIP) {
+        const { entries } = context
         for (let i = 0, entry; (entry = entries[i]) !== undefined; i += 1) {
           if (entry.type !== T_DIR) continue
           const ctx = {
             ...context,
+            absPath: context.absPath + entry.name + sep,
             depth: context.depth + 1,
-            dirPath: dirPath ? dirPath + sep + entry.name : entry.name,
             entries: undefined,
             ruler: context.ruler.clone(true)
           }
-          pushed = fifo.push(ctx)
+          fifo.push(ctx)
         }
       }
       closure.threadCount -= 1
     }
-    console.log(context.dirPath || '.', fifo.length, closure.threadCount)
+    // console.log(context.absPath, fifo.length, closure.threadCount)
     setTimeout(doDirs, 0)
   }
 
   doDirs = () => {
+    const t = Date.now()
+
+    if (t >= this._nextTick && (!isNaN(closure.threadCount))) {
+      this._nextTick = t + interval
+      tick.call(this, this._nEntries)
+    }
     for (let context; (context = fifo.shift()) !== undefined;) {
       doDir(context)  //  Yes - the returned promise is ignored!
     }
@@ -344,11 +330,13 @@ Walker.prototype.walk_ = function (startPath, opts, callback) {
     }
   }
 
+  this._nEntries += 1
   doDirs()
 }
 
 /**
- * @param {string} startPath
+ * Asynchronously walk a directory tree.
+ * @param {string=} startPath     defaults to CWD
  * @param {TWalkOptions} options
  * @returns {Promise<*>}
  */
@@ -362,30 +350,23 @@ Walker.prototype.walk = function (startPath, options = {}) {
 
 exports = module.exports = Walker
 
-exports.expected = {
-  close: {
+/**
+ * Override rules for certain errors in certain locus.
+ * @type {Object}
+ */
+exports.overrides = {
+  closedir: {
     ERR_DIR_CLOSED: DO_NOTHING
   },
   opendir: {
     EACCES: DO_SKIP,
     EBADF: DO_ABORT,
     ELOOP: DO_SKIP,
-    ENOENT: DO_TERMINATE,
     ENOTDIR: DO_SKIP,
     EPERM: DO_ABORT
+    // ENOENT result in error because of bad input.
   }
 }
 
+//  Injection point for special cases e.g. testing.
 exports.opendir = fs.promises.opendir
-
-/**
- * Process the directory defined by `context`.
- * @param {Object} context
- * @param {function(Object):number} onDir
- * @param {function(Object):number} onEntry
- * @param {function(*)} fail_
- * @returns {Promise<{entries: [], context: *, action: *}|*>}
- * @async
- * @private
- */
-// Walker.prototype.scanDir_ = require('./scanDir')()

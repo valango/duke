@@ -49,7 +49,7 @@ The actual implementation does a little bit more:
    1. The `directories` and `entries` static counters are updated and 
    [Walker#tick](Walker.md#Walker+tick) plugin function is called regularly -
    this feature is intended for progress indicators etc.
-   1. The `terminate` property is set true whenever `DO_TERMINATE` action code is returned
+   1. The `terminate` property is set true whenever `DO_HALT` action code is returned
    by any handler. This forces all the Walker instance to shut down.
 
 The asynchronous [`walk()`](Walker.md#Walker+walk) method uses `walksSync()` code.
@@ -64,7 +64,7 @@ Three values (in ascending order) are reserved for Walker:
    * **`DO_SKIP`** from onBegin() - skip the current directory and all it's sub-dirs;
    * **`DO_SKIP`** from onEntry() - skip / ignore the current directory entry;
    * **`DO_ABORT`** - stop scanning the current directory and skip all it's sub-dirs;
-   * **`DO_TERMINATE`** - all the effects of `DO_ABORT` plus disabling any walking of Walker instance.
+   * **`DO_HALT`** - all the effects of `DO_ABORT` plus disabling any walking of Walker instance.
    
 In case of asynchronous walking, none of the codes above can affect already initialized promises.
 

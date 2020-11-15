@@ -1,18 +1,3 @@
-## Objects
-
-<dl>
-<dt><a href="#constants">constants</a> : <code>object</code></dt>
-<dd></dd>
-</dl>
-
-## Typedefs
-
-<dl>
-<dt><a href="#TEntryType">TEntryType</a> : <code>string</code></dt>
-<dd><p>Value of directory entry <code>type</code> property.</p>
-</dd>
-</dl>
-
 <a name="constants"></a>
 
 ## constants : <code>object</code>
@@ -22,15 +7,14 @@
     * [.DO_NOTHING](#constants.DO_NOTHING) : <code>number</code>
     * [.DO_SKIP](#constants.DO_SKIP) : <code>number</code>
     * [.DO_ABORT](#constants.DO_ABORT) : <code>number</code>
-    * [.DO_TERMINATE](#constants.DO_TERMINATE) : <code>number</code>
-    * [.T_ANY](#constants.T_ANY) : [<code>TEntryType</code>](#TEntryType)
-    * [.T_BLOCK](#constants.T_BLOCK) : [<code>TEntryType</code>](#TEntryType)
-    * [.T_CHAR](#constants.T_CHAR) : [<code>TEntryType</code>](#TEntryType)
-    * [.T_DIR](#constants.T_DIR) : [<code>TEntryType</code>](#TEntryType)
-    * [.T_FIFO](#constants.T_FIFO) : [<code>TEntryType</code>](#TEntryType)
-    * [.T_FILE](#constants.T_FILE) : [<code>TEntryType</code>](#TEntryType)
-    * [.T_SOCKET](#constants.T_SOCKET) : [<code>TEntryType</code>](#TEntryType)
-    * [.T_SYMLINK](#constants.T_SYMLINK) : [<code>TEntryType</code>](#TEntryType)
+    * [.DO_HALT](#constants.DO_HALT) : <code>number</code>
+    * [.T_BLOCK](#constants.T_BLOCK) : <code>TEntryType</code>
+    * [.T_CHAR](#constants.T_CHAR) : <code>TEntryType</code>
+    * [.T_DIR](#constants.T_DIR) : <code>TEntryType</code>
+    * [.T_FIFO](#constants.T_FIFO) : <code>TEntryType</code>
+    * [.T_FILE](#constants.T_FILE) : <code>TEntryType</code>
+    * [.T_SOCKET](#constants.T_SOCKET) : <code>TEntryType</code>
+    * [.T_SYMLINK](#constants.T_SYMLINK) : <code>TEntryType</code>
 
 <a name="constants.DO_NOTHING"></a>
 
@@ -50,47 +34,40 @@ Action code: skip this directory entry.
 Action code: discard all in the current directory.
 
 **Kind**: static constant of [<code>constants</code>](#constants)  
-<a name="constants.DO_TERMINATE"></a>
+<a name="constants.DO_HALT"></a>
 
-### constants.DO\_TERMINATE : <code>number</code>
+### constants.DO\_HALT : <code>number</code>
 Action code: discard all in the current directory; terminate all walking.
 
 **Kind**: static constant of [<code>constants</code>](#constants)  
-<a name="constants.T_ANY"></a>
-
-### constants.T\_ANY : [<code>TEntryType</code>](#TEntryType)
-**Kind**: static constant of [<code>constants</code>](#constants)  
 <a name="constants.T_BLOCK"></a>
 
-### constants.T\_BLOCK : [<code>TEntryType</code>](#TEntryType)
+### constants.T\_BLOCK : <code>TEntryType</code>
 **Kind**: static constant of [<code>constants</code>](#constants)  
 <a name="constants.T_CHAR"></a>
 
-### constants.T\_CHAR : [<code>TEntryType</code>](#TEntryType)
+### constants.T\_CHAR : <code>TEntryType</code>
 **Kind**: static constant of [<code>constants</code>](#constants)  
 <a name="constants.T_DIR"></a>
 
-### constants.T\_DIR : [<code>TEntryType</code>](#TEntryType)
+### constants.T\_DIR : <code>TEntryType</code>
+Directory type flag - the only one with special meaning for Ruler.
+
 **Kind**: static constant of [<code>constants</code>](#constants)  
+**Default**: <code>d</code>  
 <a name="constants.T_FIFO"></a>
 
-### constants.T\_FIFO : [<code>TEntryType</code>](#TEntryType)
+### constants.T\_FIFO : <code>TEntryType</code>
 **Kind**: static constant of [<code>constants</code>](#constants)  
 <a name="constants.T_FILE"></a>
 
-### constants.T\_FILE : [<code>TEntryType</code>](#TEntryType)
+### constants.T\_FILE : <code>TEntryType</code>
 **Kind**: static constant of [<code>constants</code>](#constants)  
 <a name="constants.T_SOCKET"></a>
 
-### constants.T\_SOCKET : [<code>TEntryType</code>](#TEntryType)
+### constants.T\_SOCKET : <code>TEntryType</code>
 **Kind**: static constant of [<code>constants</code>](#constants)  
 <a name="constants.T_SYMLINK"></a>
 
-### constants.T\_SYMLINK : [<code>TEntryType</code>](#TEntryType)
+### constants.T\_SYMLINK : <code>TEntryType</code>
 **Kind**: static constant of [<code>constants</code>](#constants)  
-<a name="TEntryType"></a>
-
-## TEntryType : <code>string</code>
-Value of directory entry `type` property.
-
-**Kind**: global typedef  

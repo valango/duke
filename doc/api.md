@@ -11,7 +11,6 @@ Package exports - members listed below and also the [constants](constants.md).
     * [.Walker](#dwalker.Walker)
     * [.loadFile](#dwalker.loadFile)
     * [.relativize](#dwalker.relativize)
-    * [.typeName](#dwalker.typeName)
 
 <a name="dwalker.Ruler"></a>
 
@@ -33,8 +32,3 @@ Package exports - members listed below and also the [constants](constants.md).
 ### dwalker.relativize
 **Kind**: static property of [<code>dwalker</code>](#dwalker)  
 **See**: [relativize](utils.md#relativizepath-rootpath-prefix--string--)  
-<a name="dwalker.typeName"></a>
-
-### dwalker.typeName
-**Kind**: static property of [<code>dwalker</code>](#dwalker)  
-**See**: [typeName](utils.md#typenametype--string--undefined)  

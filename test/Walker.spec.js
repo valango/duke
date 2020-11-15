@@ -67,60 +67,63 @@ describe(ME, () => {
   it('should construct w defaults', () => {
     // console.log(w.ruler.dump())
     expect(w.failures).to.eql([])
-    expect(w.terminate).to.equal(undefined)
+    expect(w.halted).to.equal(undefined)
     expect(w.getTotals()).to.eql({ entries: 0 })
   })
 
   it('should walk', async () => {
-    await w.walk(ROOT, { onEntry })
+    const track = { ticks: 0 }
+    await w.walk(ROOT, {
+      onEntry,
+      tick: () => (track.ticks += 1),
+      trace: (key) => {
+        track[key] = (track[key] || 0) + 1
+      }
+    })
     expect(w.failures).to.eql([], 'failures')
     expect(actionCounts[FILES]).to.equal(2, 'FILES')
     expect(actionCounts[DIRS]).to.equal(2, 'DIRS')
     expect(w.visited.size).to.equal(3, '#1')
-    // await w.walk(ROOT)
-    // expect(w.visited.size).to.equal(1, '#2')
-  })
-
-  it('should register failure', () => {
-    expect(w.registerFailure(new Error('test'), '1').failures[0].context).to.eql('1')
+    expect(Object.keys(track).sort()).to.eql(['onDir', 'onEntry', 'onFinal', 'opendir', 'ticks'])
+    expect(track.ticks).to.eql(1)
+    expect(w.getTotals()).to.eql({ entries: 8 })
   })
 
   it('should do default error handling', async () => {
     let data
 
-    w.onError = function (err, exp, args) {
-      data = { args, err, exp, inst: this }
-    }
-    let res = await w.walk('nope')
-    expect(res).to.equal(undefined)
-    expect(w.terminate.locus).to.equal('opendir')
-    expect(data.inst).to.equal(w, 'instance')
-    expect(data.args[0]).to.match(/\/nope\/$/, 'args')
-    expect(w.failures.length).to.eql(1, 'length')
-    expect(w.failures[0].message).to.match(/^ENOENT:\s/, '[0]')
-    w.reset()
     try {
-      await w.walk(undefined, { onEntry: throwTest })
-      expect(false).to.eql(true)
+      return await w.walk(undefined, { onEntry: throwTest })
     } catch (error) {
       expect(error.context.locus).to.equal('onEntry')
-      expect(data.err.message).to.equal('Test')
+      return
     }
+    expect(false).to.eql(true)
   })
 
-  it('should fail w bad return value', async () => {
-    try {
-      await w.walk(undefined, { onFinal: async () => 'bad-value' })
-      expect(false).to.eql(true)
-    } catch (error) {
-      expect(w.terminate).to.be.equal(undefined)
-      expect(error.context.locus).to.equal('onFinal')
+  it('should do custom error override', async () => {
+    let data, res
+
+    w.onError = function (err) {
+      data = { err, inst: this }
+      return DO_SKIP
     }
+    res = await w.walk('nope')
+    expect(res).to.eql({})
+    expect(w.failures.length).to.eql(1, 'length')
+    expect(w.failures[0].message).to.match(/^ENOENT:\s/, '[0]')
+  })
+
+  it('should immediately return non-numeric', async () => {
+    const e = new Error('Test')
+    const r = await w.walk(undefined, { onFinal: async () => e })
+    expect(r).to.equal(e)
+    expect(w.visited.size).to.equal(1)
   })
 
   it('onDir can return anything', async () => {
     let r = await w.walk(undefined, { onDir: () => 'stringy', onEntry: () => DO_ABORT })
-    expect(r).to.equal(undefined)
+    expect(r).to.eql({})
     expect(w.visited.size).to.equal(1)
     expect(w.visited.get(process.cwd() + '/')).to.equal('stringy')
   })
@@ -134,15 +137,4 @@ describe(ME, () => {
     }
     expect(w.visited.size).to.equal(0)
   })
-
-  /* xdescribe('nested mode', () => {
-    before(() => (options.nested = true))
-
-    it('should process rules', () => {
-      w.walkSync(ROOT, { onEntry })
-      expect(w.failures).to.eql([], 'failures')
-      // console.log('w.trees', w.trees)
-      expect(w.trees.length).to.equal(2, 'trees.length')
-    })
-  }) */
 })

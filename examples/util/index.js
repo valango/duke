@@ -1,9 +1,14 @@
 'use strict'
 
+const measure = require('./measure')
+const {start, finish} = measure
+
 module.exports = {
   dump: require('./dump'),
   expand: require('./expand'),
-  measure: require('./measure'),
+  finish,
+  measure,
   parseCl: require('./parse-cl'),
-  print: require('./print')
+  print: require('./print'),
+  start
 }

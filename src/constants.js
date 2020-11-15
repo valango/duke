@@ -1,10 +1,5 @@
 'use strict'
 
-/**
- * @typedef {string} TEntryType
- * Value of directory entry `type` property.
- */
-
 /** @namespace constants */
 const constants = {
   /** Action code, reserved for internal use: do not use this in rule definition!
@@ -19,7 +14,7 @@ const constants = {
   DO_RETRY: 10003,
   /** Action code: discard all in the current directory; terminate all walking.
    * @const {number} */
-  DO_TERMINATE: 10004,
+  DO_HALT: 10004,
 
   /** @const {TEntryType} */
   T_BLOCK: 'B',

@@ -41,20 +41,19 @@ action code for following rule(s). Array may be nested.
 <a name="Ruler+check"></a>
 
 ### ruler.check(itemName, [itemType]) ⇒ <code>number</code>
-Check the `itemName` against rules, mutating `lastMatch` instance property.
+Check the `itemName` against rules.
 
-The results array never contains ROOT node, which will be added
-on every run.
+The results array never contains ROOT node, which will be added on every run.
 If a node of special action is matched, then only this node is returned.
 
 **Kind**: instance method of [<code>Ruler</code>](#Ruler)  
 **Returns**: <code>number</code> - the most prevailing action among matches.  
 **Affects**: this._lastMatch  
 
-| Param | Type | Description |
-| --- | --- | --- |
-| itemName | <code>string</code> | of item |
-| [itemType] | <code>string</code> | of item |
+| Param | Type |
+| --- | --- |
+| itemName | <code>string</code> | 
+| [itemType] | <code>string</code> | 
 
 <a name="Ruler+clone"></a>
 
@@ -65,7 +64,7 @@ Create copy of the instance.
 
 | Param | Type | Default | Description |
 | --- | --- | --- | --- |
-| [ancestors] | <code>\*</code> | <code>false</code> | array or:   - `true` means use `lastMatch` instance property w fallback to ancestors   - falsy value means use `ancestors` property. |
+| [ancestors] | <code>\*</code> | <code>false</code> | array or:   - `true` means use `_lastMatch` instance property w fallback to `_ancestors`   - falsy value means use `_ancestors` property. |
 
 <a name="Ruler+dump"></a>
 
