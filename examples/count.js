@@ -4,7 +4,7 @@
 const HELP = 'Count all files and subdirectories under directories given by arguments.'
 const color = require('chalk')
 const { readlink } = require('fs').promises
-const { Walker, T_SYMLINK } = require('../src')
+const { Walker } = require('../src')
 const { dump, finish, parseCl, print, start } = require('./util')
 
 const counts = {}, { args } = parseCl({}, HELP, true)
@@ -26,40 +26,54 @@ const onDir = function (context) {
   return this.onDir(context, [])
 }
 
-const onEntry = ({ name, type }, context) => {
-  if (type === T_SYMLINK) context.current.push(name)
+const onEntry = function ({ name, type }, context) {
+  // if (type === T_SYMLINK) context.current.push(name)
   add(type)
-  return 0
+  return this.onEntry({ name, type }, context)
 }
 
-const onFinal = (context) => {
+/* const onFinal = (context) => {
   const { data, absPath } = context
   return Promise.all(context.current.map(name => {
     const path = absPath + name
     return readlink(path).then(buff => (data[path] = buff))
   })).then(() => 0)
-}
+} */
 
 const tick = (count) => process.stdout.write('Entries processed: ' + count + '\r')
 
-const walker = new Walker()
+/* const trace = (name, result, closure, args) => {
+  if (name === 'onEntry' && !/node_modules\/./.test(closure.absPath)) {
+    console.log(closure.absPath, name, result, args[0])
+  }
+} */
 
-const opts = { onDir, onEntry, onFinal, tick }, t0 = start()
+process.on('unhandledRejection', (promise, reason) => {
+  console.log('***** Unhandled Rejection at:', promise, 'reason:', reason)
+  walker.halt()
+})
+
+const walker = new Walker({ symlinks: true })
+
+const opts = { onDir, onEntry, tick }, t0 = start()
 
 Promise.all(args.map(dir => walker.walk(dir, opts))).then(res => {
-  console.log('\nR', res)
+  console.log('\t\t\nR', res)
 }).catch(error => {
-  console.log('\nE', error.message)
-  console.log('HALTED: ', walker.halted)
+  console.log('\t\t\nE', error)
 }).finally(() => {
-  const t = finish(t0), directories = 0, { entries } = walker.getTotals()
+  const t = finish(t0), { dirs, entries, revoked, retries } = walker.getStats()
 
-  dump(walker.failures.map(e => e.message), color.redBright,
-    'Total %i failures.', walker.failures.length)
+  if (walker.halted) console.log('HALTED: ', walker.halted)
+
+  dump(walker.failures.slice(0, 60).map(e => e.message), color.redBright,
+    'Total %i failures.', walker.failures.length
+  )
 
   for (const k of Object.keys(counts)) {
     print(k + ' :', counts[k])
   }
   print('Total %i ms (%i µs per entry) for %i entries in %i directories.'
-    , t / 1000, t / entries, entries, directories)
+    , t / 1000, t / entries, entries, dirs)
+  print('\tretries: %i, revoked: %i', retries, revoked)
 })

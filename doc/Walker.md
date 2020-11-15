@@ -26,11 +26,11 @@
     * [.halted](#Walker+halted) : <code>TWalkContext</code>
     * [.visited](#Walker+visited) : <code>Map</code>
     * [.getCurrent(dir)](#Walker+getCurrent) ⇒ <code>Object</code> \| <code>undefined</code>
-    * [.getTotals()](#Walker+getTotals) ⇒ <code>Object.&lt;{entries: number}&gt;</code>
-    * [.onDir(context)](#Walker+onDir) ⇒ <code>\*</code>
+    * [.getStats()](#Walker+getStats) ⇒ <code>TWalkerStats</code>
+    * [.onDir(context, [currentValue])](#Walker+onDir) ⇒ <code>\*</code>
     * [.onEntry(name, type, context)](#Walker+onEntry) ⇒ <code>number</code>
-    * [.onFinal(context)](#Walker+onFinal) ⇒ <code>Promise.&lt;number&gt;</code>
-    * [.onError(error)](#Walker+onError) ⇒ <code>number</code> \| <code>Error</code> \| <code>undefined</code>
+    * [.onFinal(entries, context)](#Walker+onFinal) ⇒ <code>Promise.&lt;number&gt;</code>
+    * [.onError(error, context)](#Walker+onError) ⇒ <code>number</code> \| <code>Error</code> \| <code>undefined</code>
     * [.reset()](#Walker+reset) ⇒ [<code>Walker</code>](#Walker)
     * [.walk([startPath], options)](#Walker+walk) ⇒ <code>Promise.&lt;\*&gt;</code>
 
@@ -81,15 +81,15 @@ Get descriptor for the current directory if it was recognized.
 | --- | --- |
 | dir | <code>string</code> | 
 
-<a name="Walker+getTotals"></a>
+<a name="Walker+getStats"></a>
 
-### walker.getTotals() ⇒ <code>Object.&lt;{entries: number}&gt;</code>
+### walker.getStats() ⇒ <code>TWalkerStats</code>
 Get total counts.
 
 **Kind**: instance method of [<code>Walker</code>](#Walker)  
 <a name="Walker+onDir"></a>
 
-### walker.onDir(context) ⇒ <code>\*</code>
+### walker.onDir(context, [currentValue]) ⇒ <code>\*</code>
 Handler called immediately after directory has been opened.
 
 **Kind**: instance method of [<code>Walker</code>](#Walker)  
@@ -98,6 +98,7 @@ Handler called immediately after directory has been opened.
 | Param | Type |
 | --- | --- |
 | context | <code>TWalkContext</code> | 
+| [currentValue] | <code>\*</code> | 
 
 <a name="Walker+onEntry"></a>
 
@@ -114,18 +115,19 @@ Handler called for every directory entry.
 
 <a name="Walker+onFinal"></a>
 
-### walker.onFinal(context) ⇒ <code>Promise.&lt;number&gt;</code>
+### walker.onFinal(entries, context) ⇒ <code>Promise.&lt;number&gt;</code>
 Handler called after all entries been scanned and directory closed.
 
 **Kind**: instance method of [<code>Walker</code>](#Walker)  
 
 | Param | Type |
 | --- | --- |
+| entries | <code>Array.&lt;TDirEntry&gt;</code> | 
 | context | <code>TWalkContext</code> | 
 
 <a name="Walker+onError"></a>
 
-### walker.onError(error) ⇒ <code>number</code> \| <code>Error</code> \| <code>undefined</code>
+### walker.onError(error, context) ⇒ <code>number</code> \| <code>Error</code> \| <code>undefined</code>
 Translate error if applicable.
 
 **Kind**: instance method of [<code>Walker</code>](#Walker)  
@@ -133,11 +135,12 @@ Translate error if applicable.
 | Param | Type | Description |
 | --- | --- | --- |
 | error | <code>Error</code> | with `context` property set. |
+| context | <code>TWalkContext</code> |  |
 
 <a name="Walker+reset"></a>
 
 ### walker.reset() ⇒ [<code>Walker</code>](#Walker)
-Reset counters for getTotals().
+Reset counters for getStats().
 
 **Kind**: instance method of [<code>Walker</code>](#Walker)  
 <a name="Walker+walk"></a>

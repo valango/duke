@@ -2,19 +2,21 @@
 
 /** @namespace constants */
 const constants = {
-  /** Action code, reserved for internal use: do not use this in rule definition!
-   * @const {number} */
-  DO_NOTHING: 0,
   /** Action code: skip this directory entry.
    * @const {number} */
   DO_SKIP: 10001,
   /** Action code: discard all in the current directory.
    * @const {number} */
   DO_ABORT: 10002,
-  DO_RETRY: 10003,
   /** Action code: discard all in the current directory; terminate all walking.
    * @const {number} */
-  DO_HALT: 10004,
+  DO_HALT: 10003,
+  /** Action code, reserved for internal use: do not use this in rule definition!
+   * @const {number} */
+  DO_NOTHING: 0,
+  /** Action code, reserved for internal use: do not use this in rule definition!
+   * @const {number} */
+  DO_RETRY: -10003,
 
   /** @const {TEntryType} */
   T_BLOCK: 'B',

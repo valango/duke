@@ -19,36 +19,8 @@ const projectRules = [
 
 let w, actionCounts
 
-const options = {
-  // trace: (what, ctx, act) => console.log(what + `\t'${ctx.dir}' '${ctx.name}' ${act}`),
-  plugins: {
-    detect: function (context) {
-      const { absDir } = context
-      let v = loadFile(absDir + 'package.json')
-      console.log(`detect(${absDir}) --> ${!!v}`)
-
-      if (v) {
-        v = JSON.parse(v.toString())
-        context.ruler = this.projectRuler
-        context.current = { absDir, name: v.name || '?' }
-        this.trees.push(context.current)
-      }
-    },
-    onBegin: function (ctx) {
-      return /skipped$/.test(ctx.dir) ? DO_SKIP : this.onBegin(ctx)
-    },
-    onEnd: function (ctx) {
-      return /skipped$/.test(ctx.dir) ? DO_ABORT : this.onEnd(ctx)
-    }
-  },
-  trace: (fn, ctx, action) => {
-    // console.log(fn, action, ctx.absDir, ctx.entryName || '')
-  },
-  rules: projectRules
-}
-
-const onEntry = function (ctx, entry) {
-  const action = this.onEntry(ctx, entry)
+const onEntry = function (entry, ctx) {
+  const action = this.onEntry(entry, ctx)
   actionCounts[action] = (actionCounts[action] || 0) + 1
   // console.log(ctx.dirPath, entry.name, action, actionCounts)
   return action
@@ -61,14 +33,14 @@ const throwTest = () => {
 describe(ME, () => {
   beforeEach(() => {
     actionCounts = {}
-    w = new Walker(options)
+    w = new Walker({rules: projectRules})
   })
 
   it('should construct w defaults', () => {
     // console.log(w.ruler.dump())
     expect(w.failures).to.eql([])
     expect(w.halted).to.equal(undefined)
-    expect(w.getTotals()).to.eql({ entries: 0 })
+    expect(w.getStats()).to.eql({ dirs: 0, entries: 0, retries: 0, revoked: 0 })
   })
 
   it('should walk', async () => {
@@ -84,9 +56,9 @@ describe(ME, () => {
     expect(actionCounts[FILES]).to.equal(2, 'FILES')
     expect(actionCounts[DIRS]).to.equal(2, 'DIRS')
     expect(w.visited.size).to.equal(3, '#1')
-    expect(Object.keys(track).sort()).to.eql(['onDir', 'onEntry', 'onFinal', 'opendir', 'ticks'])
-    expect(track.ticks).to.eql(1)
-    expect(w.getTotals()).to.eql({ entries: 8 })
+    expect(Object.keys(track).sort()).to.eql(['onDir', 'onEntry', 'onFinal', 'ticks'])
+    expect(track.ticks).to.eql(1, 'ticks')
+    expect(w.getStats()).to.eql({ dirs: 3, entries: 8, retries: 0, revoked: 0 })
   })
 
   it('should do default error handling', async () => {
