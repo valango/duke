@@ -1,14 +1,20 @@
 'use strict'
 
-const { resolve, sep } = require('path')
 const fs = require('fs')
-const translateDirEntry = require('./translateDirEntry')
-const Ruler = require('./Ruler')
+const omit = require('lodash.omit')
+const { resolve, sep } = require('path')
 const { DO_ABORT, DO_NOTHING, DO_RETRY, DO_SKIP, DO_HALT, T_DIR, T_FILE, T_SYMLINK } =
         require('./constants')
-const nothing = Symbol('nothing')
+const Ruler = require('./Ruler')
+const { createEntry, translateEntry } = require('./translateDirEntry')
+
 const { isNaN } = Number
+const { max } = Math
+const apply = Function.prototype.call.bind(Function.prototype.apply)
+const methods = 'onDir onEntry onError onFinal openDir trace'.split(' ')
 const noop = () => undefined
+const nothing = Symbol('nothing')
+const shadow = methods.concat('ruler')
 
 /**
  * @param {TWalkerOptions=} options
@@ -59,53 +65,42 @@ function Walker (options = {}) {
   this.reset(({ data: nothing, ...options }).data)  //  Process options.data
 }
 
-/**
- * Get parent directory absolute path if such exists in 'visited'.
- * @param {string} path  - must be absolute path terminated by `sep`.
- * @returns {string | undefined}
- */
-Walker.prototype.getParentDir = function (path) {
-  const parts = path.split(sep)
-
-  if (parts.length > 2) {
-    const parent = parts.slice(0, -2).concat('').join(sep)
-    return this.visited.has(parent) ? parent : undefined
-  }
-}
-
-/**
- * Get total counts.
- * @returns {TWalkerStats}
- */
-Walker.prototype.getStats = function () {
-  return {
-    dirs: this._nDirs,
-    entries: this._nEntries,
-    retries: this._nRetries,
-    revoked: this._nRepeated
-  }
-}
+/* ************************ Handlers ************************ */
 
 /**
  * Handler called immediately after directory has been opened.
  * @param {TWalkContext} context
  * @param {*=} currentValue
- * @returns {*}  numeric action code or special value to for `visited` collection.
+ * @returns {number}  numeric action code.
  */
 Walker.prototype.onDir = function (context, currentValue = nothing) {
-  context.current = currentValue === nothing ? {} : currentValue
   return DO_NOTHING
 }
 
 /**
  * Handler called for every directory entry.
- * @param {string} name
- * @param {TEntryType} type
+ * @param {TDirEntry} entry
  * @param {TWalkContext} context
  * @returns {number}
  */
-Walker.prototype.onEntry = function ({ name, type }, context) {
-  return context.ruler.check(name, type)
+Walker.prototype.onEntry = function (entry, context) {
+  const action = context.ruler.check(entry.name, entry.type)
+  entry.action = action
+  entry.match = context.ruler.lastMatch
+  return action
+}
+
+/**
+ * Translate error if applicable.
+ *
+ * @param {Error} error   - with `context` property set.
+ * @param {TWalkContext} context
+ * @returns {number|Error|undefined}
+ */
+Walker.prototype.onError = function (error, context) {
+  const override = exports.overrides[error.context.locus]
+
+  return override && override[error.code]
 }
 
 /**
@@ -120,17 +115,16 @@ Walker.prototype.onFinal = function (entries, context, action) {
   if (this._symlinks) {
     const { absPath } = context, { realpath, stat } = exports
 
-    return Promise.all(entries.map(({ name, type }, index) => {
-      if (type !== T_SYMLINK) return 0
+    return Promise.all(entries.map(({ action, name, type }, index) => {
+      if (type !== T_SYMLINK || action >= DO_SKIP) return 0
       const path = absPath + name
       return stat(path).then(st => {
         if (this.halted) throw new Error('halted')
         return realpath(path).then(real => {
           if (st.isDirectory()) {
-            entries[index] = { name: real, type: T_DIR }
-          } else if (st.isFile()) {
-            entries[index] = { name: real, type: T_FILE }
-          }
+            entries[index] = createEntry(real, T_DIR, action)
+          } else if (st.isFile()) entries[index] = createEntry(real, T_FILE, action)
+
           if (this.halted) throw new Error('halted')
           return 1
         })
@@ -139,7 +133,7 @@ Walker.prototype.onFinal = function (entries, context, action) {
         if (error.code === 'ENOENT') {
           error.message = `WALKER: broken symlink '${path}'`
         }
-        error.context = { ...context, locus: 'onFinal', ruler: undefined }
+        (error.context = omit(context, shadow)).locus = 'onFinal'
         return this.failures.push(error)
       })
     })).catch(error => {
@@ -149,17 +143,19 @@ Walker.prototype.onFinal = function (entries, context, action) {
   return Promise.resolve(DO_NOTHING)
 }
 
-/**
- * Translate error if applicable.
- *
- * @param {Error} error   - with `context` property set.
- * @param {TWalkContext} context
- * @returns {number|Error|undefined}
- */
-Walker.prototype.onError = function (error, context) {
-  const override = exports.overrides[error.context.locus]
+/* ************************ Other ************************ */
 
-  return override && override[error.code]
+/**
+ * Get total counts.
+ * @returns {TWalkerStats}
+ */
+Walker.prototype.getStats = function () {
+  return {
+    dirs: this._nDirs,
+    entries: this._nEntries,
+    retries: this._nRetries,
+    revoked: this._nRepeated
+  }
 }
 
 /**
@@ -181,7 +177,8 @@ Walker.prototype.reset = function (data = nothing) {
  * @param {TWalkContext} context
  * @param {Array<*>} args
  */
-Walker.prototype.trace = noop
+Walker.prototype.trace = (name, result, context, args) => {
+}
 
 Walker.prototype.checkReturn_ = function (value, context, closure, locus) {
   if (value && typeof value !== 'number') {
@@ -204,13 +201,13 @@ Walker.prototype.checkReturn_ = function (value, context, closure, locus) {
 Walker.prototype.execAsync_ = function (closure, name, context, ...args) {
   if (this.halted) return closure.end(null, context.data)
 
-  return closure[name].apply(this, args)
+  return apply(context[name], this, args)
     .catch(error => {
       return this.onError_(error, name, context, closure, args)
     })
     .then(result => {
-      if (name === 'opendir' && typeof result === 'object') return result
-      if (!isNaN(closure.threadCount)) closure.trace(name, result, context, args)
+      if (name === 'openDir' && typeof result === 'object') return result
+      if (!isNaN(closure.threadCount)) context.trace(name, result, context, args)
 
       return this.checkReturn_(result, context, closure, name)
     })
@@ -220,9 +217,8 @@ Walker.prototype.execSync_ = function (closure, name, context, ...args) {
   let result
 
   try {
-    result = closure[name].apply(this, args)
-    closure.trace(name, result, context, args)
-    if (name === 'onDir' && typeof result !== 'number') return result
+    result = apply(context[name], this, args)
+    context.trace(name, result, context, args)
   } catch (error) {
     result = this.onError_(error, name, context, closure, args)
   }
@@ -234,7 +230,7 @@ Walker.prototype.execSync_ = function (closure, name, context, ...args) {
  * @private
  */
 Walker.prototype.onError_ = function (error, name, context, closure, args) {
-  error.context = { ...context, args, locus: name }
+  (error.context = omit(context, shadow)).locus = name
 
   let r = this.onError(error, context)
 
@@ -253,7 +249,7 @@ Walker.prototype.onError_ = function (error, name, context, closure, args) {
 
 Walker.prototype.halt_ = function (context, locus) {
   if (this.halted === undefined) {
-    this.halted = { ...context, locus }
+    (this.halted = omit(context, methods)).locus = locus
     delete this.halted.ruler
   }
   return DO_ABORT
@@ -289,12 +285,7 @@ Walker.prototype.walk_ = function (startPath, opts, callback) {
       }
       return DO_ABORT
     },
-    onDir: opts.onDir || this.onDir,
-    onEntry: opts.onEntry || this.onEntry,
-    onFinal: opts.onFinal || this.onFinal,
-    opendir: exports.opendir,
-    threadCount: 0,
-    trace: opts.trace || this.trace
+    threadCount: 0
   }
 
   /* eslint-disable-next-line */
@@ -305,7 +296,13 @@ Walker.prototype.walk_ = function (startPath, opts, callback) {
     current: undefined,
     data,
     depth: 0,
-    ruler: opts.ruler || this.ruler
+    onDir: opts.onDir || this.onDir,
+    onEntry: opts.onEntry || this.onEntry,
+    onError: opts.onError || this.onError,
+    onFinal: opts.onFinal || this.onFinal,
+    openDir: exports.openDir,
+    ruler: opts.ruler || this.ruler,
+    trace: opts.trace || this.trace
   }]
 
   //  Return true when it was end.
@@ -328,15 +325,15 @@ Walker.prototype.walk_ = function (startPath, opts, callback) {
       return checkEnd()
     }
     const entries = []
-    let action = DO_NOTHING, dir, entry, res
+    let action = DO_NOTHING, dir, res
 
     closure.threadCount += 1
-    res = await this.execAsync_(closure, 'opendir', context, context.absPath)
+    res = await this.execAsync_(closure, 'openDir', context, context.absPath)
 
     if (typeof res !== 'object') {
       if (res === DO_RETRY) {
         if (closure.threadCount === 1) {
-          this.halt_(context, 'opendir.retry')
+          this.halt_(context, 'openDir.retry')
           return closure.end(new Error('Unable to retry'))
         }
         fifo.push(context)
@@ -350,20 +347,21 @@ Walker.prototype.walk_ = function (startPath, opts, callback) {
         this.visited.set(context.absPath, res)
         if (!(res >= DO_SKIP)) {
           const iterator = dir.entries()
+          let bad, entry
           while (this.halted === undefined) {
             try {
               const v = await iterator.next()
               if (v.done) break
-              entry = v.value
+              (entry = v.value) && (bad = undefined)
             } catch (error) {
-              res = this.onError_(error, 'iterateDir', context, closure, [])
+              res = this.onError_(bad = error, 'iterateDir', context, closure, [])
             }
-            if (res < DO_SKIP) {
-              entry = translateDirEntry(entry)
+            if (res < DO_ABORT && bad === undefined) {
+              entry = translateEntry(entry)
               res = this.execSync_(closure, 'onEntry', context, entry, context)
               this._nEntries += 1
               if (!(res < DO_ABORT)) break
-              if (res < DO_SKIP) entries.push(entry) && (action = Math.max(action, res))
+              if (res < DO_SKIP) entries.push(entry) && (action = max(action, res))
               res = DO_NOTHING
             }
           }
@@ -372,9 +370,9 @@ Walker.prototype.walk_ = function (startPath, opts, callback) {
       try {
         await dir.close()
       } catch (error) {
-        res = Math.max(res, this.onError_(error, 'closedir', context, closure, []))
+        res = max(res, this.onError_(error, 'closeDir', context, closure, []))
       }
-      this.checkReturn_(res, context, closure, 'closedir')
+      this.checkReturn_(res, context, closure, 'closeDir')
     }
     if (isNaN(closure.threadCount || this.halted)) {
       return
@@ -382,12 +380,12 @@ Walker.prototype.walk_ = function (startPath, opts, callback) {
     if (res < DO_ABORT) {
       if (await this.execAsync_(closure, 'onFinal', context, entries, context, action) < DO_SKIP) {
         for (let i = 0, entry; (entry = entries[i]) !== undefined; i += 1) {
-          if (entry.type !== T_DIR) continue
+          if (entry.type !== T_DIR || entry.action >= DO_SKIP) continue
           const ctx = {
             ...context,
             absPath: resolve(context.absPath, entry.name) + sep,
             depth: context.depth + 1,
-            ruler: context.ruler.clone(true)
+            ruler: context.ruler.clone(entry.match)
           }
           fifo.push(ctx)
         }
@@ -435,25 +433,24 @@ exports = module.exports = Walker
  * @type {Object}
  */
 exports.overrides = {
-  closedir: {
+  closeDir: {
     ERR_DIR_CLOSED: DO_NOTHING
   },
   iterateDir: {
     EBADF: DO_SKIP
   },
-  opendir: {
+  openDir: {
     EACCES: DO_SKIP,
     EBADF: DO_ABORT,
     ELOOP: DO_SKIP,
     EMFILE: DO_RETRY,
     ENOTDIR: DO_SKIP,
     EPERM: DO_ABORT
-    // ENOENT results from illegal filespec, so it will not be overridden.
+    // ENOENT results from faulty file spec given, so it will not be overridden.
   }
 }
 
 //  Injection points for special cases e.g. testing.
-exports.opendir = fs.promises.opendir
-exports.readlink = fs.promises.readlink
+exports.openDir = fs.promises.opendir
 exports.realpath = fs.promises.realpath
 exports.stat = fs.promises.stat

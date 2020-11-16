@@ -7,7 +7,7 @@ const Sincere = require('sincere')
 const NIL = -1      //  No parent.
 const optionalDirsRule = null
 //  Tree node internal indexes.
-const TYPE = 0
+// const TYPE = 0
 const RULE = 1
 // const PARENT = 2
 const ACTION = 3
@@ -114,6 +114,9 @@ class Ruler extends Sincere {
           'add', 'action code 0 is reserved')
         break
       case 'string':
+        if (definition === '/*/**/a') {
+          definition = '/*/**/a'
+        }
         this.addPath_(definition)
         break
       default:
@@ -127,26 +130,6 @@ class Ruler extends Sincere {
     }
     return this
   }
-
-  /**
-   * Append rules from another Ruler instance.
-   * x@param {Ruler} other
-   * x@private
-   *
-   append_ (other) {
-    const src = other._tree.map(([t, r, p, a]) => [t, r ? r.source : r, p, a])
-    const dst = this._tree
-
-    src.forEach(([typ, rul, par, act], i) => {
-      const grandPa = par === NIL ? NIL : src[par][PARENT]
-      let j = dst.findIndex(
-        ([t, r, p]) => p === grandPa && t === typ && (r ? r.source : r) === rul)
-      if (j < 0) {
-        j = dst.push([typ, rule_(rul), grandPa, act]) - 1
-      }
-      src[i][PARENT] = j
-    })
-  } */
 
   /** @private */
   addRules_ (rules, type, action) {
@@ -201,19 +184,47 @@ class Ruler extends Sincere {
    * @returns {number} the most prevailing action among matches.
    */
   check (itemName, itemType = undefined) {
-    const { _tree } = this, globs = []  //  Rules possibly globbing some directories.
+    const { _tree } = this, masked = []
 
-    const ancestors = this._ancestors.map(([a, i]) => {    //  (action, ruleIndex)
-      if (i > 0 && _tree[i][RULE] === optionalDirsRule) globs.push([a, i])
-      return i
-    })
+    let ancestors = [], matches = [], news = this._ancestors.map(([, i]) => i)
 
-    ancestors.push(0)       //  Always have root node!
+    if (news.indexOf(0) < 0) news.push(0)
 
-    const res = this.match_(itemName, itemType, ancestors, [], []).concat(globs)
-    this._lastMatch = res
+    while (news.length !== 0) {
+      ancestors = ancestors.concat(news).sort((a, b) => b - a)
+      news = []
 
-    return res.reduce((acc, [a]) => max(acc, a), res[0][TYPE])
+      for (let iA = 0, anc; (anc = ancestors[iA]) !== undefined; iA += 1) {
+        for (let i = _tree.length; --i > anc;) {
+          const [type, rule, par, act] = _tree[i]
+
+          if (par !== anc) continue
+          if (rule === optionalDirsRule ||
+            (typeMatch_(itemType, type) && rule.test(itemName))) {
+            if (matches.find(([, idx]) => idx === i)) continue
+            matches.push([act, i])
+            if (act < 0) masked.push(-act)
+            if (rule === optionalDirsRule && ancestors.indexOf(i) < 0) {
+              news.push(i)
+            }
+          }
+        }
+      }
+    }
+
+    if (itemType !== T_DIR) {
+      matches = matches.filter(([, i]) => _tree[i][RULE] !== optionalDirsRule)
+    }
+    if (masked.length !== 0) {
+      for (let i = matches.length; --i > 0;) {
+        if (masked.indexOf(matches[i][0]) >= 0) {
+          matches[i][0] = DO_NOTHING
+        }
+      }
+    }
+    this._lastMatch = matches
+
+    return matches.reduce((acc, [a]) => max(acc, a), 0)
   }
 
   /**
@@ -264,56 +275,8 @@ class Ruler extends Sincere {
     return hasAction_(this._lastMatch, action)
   }
 
-  /**
-   * @param {string} itemName       - directory entry name.
-   * @param {string} itemType       - directory entry type.
-   * @param {number[]} ancestors    - rules (indexes) path to here.
-   * @param {Array} res             - used on recursion.
-   * @param {Array} toDeny          - used on recursion.
-   * @returns {number[][]}          - (action, ruleIndex) pairs.
-   * @private
-   */
-  match_ (itemName, itemType, ancestors, res, toDeny) {
-    const lowest = -1  //  Todo: think if we can finish looping earlier.
-    const { _tree } = this
-
-    // Scan the three for nodes matching any of the ancestors.
-    for (let i = _tree.length; --i > lowest;) {
-      const [type, rule, par, act] = _tree[i]
-
-      //  Ancestors list is always smaller than _tree ;)
-      for (let iA = 0, anc; (anc = ancestors[iA]) !== undefined; iA += 1) {
-        if (anc >= i) {   //  Ancestor index is always less than node index.
-          ancestors.splice(iA, 1) && (iA -= 1)   //  Discard this ancestor.
-          continue
-        }
-        if (anc !== par) continue
-
-        if (rule !== optionalDirsRule &&
-          !(typeMatch_(itemType, type) && rule.test(itemName))) {
-          continue
-        }
-        if (rule === optionalDirsRule) {
-          //  In case of optionalDirsRule, check it's descendants immediately.
-          this.match_(itemName, itemType, [i], res, toDeny)
-          if (i === 0) continue       //  Root node.
-        }
-        //  We got a real match!
-        if (act < 0) {
-          toDeny.push(-act)
-        } else if (!res.find(([, j]) => j === i)) {
-          res.push([act, i])
-        }
-      } //  end for iA
-    } //  end for i
-
-    if (toDeny.length) {
-      res = res.filter(([a]) => toDeny.indexOf(a) < 0)
-    }
-    if (res.length === 0) {
-      res.push([DO_NOTHING, NIL])
-    }
-    return res
+  get lastMatch () {
+    return this._lastMatch && this._lastMatch.slice()
   }
 }
 

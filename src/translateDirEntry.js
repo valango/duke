@@ -6,22 +6,29 @@ const functions = 'isFile isDirectory isSymbolicLink isBlockDevice isCharacterDe
   .split(' ')
 const types = [T_FILE, T_DIR, T_SYMLINK, T_BLOCK, T_CHAR, T_SOCKET, T_FIFO]
 
+/** @returns {TDirEntry} */
+const createEntry = (name, type, action) => ({ name, type, action, match: undefined })
+
 /**
+ * Translate native
  * @param {fs.Dirent} dirEntry
- * @returns {Object}  type constant
+ * @returns {TDirEntry}
  */
-module.exports = (dirEntry) => {
+const translateEntry = (dirEntry) => {
   const { name } = dirEntry
   let i = 0, fn
 
   try {
     while ((fn = functions[i]) !== undefined) {
-      if (dirEntry[fn]()) return { name, type: types[i] }
+      if (dirEntry[fn]()) return createEntry(name, types[i], undefined)
       i += 1
     }
-  } catch (error) {
+  } catch (error) {     //  Todo: remove, when the has been in use for some time.
+    error.dirEntry = dirEntry
     error.methodName = fn
     throw error
   }
   throw new Error(`directory entry '${name}' has no type`)
 }
+
+module.exports = { createEntry, translateEntry }

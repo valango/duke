@@ -26,7 +26,7 @@
     "doc4": "jsdoc2md -c jsdoc.json src/r*.js >> doc/utils.md && jsdoc2md -c jsdoc.json src/t*.js >> doc/utils.md",
     "lint": "eslint --ext .js .",
     "purge": "npm run clean && rimraf node_modules",
-    "t": "nyc mocha 'test/**/Walker.spec.js'",
+    "t": "nyc mocha 'test/**/Ruler.spec.js'",
     "test": "eslint --ext .js . && nyc mocha 'test/**/*.spec.js'"
   },
   "license": "ISC",
@@ -52,6 +52,7 @@
   ],
   "dependencies": {
     "brace-expansion": "^1.1.11",
+    "lodash.omit": "^4.5.0",
     "sincere": "^2.1.1"
   },
   "devDependencies": {

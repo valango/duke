@@ -5,6 +5,8 @@
 
 /**
  * @typedef {Object} TDirEntry
+ * @property {number} action
+ * @property {number[][]} match
  * @property {string} name
  * @property {TEntryType} type
  */

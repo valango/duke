@@ -9,11 +9,16 @@ const optionalDirsRule = null
 
 const T1 = [
   DO_SKIP, '/skp-dir', 'skip*', '!skipnever*',
-  1, 'src/**/*', 2, '*.js;f', 3, 'src/**/*.js',
+  1, 'src/**/*',
+  2, '*.js;f',
+  3, 'src/**/*.js',
+  4, '/doc;f',
+  5, '/*/**/a',
+  6, '*/',
   DO_ABORT, 'src/**/abort'
 ]
 
-let n = 0, t
+let t
 
 const check = (name, type, expected) => {
   const res = t.check(name, type)
@@ -23,12 +28,10 @@ const check = (name, type, expected) => {
 describe(ME, () => {
   beforeEach(() => {
     t = new Ruler(T1)
-    n = 0
   })
 
   it('should construct', () => {
     // process.stdout.write(t.dump())
-    expect(t._tree.length).to.eql(10, '_tree.len')
     expect(t._ancestors).to.eql([[DO_NOTHING, NIL]], '_ancestors')
     t = new Ruler({ optimize: false }, 2, '/a*')
     expect(t._tree).to
@@ -46,28 +49,41 @@ describe(ME, () => {
   it('should check', () => {
     expect(t.hadAction(DO_NOTHING)).to.equal(true)
     expect(t.hasAction(DO_NOTHING)).to.equal(false)
+    check('doc', T_FILE, 4)
     check('nomatch', T_FILE, DO_NOTHING)
     check('skipa', T_FILE, DO_SKIP)
     check('skipnever', T_FILE, DO_NOTHING)
     check('skipnever.js', T_FILE, 2)
     check('any.js', T_FILE, 2)
-    check('src', T_DIR, DO_NOTHING)
+    check('src', T_DIR, 6)
     t = t.clone(true)
     check('abort', T_FILE, DO_ABORT)
+    check('doc', T_FILE, 1)
     check('skip.js', T_FILE, DO_SKIP)
     expect(t.hasAction(2)).to.equal(true)
     expect(t.hasAction(3)).to.equal(true)
     check('skipnever.js', T_FILE, 3)
-    t = new Ruler()
-    check('skipa', T_FILE, DO_NOTHING)
+    // t = new Ruler()
+    check('skipa', T_FILE, DO_SKIP)
   })
 
   it('should clone', () => {
-    let t1 = t.clone().add(2, '/two')
+    const t1 = t.clone().add(2, '/two')
     expect(t1._tree.length).to.eql(t._tree.length + 1, 'length')
     // match('skip.js', T_FILE, [2, 8, 7, 6, 5], [4])
     // t1 = t.clone()
     // expect(t1._ancestors[0][1]).to.eql(4)
+  })
+
+  it('should handle dive', () => {
+    check('doc', T_FILE, 4)
+    check('doc', T_DIR, 6)
+    t = t.clone(t.lastMatch)
+    check('any.js', T_FILE, 2)
+    check('doc', T_FILE, 0)
+    check('duc', T_DIR, 6)
+    t = t.clone(t.lastMatch)
+    check('any.js', T_FILE, 2)
   })
 
   it('should dump diagnostics', () => {

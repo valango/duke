@@ -25,13 +25,15 @@
     * [.ruler](#Walker+ruler) : <code>Ruler</code>
     * [.halted](#Walker+halted) : <code>TWalkContext</code>
     * [.visited](#Walker+visited) : <code>Map</code>
-    * [.getCurrent(dir)](#Walker+getCurrent) ⇒ <code>Object</code> \| <code>undefined</code>
-    * [.getStats()](#Walker+getStats) ⇒ <code>TWalkerStats</code>
-    * [.onDir(context, [currentValue])](#Walker+onDir) ⇒ <code>\*</code>
-    * [.onEntry(name, type, context)](#Walker+onEntry) ⇒ <code>number</code>
-    * [.onFinal(entries, context)](#Walker+onFinal) ⇒ <code>Promise.&lt;number&gt;</code>
+    * [.tick](#Walker+tick) : <code>function</code>
+    * [.onDir(context, [currentValue])](#Walker+onDir) ⇒ <code>number</code>
+    * [.onEntry(entry, context)](#Walker+onEntry) ⇒ <code>number</code>
     * [.onError(error, context)](#Walker+onError) ⇒ <code>number</code> \| <code>Error</code> \| <code>undefined</code>
+    * [.onFinal(entries, context, action)](#Walker+onFinal) ⇒ <code>Promise.&lt;number&gt;</code>
+    * [.getParentDir(path)](#Walker+getParentDir) ⇒ <code>string</code> \| <code>undefined</code>
+    * [.getStats()](#Walker+getStats) ⇒ <code>TWalkerStats</code>
     * [.reset()](#Walker+reset) ⇒ [<code>Walker</code>](#Walker)
+    * [.trace(name, result, context, args)](#Walker+trace)
     * [.walk([startPath], options)](#Walker+walk) ⇒ <code>Promise.&lt;\*&gt;</code>
 
 <a name="new_Walker_new"></a>
@@ -51,7 +53,7 @@ Array of error instances (with `context` property) from overridden exceptions.
 <a name="Walker+interval"></a>
 
 ### walker.interval : <code>number</code>
-Minimum milliseconds between [Walker#tick](Walker#tick) calls (default: 200).
+Minimum milliseconds between [tick](#Walker+tick) calls (default: 200).
 
 **Kind**: instance property of [<code>Walker</code>](#Walker)  
 <a name="Walker+ruler"></a>
@@ -70,30 +72,17 @@ Global Terminal Condition, unless undefined.
 Descriptors of recognized filesystem subtrees.
 
 **Kind**: instance property of [<code>Walker</code>](#Walker)  
-<a name="Walker+getCurrent"></a>
+<a name="Walker+tick"></a>
 
-### walker.getCurrent(dir) ⇒ <code>Object</code> \| <code>undefined</code>
-Get descriptor for the current directory if it was recognized.
-
-**Kind**: instance method of [<code>Walker</code>](#Walker)  
-
-| Param | Type |
-| --- | --- |
-| dir | <code>string</code> | 
-
-<a name="Walker+getStats"></a>
-
-### walker.getStats() ⇒ <code>TWalkerStats</code>
-Get total counts.
-
-**Kind**: instance method of [<code>Walker</code>](#Walker)  
+### walker.tick : <code>function</code>
+**Kind**: instance property of [<code>Walker</code>](#Walker)  
 <a name="Walker+onDir"></a>
 
-### walker.onDir(context, [currentValue]) ⇒ <code>\*</code>
+### walker.onDir(context, [currentValue]) ⇒ <code>number</code>
 Handler called immediately after directory has been opened.
 
 **Kind**: instance method of [<code>Walker</code>](#Walker)  
-**Returns**: <code>\*</code> - numeric action code or special value to for `visited` collection.  
+**Returns**: <code>number</code> - numeric action code.  
 
 | Param | Type |
 | --- | --- |
@@ -102,27 +91,14 @@ Handler called immediately after directory has been opened.
 
 <a name="Walker+onEntry"></a>
 
-### walker.onEntry(name, type, context) ⇒ <code>number</code>
+### walker.onEntry(entry, context) ⇒ <code>number</code>
 Handler called for every directory entry.
 
 **Kind**: instance method of [<code>Walker</code>](#Walker)  
 
 | Param | Type |
 | --- | --- |
-| name | <code>string</code> | 
-| type | <code>TEntryType</code> | 
-| context | <code>TWalkContext</code> | 
-
-<a name="Walker+onFinal"></a>
-
-### walker.onFinal(entries, context) ⇒ <code>Promise.&lt;number&gt;</code>
-Handler called after all entries been scanned and directory closed.
-
-**Kind**: instance method of [<code>Walker</code>](#Walker)  
-
-| Param | Type |
-| --- | --- |
-| entries | <code>Array.&lt;TDirEntry&gt;</code> | 
+| entry | <code>TDirEntry</code> | 
 | context | <code>TWalkContext</code> | 
 
 <a name="Walker+onError"></a>
@@ -137,12 +113,54 @@ Translate error if applicable.
 | error | <code>Error</code> | with `context` property set. |
 | context | <code>TWalkContext</code> |  |
 
+<a name="Walker+onFinal"></a>
+
+### walker.onFinal(entries, context, action) ⇒ <code>Promise.&lt;number&gt;</code>
+Handler called after all entries been scanned and directory closed.
+
+**Kind**: instance method of [<code>Walker</code>](#Walker)  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| entries | <code>Array.&lt;TDirEntry&gt;</code> |  |
+| context | <code>TWalkContext</code> |  |
+| action | <code>number</code> | the most relevant action code from `onEntry`. |
+
+<a name="Walker+getParentDir"></a>
+
+### walker.getParentDir(path) ⇒ <code>string</code> \| <code>undefined</code>
+Get parent directory absolute path if such exists in 'visited'.
+
+**Kind**: instance method of [<code>Walker</code>](#Walker)  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| path | <code>string</code> | must be absolute path terminated by `sep`. |
+
+<a name="Walker+getStats"></a>
+
+### walker.getStats() ⇒ <code>TWalkerStats</code>
+Get total counts.
+
+**Kind**: instance method of [<code>Walker</code>](#Walker)  
 <a name="Walker+reset"></a>
 
 ### walker.reset() ⇒ [<code>Walker</code>](#Walker)
 Reset counters for getStats().
 
 **Kind**: instance method of [<code>Walker</code>](#Walker)  
+<a name="Walker+trace"></a>
+
+### walker.trace(name, result, context, args)
+**Kind**: instance method of [<code>Walker</code>](#Walker)  
+
+| Param | Type |
+| --- | --- |
+| name | <code>string</code> | 
+| result | <code>\*</code> | 
+| context | <code>TWalkContext</code> | 
+| args | <code>Array.&lt;\*&gt;</code> | 
+
 <a name="Walker+walk"></a>
 
 ### walker.walk([startPath], options) ⇒ <code>Promise.&lt;\*&gt;</code>

@@ -72,17 +72,19 @@ describe('stubs/fs/openDir promise', () => {
   })
 
   it('should iterate', async () => {
-    let i = 0, entry
+    let i = 0
 
     /* while ((entry = await dir.read()) !== null) {
       i += 1
     } */
+    /* eslint-disable-next-line */
     for await (const entry of dir) i += 1
     expect(i).to.equal(2)
     expect(await dir.close()).to.be.equal(undefined)
   })
 
   it('should read', async () => {
+    /* eslint-disable-next-line */
     let i = 0, entry
     dir = await stub.promises.opendir('/d1')
 

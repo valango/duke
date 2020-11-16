@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 'use strict'
+/* eslint no-console:0 */
 
 const HELP = 'Count all files and subdirectories under directories given by arguments.'
 const color = require('chalk')
-const { readlink } = require('fs').promises
 const { Walker } = require('../src')
 const { dump, finish, parseCl, print, start } = require('./util')
 
@@ -55,9 +55,10 @@ process.on('unhandledRejection', (promise, reason) => {
 
 const walker = new Walker({ symlinks: true })
 
-const opts = { onDir, onEntry, tick }, t0 = start()
+const handlers = { onDir, onEntry, tick }
+const t0 = start()
 
-Promise.all(args.map(dir => walker.walk(dir, opts))).then(res => {
+Promise.all(args.map(dir => walker.walk(dir, handlers))).then(res => {
   console.log('\t\t\nR', res)
 }).catch(error => {
   console.log('\t\t\nE', error)

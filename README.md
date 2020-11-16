@@ -2,8 +2,9 @@
 
 ![](assets/quote.png)
 
-Rule-based file directory walker - ambitious 
-alternative to globber-based directory walkers.
+Rule-based file directory walker - ambitious alternative to globber-based directory walkers.
+
+The version 5 is a whole new beast, with cleaner API by magnitude faster than the previous version.
 
 ## Mission
 Once I decided to write an utility for managing multiple _npm_ projects
@@ -23,6 +24,7 @@ because it had so many different things to take care of, while walking the file 
    1. identify projects, e.g. directories containing more or less proper `package.json` file;
    1. avoid diving into `node_modules/`, `.git/` and similar places;
    1. honor the rules in global and local `.gitignore` files;
+   1. optionally process symbolic links;
    1. be selective about projects and components in them accordingly to search rules, etc...
 
 So I decided to write a whole new package that makes all this and similar tasks a piece of cake.
@@ -30,7 +32,7 @@ So I decided to write a whole new package that makes all this and similar tasks 
 ## Overview
 The purpose of _**dwalker**_ is to:
    1. provide an extendable rules-based API for file systems traversal and processing;
-   1. support both synchronous and asynchronous / parallel operation;
+   1. run fast, making use of asynchronous API;
    1. efficiently support monitoring, diagnostics and debugging.
 
 There are two tasks _dwalker_ takes care of in parallel: 
@@ -41,18 +43,15 @@ To manage this, there are two classes, too - **_`Walker`_** and **_`Ruler`_** de
 
 _`Walker`_ instance owns at least one _`Ruler`_ instance and may run several walk threads in parallel.
 Directories are traversed width-first and Walker has _**handlers**_ - special instance methods for handling basic cases:
-   * **`onBegin`** invoked after new directory is successfully opened;
-   * **`detect`** usually called by `onBegin` - on recognizing a pattern 
-   (like directory is likely being a root of npm project) it may switch rules and 
-   do other preparatory stuff for processing this subtree;
+   * **`onDir`** invoked after new directory is successfully opened;
    * **`onEntry`** is called for every directory entry - 
-   it usually calls Ruler instance's match(name, type) method and acts 
+   it usually calls Ruler instance's `match(name, type)` method and acts 
    accordingly to resulting _**action code**_.
-   * **`onEnd`** is called after we've done with the directory and it can wrap up some of the results;
-   * **`onError`** is called when exception is catched and may implement some specific handling.
+   * **`onFinal`** is called when all directory entries have been checked and directory closed;
+   * **`onError`** is called when exception is trapped, so it may do something special about it.
 
 Often it is not even necessary to derive child classes from Walker,
-because it provides a **_plug-in API_** for overriding most of it's methods.
+because you may provide handler overrides right on calling its _`walk()`_ method.
 
 ## Usage
 **NB:** This package needs Node.js v12.12 or higher.

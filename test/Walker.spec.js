@@ -2,13 +2,11 @@
 const ME = 'Walker'
 
 const { expect } = require('chai')
-const { DO_ABORT, DO_SKIP, loadFile, Ruler, Walker } = require('../src')
+const { DO_ABORT, DO_SKIP, Walker } = require('../src')
 const FILES = 1
 const DIRS = 2
 const ROOT = 'test/directory'
-const defaultRules = [
-  DO_SKIP, 'node_modules', '.*'
-]
+// const defaultRules = [DO_SKIP, 'node_modules', '.*']
 
 const projectRules = [
   DO_ABORT, '*.html',
@@ -22,7 +20,7 @@ let w, actionCounts
 const onEntry = function (entry, ctx) {
   const action = this.onEntry(entry, ctx)
   actionCounts[action] = (actionCounts[action] || 0) + 1
-  // console.log(ctx.dirPath, entry.name, action, actionCounts)
+  // console.log(ctx.absPath, entry.name, action /* , actionCounts */)
   return action
 }
 
@@ -33,7 +31,7 @@ const throwTest = () => {
 describe(ME, () => {
   beforeEach(() => {
     actionCounts = {}
-    w = new Walker({rules: projectRules})
+    w = new Walker({ rules: projectRules, symlinks: true })
   })
 
   it('should construct w defaults', () => {
@@ -52,20 +50,18 @@ describe(ME, () => {
         track[key] = (track[key] || 0) + 1
       }
     })
-    expect(w.failures).to.eql([], 'failures')
-    expect(actionCounts[FILES]).to.equal(2, 'FILES')
+    expect(w.failures.length).to.equal(2, 'failures')
+    expect(actionCounts[FILES]).to.equal(3, 'FILES')
     expect(actionCounts[DIRS]).to.equal(2, 'DIRS')
     expect(w.visited.size).to.equal(3, '#1')
     expect(Object.keys(track).sort()).to.eql(['onDir', 'onEntry', 'onFinal', 'ticks'])
     expect(track.ticks).to.eql(1, 'ticks')
-    expect(w.getStats()).to.eql({ dirs: 3, entries: 8, retries: 0, revoked: 0 })
+    expect(w.getStats()).to.eql({ dirs: 3, entries: 11, retries: 0, revoked: 1 })
   })
 
   it('should do default error handling', async () => {
-    let data
-
     try {
-      return await w.walk(undefined, { onEntry: throwTest })
+      await w.walk(undefined, { onEntry: throwTest })
     } catch (error) {
       expect(error.context.locus).to.equal('onEntry')
       return
@@ -74,13 +70,13 @@ describe(ME, () => {
   })
 
   it('should do custom error override', async () => {
-    let data, res
+    // let data
 
-    w.onError = function (err) {
-      data = { err, inst: this }
+    w.onError = function () {
+      // data = { err, inst: this }
       return DO_SKIP
     }
-    res = await w.walk('nope')
+    const res = await w.walk('nope')
     expect(res).to.eql({})
     expect(w.failures.length).to.eql(1, 'length')
     expect(w.failures[0].message).to.match(/^ENOENT:\s/, '[0]')
@@ -91,13 +87,6 @@ describe(ME, () => {
     const r = await w.walk(undefined, { onFinal: async () => e })
     expect(r).to.equal(e)
     expect(w.visited.size).to.equal(1)
-  })
-
-  it('onDir can return anything', async () => {
-    let r = await w.walk(undefined, { onDir: () => 'stringy', onEntry: () => DO_ABORT })
-    expect(r).to.eql({})
-    expect(w.visited.size).to.equal(1)
-    expect(w.visited.get(process.cwd() + '/')).to.equal('stringy')
   })
 
   it('onDir throwing', async () => {

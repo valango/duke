@@ -2,6 +2,9 @@
 
 /** @namespace constants */
 const constants = {
+  /** Action code: the current item might have a special meaning for application.
+   * @const {number} */
+  DO_CHECK: 10000,
   /** Action code: skip this directory entry.
    * @const {number} */
   DO_SKIP: 10001,

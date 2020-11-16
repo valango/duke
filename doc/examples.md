@@ -16,6 +16,6 @@ and does some simple analysis on them.
 It derives a _custom child class_ from `Walker`, demonstrates _**rule system switching**_,
 **_parallel processing_** and _**sharing data**_ between "threads".
 
-### parsePath.js
+### parse.js
 [This demo](../examples/parse.js) interprets command line arguments as rule definitions,
 constructs a `Ruler` instance and dumps it's contents.
