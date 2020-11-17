@@ -1,31 +1,34 @@
 #!/usr/bin/env node
-'use strict'
+
+//  Sample application scanning for npm javascript projects
+//  and computing some simple statistics on them.
+
 /* eslint no-console:0 */
+'use strict'
+
+const { inspect } = require('util')
+const color = require('chalk')
+const { dump, finish, parseCl, print, start } = require('./util')
+const { max } = Math
 
 const HELP = `Scan directories for Node.js projects, sorting output by actual project names.
   Counting .js files will ignore those in '/test' or 'vendor' directories or in
   directories containing .html files (like code coverage report).
   Projects containing '/test' directory will be flagged by 'T'.`
-const OPTS = {
-  verbose: ['V', 'talk a *lot*']
-}
-
-const { inspect } = require('util')
+const OPTS = { verbose: ['V', 'talk a *lot*'] }
 
 const { DO_NOTHING, DO_ABORT, DO_CHECK, DO_SKIP, Walker, Ruler, relativize } =
         require('../src')
 
-const DO_COUNT_FILE = 1    //  Add file to count.
-const DO_COUNT_TEST = 2
-const DO_COUNT_DOCS = 3
-const DO_COUNT_SPECIAL = 4
-const CODES = 5
-
-Ruler.hook(() => {
-  return undefined    //  Breakpoint place.
-})
-
+//  Default rules are applied until DO_CHECK action is recognized.
 const defaultRules = [DO_SKIP, 'node_modules/', '.*/', DO_CHECK, 'package.json']
+
+//  Project-specific actions and rules
+const DO_COUNT_FILE = 1     //  Source files
+const DO_COUNT_TEST = 2     //  Tests?
+const DO_COUNT_DOCS = 3     //  Markup files except the README.md
+const DO_COUNT_SPECIAL = 4  //  Some specials
+const CODES = 5             //  Number od stats columns.
 
 const projectRules = [
   [DO_SKIP, 'node_modules/', '.*/', '/reports/', 'vendor/'],
@@ -36,15 +39,14 @@ const projectRules = [
   [DO_COUNT_SPECIAL, '/*.yml', '/README*', '/LICENSE']
 ]
 
-const color = require('chalk')
-const { dump, finish, parseCl, print, start } = require('./util')
-const { args, options } = parseCl(OPTS, HELP, true)
+const { args, options } = parseCl(OPTS, HELP, true)   //  Command-line interface.
 
 //  Working data to be shared with all threads / entries.
 const data = {}
-const opts = { data, rules: defaultRules }
-const walker = new Walker(opts)
+const walker = new Walker({ data, rules: defaultRules })
 
+let maxName = 0
+//  Results formatting helper.
 const composeResults = (data) => {
   const res = [], keys = Reflect.ownKeys(data).sort()
 
@@ -52,27 +54,28 @@ const composeResults = (data) => {
 
   for (const key of keys) {
     const cols = data[key]
-    let s = (cols[DO_COUNT_FILE].length + ' *.js files, ').padStart(18)
-    s += (cols[DO_COUNT_FILE].length + ' generic .md files').padStart(21)
-    s += ', tests: ' + (cols[DO_COUNT_TEST].length ? 'Y' : 'N')
+    let s = relativize(key).padEnd(maxName + 1)
+    s += (cols[DO_COUNT_FILE].length + ' .js').padStart(10)
+    s += (cols[DO_COUNT_FILE].length + ' .md').padStart(10)
+    s += '  tests: ' + (cols[DO_COUNT_TEST].length ? 'Y' : 'N')
     if (cols[DO_COUNT_SPECIAL].length > 0) {
-      s += ', has: ' + cols[DO_COUNT_SPECIAL].join(' ')
+      s += '  plus: ' + cols[DO_COUNT_SPECIAL].join(' ')
     }
-    res.push(relativize(key) + '\n    ' + s)
+    res.push(s)
   }
   return res
 }
 
 walker.tick = count => process.stdout.write('Entries processed: ' + count + '\r')
 
-//  Uncomment this, if you really like a lot of mess on your screen.
-// walker.trace = (name, result, context, args) => {
-//   console.log(context.absPath, args[0])
-// }
+//  Uncomment this, if you _really_ like a mess on your screen. ;)
+/* walker.trace = (name, result, context, args) => {
+  console.log(context.absPath, args[0])
+} /* */
 
-//  To be injected dynamically.
+//  Dynamically injectable onEntry handler.
 const onProjectEntry = function (entry, context) {
-  const action = this.onEntry(entry, context)
+  const action = this.onEntry(entry, context)   //  Use original handler method.
 
   if (action > 0 && action < CODES) {
     const { absPath, current } = context, rootLength = current[0].length
@@ -81,39 +84,39 @@ const onProjectEntry = function (entry, context) {
   return action
 }
 
-const onFinal = function (entries, context, action) {
-  let entry, res = DO_NOTHING
+//  If DO_CHECK was returned by `onEntry` handler, then:
+// - set ruler and handlers for current and child directories (dynamic strategy pattern);
+// - initiate data for current project and inject it to results data space;
+// - re-evaluate existing directory entries according to new rules.
+const onFinal = async function (entries, context, recentAction) {
+  let action, entry
 
-  if (action === DO_CHECK) {
-    //  Here we modify the rules and initiate the statistics.
+  if ((action = recentAction) === DO_CHECK) {
     context.ruler = new Ruler(projectRules)
-    //  `context.current` will be forwarded to all subdirectories.
-    this.visited.set(context.absPath, context.current = new Array(CODES))
+    context.data[context.absPath] = context.current = new Array(CODES)
+
+    maxName = max(relativize(context.current[0] = context.absPath).length, maxName)
 
     for (let i = CODES; --i > 0;) context.current[i] = []
-    context.current[0] = context.absPath  //  #0 item holds project root.
 
-    for (let i = 0; (entry = entries[i]) !== undefined && res < DO_ABORT; i += 1) {
-      res = Math.max(res, onProjectEntry.call(this, entry, context))
+    for (let i = 0; (entry = entries[i]) !== undefined && action < DO_ABORT; i += 1) {
+      action = max(action, onProjectEntry.call(this, entry, context))
     }
-    //  Add our stuff to returned data.
-    context.data[context.absPath] = context.current
-
-    context.onEntry = onProjectEntry    //  Apply the dynamic strategy pattern.
-    res = DO_NOTHING
+    context.onEntry = onProjectEntry
+    if (action < DO_SKIP) action = DO_NOTHING   //  Preserve possible system codes.
   }
-  return Promise.resolve(res)
+  return action
 }
 
 process.on('unhandledRejection', (promise, reason) => {
   console.log('***** Unhandled Rejection at:', promise, 'reason:', reason)
+  console.log('***** If possible, please report this via issue list.')
   walker.halt()
 })
 
-const handlers = { onFinal }
 const t0 = start()
 
-Promise.all(args.map(dir => walker.walk(dir, handlers))).then(res => {
+Promise.all(args.map(dir => walker.walk(dir, { onFinal }))).then(res => {
   print('******* DONE *******      ')
   if (options.verbose) print(inspect(res, { depth: 10 }))
   print(composeResults(data).join('\n'))

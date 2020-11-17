@@ -27,9 +27,13 @@ const relativize = (path, rootPath = undefined, prefix = undefined) => {
 
   if (pref && pref[pref.length - 1] !== sep) pref += sep
 
-  return path.indexOf(root) === 0
+  const res = path.indexOf(root) === 0
     ? (pref || '') + path.substring(root.length)
     : path
+
+  const parsed = /^(.+[^/])\/$/.exec(res)
+
+  return parsed ? parsed[1] : res
 }
 
 module.exports = relativize

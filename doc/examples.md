@@ -1,7 +1,10 @@
 ## Examples
 
-There is three examples there in [examples/](../examples) directory.
-All they accept _-h_ command-line option for help.
+There is three examples in [examples/](../examples) directory.
+To run, type in a terminal something like:
+```
+   examples/count.js -h
+```
 
 ### count.js
 [This simple application](../examples/count.js) demonstrates minimalistic use of Walker.

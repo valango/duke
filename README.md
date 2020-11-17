@@ -41,17 +41,13 @@ There are two tasks _dwalker_ takes care of in parallel:
 
 To manage this, there are two classes, too - **_`Walker`_** and **_`Ruler`_** designed to work together.
 
-_`Walker`_ instance owns at least one _`Ruler`_ instance and may run several walk threads in parallel.
-Directories are traversed width-first and Walker has _**handlers**_ - special instance methods for handling basic cases:
-   * **`onDir`** invoked after new directory is successfully opened;
-   * **`onEntry`** is called for every directory entry - 
-   it usually calls Ruler instance's `match(name, type)` method and acts 
-   accordingly to resulting _**action code**_.
-   * **`onFinal`** is called when all directory entries have been checked and directory closed;
-   * **`onError`** is called when exception is trapped, so it may do something special about it.
+A _`Walker`_ instance owns at least one _`Ruler`_ instance and can perform several walks simultaneously.
+It walks directories recursively width-first, calling _**handlers**_ on its way.
 
-Often it is not even necessary to derive child classes from Walker,
-because you may provide handler overrides right on calling its _`walk()`_ method.
+Providing custom handlers is the key for fun stuff and this can be done without
+deriving child classes. Even better - it is easy to switch both handlers and rulers
+in walk context. Such dynamic strategy pattern leave different user-provided handlers simple
+and agnostic to each other.
 
 ## Usage
 **NB:** This package needs Node.js v12.12 or higher.
@@ -76,6 +72,7 @@ I'll try to
 not update [npmjs.com](https://www.npmjs.com) too often. ;)
 
 ## Version history
+* v5.0.0 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 * v4.0.0 @20200218
    - several important fixes;
    - Walker throws error if on illegal action code returned by handler;
