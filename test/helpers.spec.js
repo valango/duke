@@ -2,38 +2,15 @@
 const ME = 'helpers'
 
 const { expect } = require('chai')
-const { name } = require('../package.json')
-const $ = require('..')
+const relativize = require('../relativize')
 
 describe(ME, () => {
-  describe('loadFile', () => {
-    it('should load normally', () => {
-      const d = $.loadFile('package.json')
-      expect(d).to.be.instanceOf(Buffer)
-      expect(JSON.parse(d.toString()).name).to.equal(name)
-    })
-
-    it('should fail gracefully', () => {
-      expect($.loadFile('nope.js')).to.equal(undefined)
-    })
-
-    it('should throw on non-ENOENT', () => {
-      expect(() => $.loadFile('package.json/nope')).to.throw(Error, 'ENOTDIR')
-    })
-
-    it('should behave mildly', () => {
-      expect($.loadFile('package.json', true)).to.be.instanceOf(Buffer)
-      expect($.loadFile('nope.js', true)).to.equal(undefined)
-      expect($.loadFile('package.json/nope', true)).to.be.instanceOf(Error)
-    })
-  })
-
   it('should relativize', () => {
-    expect($.relativize(__filename, process.cwd(), '.')).to.eql('./test/helpers.spec.js')
-    expect($.relativize(__filename, process.cwd())).to.eql('test/helpers.spec.js')
-    expect($.relativize(__filename, '~')).to.match(/^~.+\.js$/)
-    expect($.relativize(__filename)).to.match(/^\w.+\.js$/)
-    expect($.relativize('x')).to.eql('x')
-    expect(() => $.relativize(__filename, 'a', 'b')).to.throw('relativize() arguments conflict')
+    expect(relativize(__filename, process.cwd(), '.')).to.eql('./test/helpers.spec.js')
+    expect(relativize(__filename, process.cwd())).to.eql('test/helpers.spec.js')
+    expect(relativize(__filename, '~')).to.match(/^~.+\.js$/)
+    expect(relativize(__filename)).to.match(/^\w.+\.js$/)
+    expect(relativize('x')).to.eql('x')
+    expect(() => relativize(__filename, 'a', 'b')).to.throw('relativize() arguments conflict')
   })
 })

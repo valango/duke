@@ -6,29 +6,36 @@
 /* eslint no-console:0 */
 'use strict'
 
+const { readFile } = require('fs').promises
 const { inspect } = require('util')
 const color = require('chalk')
-const { dump, finish, parseCl, print, start } = require('./util')
+const { DO_NOTHING, DO_ABORT, DO_CHECK, DO_SKIP, T_DIR, Walker } = require('..')
+const { dumpFailures, leaksTrap, parseCl, print } = require('./util')
+const relativize = require('../relativize')
+
 const { max } = Math
+const N = color.redBright, Y = color.greenBright
 
 const HELP = `Scan directories for Node.js projects, sorting output by actual project names.
   Counting .js files will ignore those in '/test' or 'vendor' directories or in
   directories containing .html files (like code coverage report).
   Projects containing '/test' directory will be flagged by 'T'.`
-const OPTS = { verbose: ['V', 'talk a *lot*'] }
-
-const { DO_NOTHING, DO_ABORT, DO_CHECK, DO_SKIP, Walker, Ruler, relativize } =
-        require('../src')
+const OPTS = { verbose: ['v', 'talk a *lot*'] }
 
 //  Default rules are applied until DO_CHECK action is recognized.
-const defaultRules = [DO_SKIP, 'node_modules/', '.*/', DO_CHECK, 'package.json']
+const defaultRules = [
+  DO_SKIP, 'node_modules/', '.*/', DO_CHECK, 'package.json'
+]
 
 //  Project-specific actions and rules
 const DO_COUNT_FILE = 1     //  Source files
 const DO_COUNT_TEST = 2     //  Tests?
 const DO_COUNT_DOCS = 3     //  Markup files except the README.md
 const DO_COUNT_SPECIAL = 4  //  Some specials
-const CODES = 5             //  Number od stats columns.
+const NAME = 5
+const VERSION = 6
+const INSTALLED = 7
+const GIT = 8
 
 const projectRules = [
   [DO_SKIP, 'node_modules/', '.*/', '/reports/', 'vendor/'],
@@ -43,9 +50,11 @@ const { args, options } = parseCl(OPTS, HELP, true)   //  Command-line interface
 
 //  Working data to be shared with all threads / entries.
 const data = {}
-const walker = new Walker({ data, rules: defaultRules })
+//  Create a walker avoiding Mac OS-X madness.
+const walker = leaksTrap(new Walker({ rules: defaultRules }))
+  .avoid(relativize.homeDir + 'Library', '/Applications', '/Library')
 
-let maxName = 0
+let maxPathLen = 0
 //  Results formatting helper.
 const composeResults = (data) => {
   const res = [], keys = Reflect.ownKeys(data).sort()
@@ -53,70 +62,81 @@ const composeResults = (data) => {
   res.push(`Projects detected: ${keys.length}`, '')
 
   for (const key of keys) {
-    const cols = data[key]
-    let s = relativize(key).padEnd(maxName + 1)
-    s += (cols[DO_COUNT_FILE].length + ' .js').padStart(10)
-    s += (cols[DO_COUNT_FILE].length + ' .md').padStart(10)
-    s += '  tests: ' + (cols[DO_COUNT_TEST].length ? 'Y' : 'N')
-    if (cols[DO_COUNT_SPECIAL].length > 0) {
-      s += '  plus: ' + cols[DO_COUNT_SPECIAL].join(' ')
-    }
-    res.push(s)
+    const d = data[key], row = []
+    let s = relativize(key).padEnd(maxPathLen + 1), v
+
+    row.push(d[INSTALLED] ? color.bgBlue(s) : s)
+    ;(s = ((v = d[NAME]) || 'no name').padEnd(20)) && row.push(v ? s : N(s))
+    ;(s = ((v = d[VERSION]) || '?').padEnd(8)) && row.push(v ? s : N(s))
+    ;(s = ((v = d[DO_COUNT_FILE].length) + '').padStart(4)) && row.push((v ? s : N(s)) + '.js')
+    ;(s = ((v = d[DO_COUNT_DOCS].length) + '').padStart(3)) && row.push((v > 1 ? Y(s) : s) + '.md')
+    row.push(d[DO_COUNT_TEST].length ? Y('tests') : '     ')
+    if (!d[GIT]) row.push(N('no git'))
+    if (d[DO_COUNT_SPECIAL].length > 0) row.push(d[DO_COUNT_SPECIAL].join(' '))
+    res.push(row.join(' '))
   }
   return res
 }
-
-walker.tick = count => process.stdout.write('Entries processed: ' + count + '\r')
 
 //  Uncomment this, if you _really_ like a mess on your screen. ;)
 /* walker.trace = (name, result, context, args) => {
   console.log(context.absPath, args[0])
 } /* */
 
-//  Dynamically injectable onEntry handler.
-const onProjectEntry = function (entry, context) {
-  const action = this.onEntry(entry, context)   //  Use original handler method.
+//  Todo: move to different file!
+const parsePackage = pack => {
+  try {
+    return JSON.parse(pack.toString())  //  Todo: add content checking!
+  } catch (error) {
+    return error
+  }
+}
 
-  if (action > 0 && action < CODES) {
-    const { absPath, current } = context, rootLength = current[0].length
+//  Dynamically injectable onEntry handler, uses original handler method.
+const onProjectEntry = function (entry, context) {
+  const action = this.onEntry(entry, context), { absPath, current } = context
+
+  if (action > 0 && action < NAME) {
+    const rootLength = current[0].length
     current[action].push(absPath.substring(rootLength) + entry.name)
+  } else if (current.top === context.depth && action === DO_SKIP && entry.type === T_DIR) {
+    if (entry.name === 'node_modules') {
+      context.current[INSTALLED] = true
+    } else if (entry.name === '.git') context.current[GIT] = true
   }
   return action
 }
 
-//  If DO_CHECK was returned by `onEntry` handler, then:
+//  If package.json exists in this directory, then:
+// - validate the package contents;
 // - set ruler and handlers for current and child directories (dynamic strategy pattern);
 // - initiate data for current project and inject it to results data space;
 // - re-evaluate existing directory entries according to new rules.
-const onFinal = async function (entries, context, recentAction) {
-  let action, entry
+const onDir = async function (context) {
+  const { absPath, current } = context
 
-  if ((action = recentAction) === DO_CHECK) {
-    context.ruler = new Ruler(projectRules)
-    context.data[context.absPath] = context.current = new Array(CODES)
-
-    maxName = max(relativize(context.current[0] = context.absPath).length, maxName)
-
-    for (let i = CODES; --i > 0;) context.current[i] = []
-
-    for (let i = 0; (entry = entries[i]) !== undefined && action < DO_ABORT; i += 1) {
-      action = max(action, onProjectEntry.call(this, entry, context))
-    }
-    context.onEntry = onProjectEntry
-    if (action < DO_SKIP) action = DO_NOTHING   //  Preserve possible system codes.
+  if (current && context.data[current[0]] === current) {
+    return this.onDir(context)        //  We are in recognized project already.
   }
-  return action
+  const pack = parsePackage(await readFile(absPath + 'package.json'))
+  //  No error thrown - so the file exists!
+  if (pack instanceof Error) return this.onError_(pack, context, 'onDir')
+
+  const project = context.data[context.absPath] = context.current = { top: context.depth }
+  maxPathLen = max(relativize(project[0] = context.absPath).length, maxPathLen)
+  let v = NAME
+  while (--v > 0) project[v] = []
+  project[NAME] = ((v = pack.name) && v.length > 20) ? v.substring(0, 17) + '...' : v
+  project[VERSION] = pack.version
+  context.ruler = Walker.newRuler(projectRules)
+  context.onEntry = onProjectEntry
+
+  return DO_NOTHING
 }
 
-process.on('unhandledRejection', (promise, reason) => {
-  console.log('***** Unhandled Rejection at:', promise, 'reason:', reason)
-  console.log('***** If possible, please report this via issue list.')
-  walker.halt()
-})
+walker.tick = count => process.stdout.write('Entries processed: ' + count + '\r')
 
-const t0 = start()
-
-Promise.all(args.map(dir => walker.walk(dir, { onFinal }))).then(res => {
+Promise.all(args.map(dir => walker.walk(dir, { data, onDir }))).then(res => {
   print('******* DONE *******      ')
   if (options.verbose) print(inspect(res, { depth: 10 }))
   print(composeResults(data).join('\n'))
@@ -124,20 +144,11 @@ Promise.all(args.map(dir => walker.walk(dir, { onFinal }))).then(res => {
   print('****** FAILED ******      ', error)
   if (options.verbose) print('Halted at:\n', inspect(walker.halted, { depth: 10 }))
 }).finally(() => {
-  const time = finish(t0)
+  const { dirs, entries } = walker.stats, t = walker.duration
 
-  if (walker.failures.length) {
-    if (options.verbose) {
-      dump(walker.failures.map(e => e.message), color.redBright,
-        'Total %i soft failures.', walker.failures.length
-      )
-    } else {
-      print(color.redBright, 'Total %i soft failures.', walker.failures.length)
-      print('Use --verbose option to see details')
-    }
-  }
-
-  const { dirs, entries } = walker.getStats()
-  print('Total %i ms (%i µs per entry) for %i entries in %i directories%s.',
-    time / 1000, time / entries, entries, dirs)
+  dumpFailures(walker.failures, options.verbose)
+  print('\nSome projects may have ' + color.bgBlue('dependencies installed') +
+    ' and may exhibit some ' + N('problems') + ' or ' + Y('bonuses') + '.')
+  print('Total %i ms (%i µs per entry) for %i entries in %i directories.',
+    t / 1000, t / entries, entries, dirs)
 })

@@ -1,12 +1,13 @@
 /**
- * @typedef {string} TEntryType
  * Value of directory entry `type` property.
+ * @typedef {string} TEntryType
  */
 
 /**
+ * Directory entry available for `onEntry` and `onFinal` handlers.
  * @typedef {Object} TDirEntry
- * @property {number} action
- * @property {number[][]} match
+ * @property {number} action      - from the rule check for this entry.
+ * @property {number[][]} match   - used by `Ruler` instance.
  * @property {string} name
  * @property {TEntryType} type
  */
@@ -15,10 +16,13 @@
  * Data context {@link Walker#walk} provides handler methods / plugins with.
  * @typedef {Object} TWalkContext
  * @property {string}   absPath   separator-terminated absolute path
+ * @property {Object}   [closure] used internally.
  * @property {Object}   current   entry in {@link Walker#visited}.
  * @property {*}        data      to be returned by {@link Walker#walk} method.
  * @property {number}   depth     0 for `rootDir`.
+ * @property {string}   done      the last successfully completed op.
  * @property {Ruler}    ruler     currently active Ruler instance.
+ * @property {function(...)} trace
  * @property {Array<*>} [args]    in error.context only
  * @property {string}   [locus]   in error.context or `termination` property.
  */
@@ -30,7 +34,6 @@
  * @property {function(Object)}           [onDir]   handler
  * @property {function(Object,Object)}    [onEntry] handler
  * @property {function(Object,Object[])}  [onFinal] handler
- * @property {function(...)}              [tick]    handler
  * @property {function(...)}              [trace]   handler
  * @property {Ruler}                      [ruler]   Ruler instance.
  */
@@ -38,17 +41,18 @@
 /**
  * Walker constructor options.
  * @typedef {Object} TWalkerOptions
- * @property {Object}  [data]        to be shared between handlers.
+ * @property {Object}  [data]        shallow copy will be available for handlers.
  * @property {number}  [interval]    minimal interval (ms) between ticks (default: 200).
  * @property {*}       [rules]       ruler instance or rule definitions.
- * @property {boolean} [symlinks]   if truey, then follow symlinks.
+ * @property {boolean} [symlinks]    enables symbolic links.
  */
 
 /**
- * Walker statistics returned by `getStats` instance method.
+ * A value of `Walker#stats` instance property.
  * @typedef {Object} TWalkerStats
  * @property {number}  dirs     directories visited.
  * @property {number}  entries  file system entries processed.
  * @property {number}  retries  may happen when file descriptors limit was exceeded.
  * @property {number}  revoked  number of duplicate attempts to the same directory.
+ * @property {number}  walks    active walks count.
  */

@@ -1,10 +1,9 @@
 'use strict'
 
 const { isAbsolute, sep } = require('path')
-const homeDir = require('os').homedir() + sep
 
 /**
- * Strip the CWD part from give `path`.
+ * Strips the CWD part from given `path`.
  *
  * @param {string} path  - absolute path.
  * @param {string=} rootPath - defaults to user's home directory.
@@ -13,6 +12,7 @@ const homeDir = require('os').homedir() + sep
  * @throws {Error} on ambiguous `rootPath` and `prefix` combination.
  */
 const relativize = (path, rootPath = undefined, prefix = undefined) => {
+  const { homeDir } = relativize
   let pref = prefix, root = rootPath
 
   if (!root) {
@@ -35,5 +35,7 @@ const relativize = (path, rootPath = undefined, prefix = undefined) => {
 
   return parsed ? parsed[1] : res
 }
+
+relativize.homeDir = require('os').homedir() + sep
 
 module.exports = relativize

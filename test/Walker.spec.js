@@ -1,8 +1,9 @@
+//  Todo: use stubs instead of actual fs to test for retry conditions.
 'use strict'
 const ME = 'Walker'
 
 const { expect } = require('chai')
-const { DO_ABORT, DO_SKIP, Walker } = require('../src')
+const { DO_ABORT, DO_SKIP, Walker } = require('..')
 const FILES = 1
 const DIRS = 2
 const ROOT = 'test/directory'
@@ -31,32 +32,45 @@ const throwTest = () => {
 describe(ME, () => {
   beforeEach(() => {
     actionCounts = {}
-    w = new Walker({ rules: projectRules, symlinks: true })
+    w = new Walker({ rules: projectRules })
   })
 
   it('should construct w defaults', () => {
     // console.log(w.ruler.dump())
     expect(w.failures).to.eql([])
     expect(w.halted).to.equal(undefined)
-    expect(w.getStats()).to.eql({ dirs: 0, entries: 0, retries: 0, revoked: 0 })
+    expect(w.duration).to.equal(0)
+    expect(w.stats).to.eql(
+      { dirs: 0, entries: 0, errors: 0, retries: 0, revoked: 0, walks: 0 })
   })
 
   it('should walk', async () => {
-    const track = { ticks: 0 }
+    const track = {}
+    let ticks = 0, t
+    w.tick = () => (ticks += 1)
     await w.walk(ROOT, {
       onEntry,
-      tick: () => (track.ticks += 1),
       trace: (key) => {
+        t = w.duration
         track[key] = (track[key] || 0) + 1
       }
     })
-    expect(w.failures.length).to.equal(2, 'failures')
+    expect(w.failures.length).to.equal(0, 'failures')
     expect(actionCounts[FILES]).to.equal(3, 'FILES')
     expect(actionCounts[DIRS]).to.equal(2, 'DIRS')
     expect(w.visited.size).to.equal(3, '#1')
-    expect(Object.keys(track).sort()).to.eql(['onDir', 'onEntry', 'onFinal', 'ticks'])
-    expect(track.ticks).to.eql(1, 'ticks')
-    expect(w.getStats()).to.eql({ dirs: 3, entries: 11, retries: 0, revoked: 1 })
+    expect(Object.keys(track).sort()).to.eql(['onDir', 'onEntry', 'onFinal', 'openDir'])
+    expect(ticks).to.eql(1, 'ticks')
+    expect(w.stats).to.eql(
+      { dirs: 3, entries: 11, errors: 3, retries: 0, revoked: 0, walks: 0 })
+    expect(t).to.gt(0)
+  })
+
+  it('should avoid', async () => {
+    w.avoid([[ROOT + '/src/nested']])
+    await w.walk(ROOT)
+    expect(w.stats.dirs).to.equal(2)
+    expect(() => w.avoid({})).to.throw(TypeError)
   })
 
   it('should do default error handling', async () => {
@@ -67,6 +81,19 @@ describe(ME, () => {
       return
     }
     expect(false).to.eql(true)
+  })
+
+  it('should halt', async () => {
+    expect(await w.walk(ROOT, {
+      onEntry: function (entry, ctx) {
+        if (entry.name === 'nested') {
+          this.halt(ctx, 'test').halt() //  Only the first call should effect.
+        }
+        return 0
+      }
+    })).to.eql({})
+    expect(w.halted.details).to.eql('test')
+    expect(w.halted.absPath).to.match(/src\/$/)
   })
 
   it('should do custom error override', async () => {
@@ -91,7 +118,7 @@ describe(ME, () => {
 
   it('onDir throwing', async () => {
     try {
-      await w.walk(undefined, { onDir: throwTest })
+      await w.walk(undefined, { onDir: () => Promise.reject(new Error('Test')) })
     } catch (error) {
       expect(error.message).to.equal('Test')
       expect(error.context.locus).to.equal('onDir')
