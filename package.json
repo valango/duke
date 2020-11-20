@@ -5,20 +5,20 @@
   },
   "name": "dwalker",
   "version": "4.1.1",
-  "description": "Asynchronous rule-based file system walker",
+  "description": "Asynchronous rule-based file system walker.",
   "repository": {
     "type": "git",
     "url": "git://github.com/valango/duke.git"
   },
   "files": [
-    "doc/*.md",
     "README.md",
     "LICENSE",
-    "index.js",
+    "doc/*.md",
     "relativize.js",
     "src/*.js",
     "symlinksFinal.js"
   ],
+  "main": "src/index.js",
   "scripts": {
     "clean": "rimraf .nyc_output out reports t*mp *.log *.t*mp *.lcov",
     "coverage": "nyc report --reporter=text-lcov > coverage.lcov && codecov",
@@ -45,14 +45,14 @@
     "filesystem",
     "fs",
     "rule-based",
-    "traversal",
+    "traverse",
     "walking",
     "non-recursive"
   ],
   "dependencies": {
+    "assert-fine": "^1.0.3",
     "brace-expansion": "^1.1.11",
-    "lodash.omit": "^4.5.0",
-    "sincere": "^2.1.1"
+    "lodash.omit": "^4.5.0"
   },
   "devDependencies": {
     "chai": "^4.2.0",
@@ -76,7 +76,7 @@
     ],
     "include": [
       "src/**/*.js",
-      "stubs/**/*.js"
+      "test/mock-fs/**/*.js"
     ],
     "reporter": [
       "lcov",

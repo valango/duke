@@ -1,11 +1,20 @@
 'use strict'
 
-const fs = require('fs')
+//  Support for an easy fs mock - for testing, you know.
+let realpath, stat
+
+const mockFs = fs => {
+  realpath = fs.promises.realpath
+  stat = fs.promises.stat
+}
+
+mockFs(require('fs'))
+
 const omit = require('lodash.omit')
 
-const { DO_NOTHING, DO_SKIP, T_DIR, T_FILE, T_SYMLINK } = require('./src/constants')
-const { shadow } = require('./src/Walker')
-const { createEntry } = require('./src/translateDirEntry')
+const { DO_NOTHING, DO_SKIP, T_DIR, T_FILE, T_SYMLINK } = require('../constants')
+const { shadow } = require('../Walker')
+const { createDirEntry } = require('../util/dirEntry')
 const { isNaN } = Number
 
 /**
@@ -21,7 +30,6 @@ const { isNaN } = Number
  * }
  */
 function symlinksFinal (entries, context) {
-  const { realpath, stat } = exports
   const { absPath, closure } = context
 
   return Promise.all(entries.map(({ action, name, type }, index) => {
@@ -34,9 +42,9 @@ function symlinksFinal (entries, context) {
         //  Get the actual target and replace the entry (an expensive op).
         return realpath(path).then(real => {
           if (st.isDirectory()) {
-            entries[index] = createEntry(real, T_DIR, action)
+            entries[index] = createDirEntry(real, T_DIR, action)
           } else if (st.isFile()) {
-            entries[index] = createEntry(real, T_FILE, action)
+            entries[index] = createDirEntry(real, T_FILE, action)
           }
           return 0  //  The return value is ignored.
         })
@@ -63,8 +71,6 @@ function symlinksFinal (entries, context) {
     .then(() => DO_NOTHING)
 }
 
-exports = module.exports = symlinksFinal
+symlinksFinal.mockFs = mockFs
 
-//  Injection points for special cases e.g. testing.
-exports.realpath = fs.promises.realpath
-exports.stat = fs.promises.stat
+module.exports = symlinksFinal

@@ -1,12 +1,19 @@
 'use strict'
 
-const fs = require('fs')
+//  Support for an easy fs mock - for testing, you know.
+let openDir
+
+const mockFs = fs => (openDir = fs.promises.opendir)
+
+mockFs(require('fs'))
+
 const { resolve, sep } = require('path')
 const omit = require('lodash.omit')
+
 const { DO_ABORT, DO_NOTHING, DO_RETRY, DO_SKIP, DO_HALT, T_DIR, T_SYMLINK } =
-        require('./constants')
-const Ruler = require('./Ruler')
-const { translateEntry } = require('./translateDirEntry')
+        require('../constants')
+const Ruler = require('../Ruler')
+const { fromDirEntry } = require('../util/dirEntry')
 
 const { isNaN } = Number
 const { max } = Math
@@ -15,6 +22,7 @@ const empty = () => Object.create(null)
 const intimates = 'closure onDir onEntry onError onFinal openDir trace'.split(' ')
 const nothing = Symbol('nothing')
 const shadow = intimates.concat('ruler')
+
 const usecsFrom = t0 => {
   const t1 = process.hrtime(t0)
   return (t1[0] * 1e9 + t1[1]) / 1000
@@ -410,7 +418,7 @@ class Walker {
       onEntry: opts.onEntry || this.onEntry,
       onError: opts.onError || this.onError,
       onFinal: opts.onFinal || this.onFinal,
-      openDir: Walker.openDir,
+      openDir,
       ruler: opts.ruler || this.ruler,
       trace: opts.trace || this.trace
     }]
@@ -481,7 +489,7 @@ class Walker {
             res = this.onError_(bad = error, 'iterateDir', context)
           }
           if (res < DO_ABORT && bad === undefined) {
-            entry = translateEntry(entry)
+            entry = fromDirEntry(entry)
             res = this.execSync_('onEntry', context, entry, context)
             this._nEntries += 1
             if ((action = max(action, res) >= DO_ABORT)) break
@@ -587,5 +595,4 @@ Walker.overrides = {
  */
 Walker.shadow = shadow
 
-//  Injection point for special cases e.g. testing.
-Walker.openDir = fs.promises.opendir
+Walker.mockFs = mockFs

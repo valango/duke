@@ -10,7 +10,7 @@ const print = require('./print')
 module.exports = (failures, verbose) => {
   if (failures.length) {
     if (verbose) {
-      dump(failures.map(e => e.message), R('Total %i soft failures.'), failures.length)
+      dump(failures.map(e => R('! ') + e.message), R('Total %i overridden failures.'), failures.length)
     } else {
       const map = new Map(), codes = []
       for (const e of failures) {
@@ -20,7 +20,7 @@ module.exports = (failures, verbose) => {
       for (const r of map[Symbol.iterator]()) codes.push(R(r[0]) + ':' + r[1])
 
       print('Error codes encountered: ' + codes.join(' '))
-      print(R, 'Total %i soft failures.', failures.length)
+      print(R, 'Total %i overridden failures.', failures.length)
       print('Use --verbose option to see details')
     }
   }

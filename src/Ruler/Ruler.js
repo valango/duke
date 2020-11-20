@@ -1,8 +1,8 @@
 'use strict'
 
-const { DO_NOTHING, T_DIR } = require('./constants')
+const assert = require('assert-fine')
+const { DO_NOTHING, T_DIR } = require('../constants')
 const parsePath = require('./parsePath')
-const Sincere = require('sincere')
 
 const NIL = -1      //  No parent.
 const optionalDirsRule = null
@@ -17,7 +17,7 @@ const { max } = Math
 const rule_ = (r) => r ? new RegExp(r) : optionalDirsRule
 
 const typeMatch_ = (itemType, nodeType) => {
-  return !nodeType || nodeType.indexOf(itemType) >= 0
+  return !nodeType || (nodeType === itemType)
 }
 
 /**
@@ -33,7 +33,7 @@ const hasAction_ = (tuples, action) => {
 /**
  * Rule tree and intermediate state of searches.
  */
-class Ruler extends Sincere {
+class Ruler {
   /**
    * @param {Object<{action:number, extended, optimize}>=} options
    * @param {...*} definitions
@@ -50,8 +50,6 @@ class Ruler extends Sincere {
       }
     }
     opts = { ...opts }
-
-    super()
 
     /**
      * Rule tree of nodes [entryType, rule, parent, action].
@@ -110,7 +108,7 @@ class Ruler extends Sincere {
   add_ (definition) {
     switch (typeof definition) {
       case 'number':
-        this.assert((this._nextRuleAction = definition) !== DO_NOTHING,
+        assert((this._nextRuleAction = definition) !== DO_NOTHING,
           'add', 'action code 0 is reserved')
         break
       case 'string':
@@ -125,7 +123,7 @@ class Ruler extends Sincere {
           // } else if (definition instanceof Ruler) {
           //  this.append_(definition)
         } else {
-          this.assert(false, 'add', 'bad rule definition < %O >', definition)
+          assert(false, 'add', () => `bad rule definition '${definition}'`)
         }
     }
     return this
@@ -152,7 +150,7 @@ class Ruler extends Sincere {
         parentIndex = nodeIndex
       }
     })
-    this.assert(parentIndex >= 0, 'addRules_', 'no node created')
+    assert(parentIndex >= 0, 'addRules_', 'no node created')
     _tree[parentIndex][ACTION] = action
   }
 
@@ -165,7 +163,7 @@ class Ruler extends Sincere {
     const rules = parsePath(path, this._options)
     const flags = rules.shift()
 
-    this.assert(rules.length, 'addPath_', 'no rules')
+    assert(rules.length, 'addPath_', 'no rules')
     let action = this._nextRuleAction
     if (flags.isExclusion) action = -action
     this.addRules_(rules, flags.type, action)

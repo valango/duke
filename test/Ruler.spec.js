@@ -4,6 +4,7 @@ const ME = 'Ruler'
 const { AssertionError } = require('assert')
 const { expect } = require('chai')
 const { Ruler, DO_NOTHING, DO_SKIP, DO_ABORT, T_DIR, T_FILE } = require('..')
+Ruler.prototype.dump = require('../dumpRuler')
 const NIL = -1
 const optionalDirsRule = null
 
@@ -31,11 +32,11 @@ describe(ME, () => {
   })
 
   it('should construct', () => {
-    // process.stdout.write(t.dump())
+    if (process.env.VERBOSE) process.stdout.write(t.dump())
     expect(t._ancestors).to.eql([[DO_NOTHING, NIL]], '_ancestors')
     t = new Ruler({ optimize: false }, 2, '/a*')
     expect(t._tree).to
-      .eql([[T_DIR, optionalDirsRule, NIL, DO_NOTHING], [undefined, /^a.*$/, NIL, 2]],
+      .eql([[T_DIR, optionalDirsRule, NIL, DO_NOTHING], [0, /^a.*$/, NIL, 2]],
         'mod._tree')
     t = new Ruler()
     expect(t._tree).to.eql([[T_DIR, optionalDirsRule, NIL, DO_NOTHING]])

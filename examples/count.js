@@ -5,7 +5,7 @@
 /* eslint no-console:0 */
 'use strict'
 const chalk = require('chalk')
-const { LABELS, Walker } = require('..')
+const { dirEntryTypeToLabel, Walker } = require('..')
 const { dumpFailures, leaksTrap, parseCl, print } = require('./util')
 const relativize = require('../relativize')
 const symlinksFinal = require('../symlinksFinal')
@@ -22,9 +22,10 @@ const d = { deepest: '', maxDepth: 0 }
 const add = (key) => (counts[key] = ((counts[key] || 0) + 1))
 
 const report = counts =>
-  Reflect.ownKeys(counts).map(k => chalk.greenBright(LABELS[k]) + ': ' + counts[k]).join(', ')
+  Reflect.ownKeys(counts).map(k =>
+    chalk.greenBright(dirEntryTypeToLabel(k)) + ': ' + counts[k]).join(', ')
 
-//  To avoid subclassing, We inject handlers into walk context.
+//  The handlers will be injected into walk context.
 
 const onDir = async function (context) {
   const { absPath, depth } = context

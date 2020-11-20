@@ -1,1 +1,3 @@
-src/symlinksFinal.js
+'use strict'
+//  A shim for direct loading.
+module.exports = require('./src/helpers/symlinksFinal')

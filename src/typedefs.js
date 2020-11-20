@@ -1,6 +1,6 @@
 /**
  * Value of directory entry `type` property.
- * @typedef {string} TEntryType
+ * @typedef {number} TEntryType
  */
 
 /**

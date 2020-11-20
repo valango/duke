@@ -9,7 +9,7 @@ Asynchronous rule-based file system walker. It:
    * provides powerful extendable API;
    * runs real fast.
    
-This is what a simple [demo app](examples/count.js) does on my old 2,7 GHz MacBook Pro:
+This is what a simple [demo app](doc/examples.md) does on my old 2,7 GHz MacBook Pro:
 ![](assets/counts.png)
 
 The version 5 is hugely different from its [ancestors](#version-history).
@@ -57,13 +57,12 @@ What happens next, depends on its return value. This value is usually a numeric
 **_action code_** - a predefined or application specific one. A non-numeric return value
 terminates a particular walk immediately and resolves the promise.
 
-If you have read this far, you may want to take a look at [examples](doc/examples.md).
-
 ## API
 ### exports
-   * [_**constants**_](#constants)
+   * [_**constant**_ declarations](#constants)
    * [_**`Ruler`** class_](#ruler-class)
    * [_**`Walker`** class_](#walker-class)
+   * [_**common** helpers_](#common-helpers)
    
 ### constants
 The declarations of [types](src/typedefs.js) and [constants](src/constants.js)
@@ -209,14 +208,27 @@ Data values have no meaning to Walker, but may have one for application code.
 
 **`newRuler`**`(...args) : Ruler` - factory method.
 
-**`openDir`**` : function()` - defaults to _`fs.promises.opendir`_.
-Mutate for some special purposes (e.g. for testing).
-
 **`overrides`**` : Object` - error override rules as tree:
 ( handlerName -> errorCode -> actionCode ).
 
 **`shadow`**` : atring[]` - mask for omitting certain parts of context parameter,
 before injecting it to Error instance for logging.
+
+### Common helpers
+Those helpers are available via package exports and may be useful on writing handlers.
+
+**`checkDirEntryType`**`(type : TEntryType) : TEntryType` - function<br />
+returns the argument if it is a valid type code; throws an assertion error otherwise. 
+
+**`dirEntryTypeToLabel`**`(type : TEntryType, inPlural : boolean=) : string` - function<br />
+returns human readable type name for valid type; throws an assertion error otherwise. 
+
+**`makeDirEntry`**`(name : string , type : TEntryType, action : number=) : TDirEntry` - function<br />
+constructs and returns a ned directory entry with _`action`_ defaulting to `DO_NOTHING`.
+
+**`makeDirEntry`**`(nativeEntry : fs.Dirent) : TDirEntry` - function<br />
+returns a new directory entry based on 
+[Node.js native one](https://nodejs.org/dist/latest-v14.x/docs/api/fs.html#fs_class_fs_dirent).
 
 ### Special helpers
 To use those helpers, load them first, like:

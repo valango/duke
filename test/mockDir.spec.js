@@ -2,29 +2,33 @@
 process.env.NODE_ENV = 'test'
 
 const { expect } = require('chai')
-const target = require('../stubs/fs/openDir')
+const { T_DIR, T_FILE, T_SYMLINK } = require('..')
+const target = require('./mock-fs/openDir')
+const E = Error
 
+//  Node is either an array [contents, type] or object meaning a directory
 const tree = {
   d1: {
     d11: {
-      b1: 'a',
-      long: 'ab'
+      b1: ['a'],
+      long: ['ab']
     },
-    f1: 'b'
+    f1: ['b'],
+    l1: ['./d11', T_SYMLINK]
   },
   d2: {}
 }
 
-const obj = entry => entry && ({ name: entry.name, type: entry.isDirectory() ? 'd' : 'f' })
+const obj = entry => entry && ({ name: entry.name, type: entry._type })
 
 const stub = target(tree)
 
-describe('stubs/fs/openDir sync', () => {
+describe('mockFs/openDir sync', () => {
   it('should open the root', () => {
     const dir = stub.opendirSync('/')
 
-    expect(obj(dir.readSync())).to.be.eql({ name: 'd1', type: 'd' })
-    expect(obj(dir.readSync())).to.be.eql({ name: 'd2', type: 'd' })
+    expect(obj(dir.readSync())).to.be.eql({ name: 'd1', type: T_DIR })
+    expect(obj(dir.readSync())).to.be.eql({ name: 'd2', type: T_DIR })
     expect(obj(dir.readSync())).to.be.equal(null)
     dir.closeSync()
     expect(() => dir.readSync()).to.throw('was closed')
@@ -33,20 +37,21 @@ describe('stubs/fs/openDir sync', () => {
 
   it('should open subdir', () => {
     const dir = stub.opendirSync('/d1')
-    expect(obj(dir.readSync())).to.be.eql({ name: 'd11', type: 'd' })
-    expect(obj(dir.readSync())).to.be.eql({ name: 'f1', type: 'f' })
+    expect(obj(dir.readSync())).to.be.eql({ name: 'd11', type: T_DIR })
+    expect(obj(dir.readSync())).to.be.eql({ name: 'f1', type: T_FILE })
+    expect(obj(dir.readSync())).to.be.eql({ name: 'l1', type: T_SYMLINK })
     expect(obj(dir.readSync())).to.be.equal(null)
   })
 
   it('should fail with bad path', () => {
     expect(() => stub.opendirSync()).to.throw()
-    expect(() => stub.opendirSync('d1/d2')).to.throw("opendir 'd1'")
-    expect(() => stub.opendirSync('/d1/d11/q')).to.throw("opendir '/d1/d11/q'")
-    expect(() => stub.opendirSync('/d1/d11/b1')).to.throw("opendir '/d1/d11/b1'")
+    expect(() => stub.opendirSync('d1/d2')).to.throw(E, "opendir 'd1'")
+    expect(() => stub.opendirSync('/d1/d11/q')).to.throw(E, "opendir '/d1/d11/q'")
+    expect(() => stub.opendirSync('/d1/d11/b1')).to.throw(E, "opendir '/d1/d11/b1'")
   })
 })
 
-describe('stubs/fs/openDir promise', () => {
+describe('mockFs/openDir promise', () => {
   let dir
 
   it('should fail w bad dir', async () => {
@@ -73,13 +78,9 @@ describe('stubs/fs/openDir promise', () => {
 
   it('should iterate', async () => {
     let i = 0
-
-    /* while ((entry = await dir.read()) !== null) {
-      i += 1
-    } */
     /* eslint-disable-next-line */
     for await (const entry of dir) i += 1
-    expect(i).to.equal(2)
+    expect(i).to.equal(3)
     expect(await dir.close()).to.be.equal(undefined)
   })
 
@@ -89,7 +90,7 @@ describe('stubs/fs/openDir promise', () => {
     dir = await stub.promises.opendir('/d1')
 
     while ((entry = await dir.read()) !== null) i += 1
-    expect(i).to.equal(2)
+    expect(i).to.equal(3)
     expect(await dir.close()).to.be.equal(undefined)
   })
 

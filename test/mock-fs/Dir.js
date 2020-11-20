@@ -4,7 +4,7 @@
  */
 'use strict'
 
-const checkType = require('../checkType')
+const checkType = require('./checkType')
 
 const errClosed = () => {
   const error = new Error('Directory handle was closed')
