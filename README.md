@@ -23,7 +23,7 @@ yarn add dwalker   ## npm i -S dwalker
 ```
 The following code walks all given directory trees in parallel, gathering basic statistics:
 ```javascript
-const walker = new (require('duke')).Walker()
+const walker = new (require('dwalker')).Walker()
 const dirs = '/dev ..'.split(' ')
 
 Promise.all(dirs.map(dir => walker.walk(dir))).then(res => {
@@ -111,8 +111,8 @@ name, if _`type`_ is not given or matches the _rule type_.<br >
 Returns the highest action value from all matching rules or DO_NOTHING.
 
 **`clone`**`([ancestors]) : Ruler` - method<br />
-Create an identical copy of the ruler instance, 
-except that its _`ancestors`_ property may have a value from the supplied argument.
+Create an identical copy of the ruler instance, with _`ancestors`_ property
+set to supplied argument - see the [source code](src/Ruler/index.js) for details.
 
 **`dump`**`([options]) : string` - method<br />
 Used for debugging. Returns `undefined` in production environment.
@@ -234,7 +234,7 @@ returns a new directory entry based on
 ### Special helpers
 To use those helpers, load them first, like:
 ```javascript
-const symlinksFinal = require('duke/symlinksFinal')
+const symlinksFinal = require('dwalker/symlinksFinal')
 ```
 **`relativize`**`(path, [rootPath, [prefix]]) : string` function.<br />
 Strips the _`rootPath`_ (defaulting to _`homeDir`_)part from given `path`, if it is there.
@@ -254,6 +254,8 @@ const onFinal = function (entries, context) {
 ```
 
 ## Version history
+* v5.1.0 @20201121
+   - removed: hadAction(), hasAction() Ruler instance methods.
 * v5.0.0 @20201120
    - Walker totally re-designed (_a **breaking** change_);
    - Ruler#check() refactored (_a non-breaking change_);

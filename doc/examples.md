@@ -24,6 +24,8 @@ This code demonstrates dynamic strategy, rules swithcing and other techniques.
 
 ### parse.js
 [This demo](../examples/parse.js) interprets command line arguments as rule definitions,
-constructs a `Ruler` instance and dumps it's contents.
+constructs a `Ruler` instance and simulates directory path walking.
+
+![](../assets/parse.png)
 
 This tool helps developer to experiment with rule stuff and understand the details.

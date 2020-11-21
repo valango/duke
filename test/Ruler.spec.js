@@ -3,10 +3,10 @@ const ME = 'Ruler'
 
 const { AssertionError } = require('assert')
 const { expect } = require('chai')
+const { GLOB_DIRS } = require('../src/Ruler/parsePath')
 const { Ruler, DO_NOTHING, DO_SKIP, DO_ABORT, T_DIR, T_FILE } = require('..')
 Ruler.prototype.dump = require('../dumpRuler')
 const NIL = -1
-const optionalDirsRule = null
 
 const T1 = [
   DO_SKIP, '/skp-dir', 'skip*', '!skipnever*',
@@ -36,10 +36,10 @@ describe(ME, () => {
     expect(t._ancestors).to.eql([[DO_NOTHING, NIL]], '_ancestors')
     t = new Ruler({ optimize: false }, 2, '/a*')
     expect(t._tree).to
-      .eql([[T_DIR, optionalDirsRule, NIL, DO_NOTHING], [0, /^a.*$/, NIL, 2]],
+      .eql([[T_DIR, GLOB_DIRS, NIL, DO_NOTHING], [0, /^a.*$/, NIL, 2]],
         'mod._tree')
     t = new Ruler()
-    expect(t._tree).to.eql([[T_DIR, optionalDirsRule, NIL, DO_NOTHING]])
+    expect(t._tree).to.eql([[T_DIR, GLOB_DIRS, NIL, DO_NOTHING]])
   })
 
   it('should throw on bad rule', () => {
@@ -48,8 +48,6 @@ describe(ME, () => {
   })
 
   it('should check', () => {
-    expect(t.hadAction(DO_NOTHING)).to.equal(true)
-    expect(t.hasAction(DO_NOTHING)).to.equal(false)
     check('doc', T_FILE, 4)
     check('nomatch', T_FILE, DO_NOTHING)
     check('skipa', T_FILE, DO_SKIP)
@@ -61,8 +59,6 @@ describe(ME, () => {
     check('abort', T_FILE, DO_ABORT)
     check('doc', T_FILE, 1)
     check('skip.js', T_FILE, DO_SKIP)
-    expect(t.hasAction(2)).to.equal(true)
-    expect(t.hasAction(3)).to.equal(true)
     check('skipnever.js', T_FILE, 3)
     // t = new Ruler()
     check('skipa', T_FILE, DO_SKIP)

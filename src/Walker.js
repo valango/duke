@@ -11,9 +11,9 @@ const { resolve, sep } = require('path')
 const omit = require('lodash.omit')
 
 const { DO_ABORT, DO_NOTHING, DO_RETRY, DO_SKIP, DO_HALT, T_DIR, T_SYMLINK } =
-        require('../constants')
-const Ruler = require('../Ruler')
-const { fromDirEntry } = require('../util/dirEntry')
+        require('./constants')
+const Ruler = require('./Ruler')
+const { fromDirEntry } = require('./util/dirEntry')
 
 const { isNaN } = Number
 const { max } = Math
