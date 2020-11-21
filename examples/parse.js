@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 'use strict'
-const { Ruler } = require('..')
-const run = require('./util/run-ruler')
+const { Ruler } = require('../src')
+const run = require('./util/walk-ruler')
 
-const MSG = 'Ruler.dump() does not work in production mode'
+Ruler.prototype.dump = require('../dumpRuler')
 
 const HELP = `Construct and dump a rule tree as defined by command line.
    Argument containing non-screened commas, will be turned into array.
@@ -23,7 +23,7 @@ const convert = (str) => {
 
 const dump = (ruler, action, name) => {
   print("'%s' -> %s", name, action)
-  print(ruler.dump() || MSG)
+  print(ruler.dump())
 }
 
 const { parseCl, print } = require('./util')
@@ -38,7 +38,7 @@ const i = defs.indexOf(0)
 let r
 
 if (i < 0) {
-  print('Ruler:\n%s', new Ruler(defs).dump() || MSG)
+  print('Ruler:\n%s', new Ruler(defs).dump())
 } else {
   r = run(new Ruler(defs.slice(0, i)), defs[i + 1], options.verbose && dump)
   dump(r, run.action, defs[i + 1])

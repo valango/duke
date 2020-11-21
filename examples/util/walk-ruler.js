@@ -1,12 +1,8 @@
-/**
- * @module run-ruler
- * @version 1.0.0
- */
 'use strict'
 const { T_DIR, T_FILE } = require('../..')
 
 /**
- * Simulate how Ruler is used by Walker.
+ * Simulates how Ruler is used by Walker.
  *
  * @param {Ruler} ruler
  * @param {string} path - slash-delimited
@@ -22,7 +18,7 @@ const run = (ruler, path, cb = undefined) => {
       if (i < last) {
         action = r.check(part, T_DIR)
         if (cb) cb(r, action, part)
-        r = r.clone(true)
+        r = r.clone(r.lastMatch)
         continue
       }
       action = r.check(part, T_FILE)

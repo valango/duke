@@ -23,7 +23,7 @@ yarn add dwalker   ## npm i -S dwalker
 ```
 The following code walks all given directory trees in parallel, gathering basic statistics:
 ```javascript
-const walker = new (require('duke')).Walker()
+const walker = new (require('dwalker')).Walker()
 const dirs = '/dev ..'.split(' ')
 
 Promise.all(dirs.map(dir => walker.walk(dir))).then(res => {
@@ -234,7 +234,7 @@ returns a new directory entry based on
 ### Special helpers
 To use those helpers, load them first, like:
 ```javascript
-const symlinksFinal = require('duke/symlinksFinal')
+const symlinksFinal = require('dwalker/symlinksFinal')
 ```
 **`relativize`**`(path, [rootPath, [prefix]]) : string` function.<br />
 Strips the _`rootPath`_ (defaulting to _`homeDir`_)part from given `path`, if it is there.
