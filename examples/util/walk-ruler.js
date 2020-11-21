@@ -1,31 +1,27 @@
 'use strict'
-const { T_DIR, T_FILE } = require('../..')
+const { T_DIR } = require('../..')
 
 /**
  * Simulates how Ruler is used by Walker.
  *
- * @param {Ruler} ruler
+ * @param {Ruler} rootRuler
  * @param {string} path - slash-delimited
- * @param cb
+ * @param {function(Ruler, number, string)} callback
  * @returns {Ruler}
  */
-const run = (ruler, path, cb = undefined) => {
+const run = (rootRuler, path, callback = undefined) => {
   const parts = path.split('/'), last = parts.length - 1
-  let r = ruler, action = 0
+  let ruler = rootRuler, action = 0
 
   for (let i = 0, part; i <= last; i += 1) {
     if ((part = parts[i])) {
-      if (i < last) {
-        action = r.check(part, T_DIR)
-        if (cb) cb(r, action, part)
-        r = r.clone(r.lastMatch)
-        continue
-      }
-      action = r.check(part, T_FILE)
+      action = ruler.check(part, i < last ? T_DIR : 0)
+      if (callback) callback(ruler, action, part)
+      ruler = ruler.clone(ruler.lastMatch)
     }
   }
   run.action = action
-  return r
+  return ruler
 }
 
 module.exports = run

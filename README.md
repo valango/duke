@@ -254,7 +254,7 @@ const onFinal = function (entries, context) {
 ```
 
 ## Version history
-* v5.1.0
+* v5.1.0 @20201121
    - removed: hadAction(), hasAction() Ruler instance methods.
 * v5.0.0 @20201120
    - Walker totally re-designed (_a **breaking** change_);
