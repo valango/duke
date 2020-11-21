@@ -4,7 +4,7 @@
     "email": "villem.alango@gmail.com"
   },
   "name": "dwalker",
-  "version": "5.1.0",
+  "version": "5.1.1",
   "description": "Asynchronous rule-based file system walker.",
   "repository": {
     "type": "git",
@@ -16,7 +16,7 @@
     "doc/*.md",
     "dumpRuler.js",
     "relativize.js",
-    "src/*.js",
+    "src",
     "symlinksFinal.js"
   ],
   "main": "src/index.js",
