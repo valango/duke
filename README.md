@@ -111,8 +111,8 @@ name, if _`type`_ is not given or matches the _rule type_.<br >
 Returns the highest action value from all matching rules or DO_NOTHING.
 
 **`clone`**`([ancestors]) : Ruler` - method<br />
-Create an identical copy of the ruler instance, 
-except that its _`ancestors`_ property may have a value from the supplied argument.
+Create an identical copy of the ruler instance, with _`ancestors`_ property
+set to supplied argument - see the [source code](src/Ruler/index.js) for details.
 
 **`dump`**`([options]) : string` - method<br />
 Used for debugging. Returns `undefined` in production environment.
@@ -254,6 +254,8 @@ const onFinal = function (entries, context) {
 ```
 
 ## Version history
+* v5.1.0
+   - removed: hadAction(), hasAction() Ruler instance methods.
 * v5.0.0 @20201120
    - Walker totally re-designed (_a **breaking** change_);
    - Ruler#check() refactored (_a non-breaking change_);

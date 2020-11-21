@@ -4,8 +4,8 @@ const assert = require('assert-fine')
 const { DO_NOTHING, T_DIR } = require('../constants')
 const parsePath = require('./parsePath')
 
-const NIL = -1      //  No parent.
-const optionalDirsRule = null
+const { GLOB_DIRS } = parsePath
+const NIL = -1                  //  No parent node in the rule tree.
 //  Tree node internal indexes.
 // const TYPE = 0
 const RULE = 1
@@ -14,20 +14,10 @@ const ACTION = 3
 
 const { max } = Math
 
-const rule_ = (r) => r ? new RegExp(r) : optionalDirsRule
+const rule_ = (r) => r ? new RegExp(r) : GLOB_DIRS
 
 const typeMatch_ = (itemType, nodeType) => {
   return !nodeType || (nodeType === itemType)
-}
-
-/**
- * @param {number[][]} tuples
- * @param {number} action
- * @returns {boolean} true if there was a tuple with the `action`.
- * @private
- */
-const hasAction_ = (tuples, action) => {
-  return !!(tuples && tuples.find(([a]) => a === action))
 }
 
 /**
@@ -59,21 +49,21 @@ class Ruler {
      * @type {any[][]}
      * @private
      */
-    this._tree = [[T_DIR, optionalDirsRule, NIL, DO_NOTHING]]
+    this._tree = [[T_DIR, GLOB_DIRS, NIL, DO_NOTHING]]
 
     /**
-     * Pairs of (action, ruleIndex), set by clone(), used by check() and hadAction() method.
+     * Pairs of (action, ruleIndex), set by clone(), used by check().
      * @type {number[][]}
      * @private
      */
     this._ancestors = [[DO_NOTHING, NIL]]
 
     /**
-     * Array of (action, ruleIndex) set by check(), used by clone() and hasAction() method.
-     * @type {number[][] | undefined}
+     * Array of (action, ruleIndex) set by check(), exposed via `lastMatch` property.
+     * @type {number[][]}
      * @private
      */
-    this._lastMatch = undefined
+    this._lastMatch = []
 
     /**
      * Action to be bound to next rule - used and possibly mutated by add().
@@ -141,7 +131,7 @@ class Ruler {
       const nodeIndex = _tree.findIndex(
         ([typ, rul, par, act]) => {
           const y0 = par === parentIndex && typeMatch_(t, typ)
-          const y1 = (rul === optionalDirsRule ? rul : rul.source) === rule
+          const y1 = (rul === GLOB_DIRS ? rul : rul.source) === rule
           const y2 = ruleIndex < last || (act === action) || act === DO_NOTHING
           return y0 && y1 && y2
         })
@@ -196,12 +186,12 @@ class Ruler {
           const [type, rule, par, act] = _tree[i]
 
           if (par !== anc) continue
-          if (rule === optionalDirsRule ||
+          if (rule === GLOB_DIRS ||
             (typeMatch_(entryType, type) && rule.test(entryName))) {
             if (matches.find(([, idx]) => idx === i)) continue
             matches.push([act, i])
             if (act < 0) masked.push(-act)
-            if (rule === optionalDirsRule && ancestors.indexOf(i) < 0) {
+            if (rule === GLOB_DIRS && ancestors.indexOf(i) < 0) {
               news.push(i)
             }
           }
@@ -210,7 +200,7 @@ class Ruler {
     }
 
     if (entryType !== T_DIR) {
-      matches = matches.filter(([, i]) => _tree[i][RULE] !== optionalDirsRule)
+      matches = matches.filter(([, i]) => _tree[i][RULE] !== GLOB_DIRS)
     }
     if (masked.length !== 0) {
       for (let i = matches.length; --i > 0;) {
@@ -226,9 +216,9 @@ class Ruler {
 
   /**
    * Create copy of the instance.
-   * @param {*=} ancestors array or:
-   *   - `true` means use `_lastMatch` instance property w fallback to `_ancestors`
-   *   - falsy value means use `_ancestors` property.
+   * @param {*=} ancestors array for the new instance or:
+   *   - `true` to use `_lastMatch` instance property;
+   *   - falsy  to use own `_ancestors` property.
    * @returns {Ruler}
    */
   clone (ancestors = false) {
@@ -239,7 +229,7 @@ class Ruler {
       a = (a && this._lastMatch) || this._ancestors
     }
     c._ancestors = a.slice()
-    c._nextRuleAction = this._nextRuleAction
+    c._nextRuleAction = DO_NOTHING  //  Do not forward the parsing status.
     c._tree = this._tree.slice()
 
     return c
@@ -255,23 +245,9 @@ class Ruler {
   }
 
   /**
-   * Check if any of ancestors contains given action.
-   * @param {number} action
-   * @returns {boolean}
+   * Get the detailed results of a recent `check()` call.
+   * @returns {undefined|number[][]}
    */
-  hadAction (action) {
-    return hasAction_(this._ancestors, action)
-  }
-
-  /**
-   * Check if results from recent match contain given action.
-   * @param {number} action
-   * @returns {boolean}
-   */
-  hasAction (action) {
-    return hasAction_(this._lastMatch, action)
-  }
-
   get lastMatch () {
     return this._lastMatch && this._lastMatch.slice()
   }

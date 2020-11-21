@@ -8,7 +8,7 @@ const anyChar = '.'
 const anyType = 0
 const doubleStar = '**'
 const optionalChars = '.*'
-const optionalDirs = null   //  Rule for `doubleStar`.
+const GLOB_DIRS = null      //  Rule for `doubleStar`.
 
 const { isNaN } = Number
 
@@ -20,7 +20,7 @@ const { isNaN } = Number
  * @param {Object<{extended, optimize}>} options
  * @returns {Array} the first entry is flags object
  */
-module.exports = (path, options = undefined) => {
+exports = module.exports = (path, options = undefined) => {
   const check = (cond) => assert(cond, `invalid rule '${path}'`)
   const opts = { extended: true, optimize: true, ...options }, rules = []
 
@@ -70,10 +70,10 @@ module.exports = (path, options = undefined) => {
     check(rule)
 
     if (rule === doubleStar) {
-      rule = optionalDirs       //  Avoid multiple optionalDirs.
-      if ((length = rules.length) > 0 && rules[length - 1] === optionalDirs) rules.pop()
+      rule = GLOB_DIRS       //  Avoid multiple GLOB_DIRS.
+      if ((length = rules.length) > 0 && rules[length - 1] === GLOB_DIRS) rules.pop()
     }
-    if (rule !== optionalDirs) {
+    if (rule !== GLOB_DIRS) {
       rule = rule.replace(/\*+/g, optionalChars).replace(/\?/g, anyChar)
 
       if (!opts.optimize) {
@@ -98,3 +98,5 @@ module.exports = (path, options = undefined) => {
   rules.unshift({ type: type || givenType, isExclusion })
   return rules
 }
+
+exports.GLOB_DIRS = GLOB_DIRS
