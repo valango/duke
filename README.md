@@ -8,7 +8,7 @@ Asynchronous rule-based file system walker. It:
    * handles most file system errors by default;
    * provides powerful extendable API;
    * runs real fast.
-   
+
 This is what a simple [demo app](doc/examples.md) does on my old 2,7 GHz MacBook Pro:
 ![](assets/counts.png)
 
@@ -100,6 +100,7 @@ anywhere under the topmost 'test' directory. The rules 3, 4 will be matched
 against any entries except of T_DIR type.
 The last rule (with **_explicit type_**) matches against T_SYMLINK entries only.
 <br />Without _explicit type_, all rules created are typeless or `T_DIR` ('d').
+Explicit type must match one in `S_TYPES` constant.
 
 **`ancestors`**` : number[][]` - private property<br />
 Determines which nodes of rule tree to use. Can be set via _`clone()`_ argument only. 
@@ -139,7 +140,7 @@ _Walker_ instance stores given (even unrecognized) options in private _`_options
 Injects the _paths_ into _`visited`_ collection thus preventing them from being visited.
 The arguments must be strings or arrays of strings - absolute or relative paths.
 
-**`halt`**`(context=, details=) : Walker` - method<br />
+**`halt`**`([context,] [details]) : Walker` - method<br />
 Sets up the **_STC_** _(Shared Terminal Condition)_; has no effect if it is already set.
 
 **`onDir`**`(context: TWalkContext) : *` - _async_ handler method<br />
@@ -164,7 +165,7 @@ Called after all entries checked and directory closed.
 The _`action`_ is the highest action code returned by previous handlers in this cycle.
 Default just returns `DO_NOTHING`.
 
-**`reset`**`(hard : boolean=) : Walker` - method<br />
+**`reset`**`([hard : boolean]) : Walker` - method<br />
 Resets possible SHC. In hard case, it resets all internal state properties.
 Calling this method during walk throws an unrecoverable error.
 
@@ -176,7 +177,7 @@ Override this for progress monitoring etc.
 Called right after every handler call. Use this for debugging / tracing only.
 Default does nothing.
 
-**`walk`**`(startPath : string=, options : TWalkOptions=) : Promise` - method<br />
+**`walk`**`(startPath : string, [options : TWalkOptions]) : Promise` - method<br />
 Walks the walk. The _`startPath`_ may be any valid pathname defaulting to _`process.cwd()`_.
 Via _`options`_ you can override  _`trace()`_ method, any _handler methods_, as well as 
 _`data`_ and _`ruler`_ instance properties. 
@@ -220,10 +221,10 @@ Those helpers are available via package exports and may be useful on writing han
 **`checkDirEntryType`**`(type : TEntryType) : TEntryType` - function<br />
 returns the argument if it is a valid type code; throws an assertion error otherwise. 
 
-**`dirEntryTypeToLabel`**`(type : TEntryType, inPlural : boolean=) : string` - function<br />
+**`dirEntryTypeToLabel`**`(type : TEntryType, [inPlural : boolean]) : string` - function<br />
 returns human readable type name for valid type; throws an assertion error otherwise. 
 
-**`makeDirEntry`**`(name : string , type : TEntryType, action : number=) : TDirEntry` - function<br />
+**`makeDirEntry`**`(name : string , type : TEntryType, [action : number]) : TDirEntry` - function<br />
 constructs and returns a ned directory entry with _`action`_ defaulting to `DO_NOTHING`.
 
 **`makeDirEntry`**`(nativeEntry : fs.Dirent) : TDirEntry` - function<br />
@@ -235,7 +236,7 @@ To use those helpers, load them first, like:
 ```javascript
 const symlinksFinal = require('duke/symlinksFinal')
 ```
-**`relativize`**`(path, [rootPath], [prefix]) : string` function.<br />
+**`relativize`**`(path, [rootPath, [prefix]]) : string` function.<br />
 Strips the _`rootPath`_ (defaulting to _`homeDir`_)part from given `path`, if it is there.
 Optional _`prefix`_ string will be applied to resulting relative path.
 May help to make some reports easier to read.
