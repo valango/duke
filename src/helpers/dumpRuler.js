@@ -1,5 +1,6 @@
 'use strict'
 const { format, formatWithOptions } = require('util')
+const { S_TYPES } = require('../constants')
 
 /**
  * Create diagnostic dump.
@@ -8,21 +9,14 @@ const { format, formatWithOptions } = require('util')
  * @returns {string}
  */
 module.exports = function dump (options = true) {
-  let w = 0
-  let mask = Object.keys(this).concat('sincereId', 'tree')
-    .filter((k) => k[0] !== '_' && ((k.length > w && (w = k.length)) || k))
+  let mask = '_ancestors tree'.split(' ')
+    .concat(Object.keys(this).filter(k => k[0] !== '_'))
+
+  const w = Math.max.apply(null, mask.map(m => m.length))
 
   let opts = options, indexes = []
   const tree = this._tree.slice()
   const rw = tree.map(([, r]) => format('%O', r).length)
-  const rm = Math.max.apply(0, rw)
-
-  const dumpNode = (i) => {
-    const [t, r, p, a] = tree[i]
-    return formatWithOptions(opts, '%s: %O %O,%s%O, %O',
-      (i + '').padStart(w), t.padStart(2),
-      r, ''.padStart(rm - rw[i] + 4 - (p + '').length), p, a)
-  }
 
   if (opts) {
     if (typeof opts === 'string') {
@@ -48,6 +42,14 @@ module.exports = function dump (options = true) {
     mask.splice(i, 1)
   })
 
+  const rm = Math.max.apply(0, rw)
+
+  const dumpNode = (i) => {
+    const [t, r, p, a] = tree[i]
+    return formatWithOptions(opts, '%s: %O %O,%s%O, %O',
+      (i + '').padStart(w), S_TYPES[t],
+      r, ''.padStart(rm - rw[i] + 4 - (p + '').length), p, a)
+  }
   const res = indexes.map((i) => dumpNode(i))
 
   mask.sort().forEach((key) => {

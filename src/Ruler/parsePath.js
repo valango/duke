@@ -1,41 +1,51 @@
 'use strict'
 
-/**
- * A special rule matching any or missing sequence of subdirectories.
- * @const {null} OPTIONAL_DIRS
- * @default
- */
-const OPTIONAL_DIRS = null
+const assert = require('assert-fine')
+const brexIt = require('brace-expansion')
+const { S_TYPES, T_DIR, T_FIFO, T_FILE } = require('../constants')
 
 const anyChar = '.'
-const optionalChars = '.*'
+const anyType = 0
 const doubleStar = '**'
+const optionalChars = '.*'
+const optionalDirs = null   //  Rule for `doubleStar`.
 
-const assert = require('assert').strict
-const brexIt = require('brace-expansion')
-const { T_ANY, T_DIR } = require('./constants')
+const { isNaN } = Number
 
 /**
  * Convert `path` parts separated by '/' to array of RegExp instances.
- * Used internally by Ruler.
+ * Used internally by `Ruler`.
  *
  * @param {string} path with optional type specifier separated by ';'.
  * @param {Object<{extended, optimize}>} options
  * @returns {Array} the first entry is flags object
  */
 module.exports = (path, options = undefined) => {
-  const check = (cond) => assert(cond, `invalid pattern '${path}'`)
+  const check = (cond) => assert(cond, `invalid rule '${path}'`)
   const opts = { extended: true, optimize: true, ...options }, rules = []
 
   let pattern = path.replace(/\\\s/g, '\\s').trimEnd()  //  Normalize spaces.
-  let isExclusion = false, type = T_ANY
-  let declaredT = /^([^;]+);(.*)$/.exec(pattern)   //  null if not declared.
+  let isExclusion = false, type = anyType
+  let givenType = /^([^;]+);(.?)$/.exec(pattern) || anyType
 
-  if (declaredT) (pattern = declaredT[1]) && (declaredT = declaredT[2])
+  if (givenType) {
+    pattern = givenType[1]
+    const s = givenType[2]
+    let v = s * 1
 
-  if (pattern[0] === '^') {                 //  Exclusion character starting a line.
+    if (s) {
+      if (isNaN(v)) v = S_TYPES.indexOf(s)
+      assert(v >= T_FILE && v <= T_FIFO && (v % 1) === 0,
+        () => `bad type description in '${path}`)
+      givenType = v
+    } else {
+      givenType = anyType
+    }
+  }
+
+  if (pattern[0] === '!') {                     //  Exclusion character starting a line.
     (isExclusion = true) && (pattern = pattern.substring(1))
-  } else if (pattern.indexOf('\\!') === 0) {  //  Screened exclusion.
+  } else if (pattern.indexOf('\\!') === 0) {    //  Screened exclusion.
     pattern = pattern.substring(1)
   }
   if (opts.extended) {
@@ -43,8 +53,9 @@ module.exports = (path, options = undefined) => {
     pattern = pattern.replace(/(?<!\\){[^}]+(?<!\\)}/g,
       (p) => '(' + brexIt(p).join('|') + ')')
   }
-  pattern = pattern.replace(/\./g, '\\.')   //  Screen dot characters.
-  const parts = pattern.split(/(?<!\\)\//)  //  Matches '/' only if not escaped.
+  pattern = pattern.replace(/\./g, '\\.')       //  Screen dot characters.
+  const parts = pattern.split(/(?<!\\)\//)      //  Matches '/' only if not escaped.
+
   if (parts[0] !== doubleStar) {
     parts[0] ? parts.unshift(doubleStar) : parts.shift()
   }
@@ -54,19 +65,15 @@ module.exports = (path, options = undefined) => {
   check(last >= 0)
 
   for (let i = 0; i <= last; ++i) {
-    let rule = parts[i]
+    let rule = parts[i], length
 
     check(rule)
 
     if (rule === doubleStar) {
-      if (rules.length) {
-        if ((rule = rules.pop()) !== OPTIONAL_DIRS) {
-          rules.push(rule)
-        }
-      }
-      rule = OPTIONAL_DIRS
+      rule = optionalDirs       //  Avoid multiple optionalDirs.
+      if ((length = rules.length) > 0 && rules[length - 1] === optionalDirs) rules.pop()
     }
-    if (rule !== OPTIONAL_DIRS) {
+    if (rule !== optionalDirs) {
       rule = rule.replace(/\*+/g, optionalChars).replace(/\?/g, anyChar)
 
       if (!opts.optimize) {
@@ -85,9 +92,9 @@ module.exports = (path, options = undefined) => {
   const any = opts.optimize ? anyChar : '^.*$', l = rules.length - 1
   //  a/**$ --> a/$
   if (rules[l] === null) (type = T_DIR) && rules.pop()
+  assert(givenType === anyType || type === anyType || type === givenType,
+    () => `rule type conflict '${path}'`)
   check(!(rules.length === 1 && (rules[0] === anyChar || rules[0] === any)))
-  rules.unshift({ type: declaredT === null ? type : declaredT, isExclusion })
+  rules.unshift({ type: type || givenType, isExclusion })
   return rules
 }
-
-module.exports.OPTIONAL_DIRS = OPTIONAL_DIRS

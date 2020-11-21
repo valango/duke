@@ -2,45 +2,24 @@
 const ME = 'helpers'
 
 const { expect } = require('chai')
-const { name } = require('../package.json')
-const $ = require('..')
+const { dirEntryTypeToLabel, T_FILE, T_DIR } = require('..')
+const relativize = require('../relativize')
 
 describe(ME, () => {
-  describe('loadFile', () => {
-    it('should load normally', () => {
-      const d = $.loadFile('package.json')
-      expect(d).to.be.instanceOf(Buffer)
-      expect(JSON.parse(d.toString()).name).to.equal(name)
-    })
-
-    it('should fail gracefully', () => {
-      expect($.loadFile('nope.js')).to.equal(undefined)
-    })
-
-    it('should throw on non-ENOENT', () => {
-      expect(() => $.loadFile('package.json/nope')).to.throw(Error, 'ENOTDIR')
-    })
-
-    it('should behave mildly', () => {
-      expect($.loadFile('package.json', true)).to.be.instanceOf(Buffer)
-      expect($.loadFile('nope.js', true)).to.equal(undefined)
-      expect($.loadFile('package.json/nope', true)).to.be.instanceOf(Error)
-    })
+  it('relativize', () => {
+    expect(relativize(__filename, process.cwd(), '.')).to.eql('./test/helpers.spec.js')
+    expect(relativize(__filename, process.cwd())).to.eql('test/helpers.spec.js')
+    expect(relativize(__filename, '~')).to.match(/^~.+\.js$/)
+    expect(relativize(__filename)).to.match(/^\w.+\.js$/)
+    expect(relativize('x')).to.eql('x')
+    expect(() => relativize(__filename, 'a', 'b')).to.throw('relativize() arguments conflict')
   })
 
-  it('should relativize', () => {
-    expect($.relativize(__filename, process.cwd(), '.')).to.eql(
-      './test/helpers.spec.js')
-    expect($.relativize(__filename, process.cwd())).to.eql(
-      'test/helpers.spec.js')
-    expect($.relativize(__filename, '~')).to.match(/^~.+\.js$/)
-    expect($.relativize(__filename)).to.match(/^\w.+\.js$/)
-    expect($.relativize('x')).to.eql('x')
-    expect(() => $.relativize(__filename, 'a', 'b')).to.throw('relativize() arguments conflict')
-  })
-
-  it('typeName', () => {
-    expect($.typeName($.T_FILE)).to.equal('file')
-    expect($.typeName('')).to.equal(undefined)
+  it('dirEntryTypeToLabel', () => {
+    expect(() => dirEntryTypeToLabel({})).to.throw(Error, 'entry type', 'non-num')
+    expect(() => dirEntryTypeToLabel(1.02)).to.throw(Error, 'entry type', 'non-int')
+    expect(dirEntryTypeToLabel(T_FILE)).to.equal('file')
+    expect(dirEntryTypeToLabel(T_FILE, true)).to.equal('files')
+    expect(dirEntryTypeToLabel(T_DIR, true)).to.equal('directories')
   })
 })

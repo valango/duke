@@ -4,25 +4,27 @@
     "email": "villem.alango@gmail.com"
   },
   "name": "dwalker",
-  "version": "4.1.1",
-  "description": "A rules-based file directory walker",
+  "version": "5.0.0",
+  "description": "Asynchronous rule-based file system walker.",
   "repository": {
     "type": "git",
     "url": "git://github.com/valango/duke.git"
   },
+  "files": [
+    "README.md",
+    "LICENSE",
+    "doc/*.md",
+    "relativize.js",
+    "src/*.js",
+    "symlinksFinal.js"
+  ],
   "main": "src/index.js",
   "scripts": {
     "clean": "rimraf .nyc_output out reports t*mp *.log *.t*mp *.lcov",
     "coverage": "nyc report --reporter=text-lcov > coverage.lcov && codecov",
-    "doc": "npm run doc1 && npm run doc2 && npm run doc3 && npm run doc4",
-    "doc1": "jsdoc2md -c jsdoc.json src/index.js > doc/api.md && jsdoc2md -c jsdoc.json src/constants.js > doc/constants.md",
-    "doc2": "jsdoc2md -c jsdoc.json src/R*.js > doc/Ruler.md && jsdoc2md -c jsdoc.json src/W*.js > doc/Walker.md",
-    "doc3": "jsdoc2md  -c jsdoc.json src/l*.js >> doc/utils.md",
-    "doc4": "jsdoc2md -c jsdoc.json src/r*.js >> doc/utils.md && jsdoc2md -c jsdoc.json src/t*.js >> doc/utils.md",
     "lint": "eslint --ext .js .",
     "purge": "npm run clean && rimraf node_modules",
-    "t": "nyc mocha 'test/**/Walker.spec.js'",
-    "test": "eslint --ext .js . && nyc mocha 'test/**/*.spec.js'"
+    "test": "npm run lint && nyc mocha 'test/**/*.spec.js'"
   },
   "license": "ISC",
   "bugs": {
@@ -35,45 +37,46 @@
     "yarn": ">= 1.6.0"
   },
   "keywords": [
+    "async",
+    "asynchronous",
     "class-based",
     "glob",
     "directory",
     "filesystem",
     "fs",
     "rule-based",
-    "traversal",
+    "traverse",
     "walking",
     "non-recursive"
   ],
   "dependencies": {
+    "assert-fine": "^1.0.3",
     "brace-expansion": "^1.1.11",
-    "sincere": "^2.1.1"
+    "lodash.omit": "^4.5.0"
   },
   "devDependencies": {
     "chai": "^4.2.0",
     "chalk": "^3.0.0",
-    "codecov": "^3.6.5",
+    "codecov": "^3.8.1",
     "eslint": "^6.8.0",
     "eslint-config-standard": "^14.1.0",
     "eslint-plugin-import": "^2.19.1",
     "eslint-plugin-node": "^11.0.0",
     "eslint-plugin-promise": "^4.2.1",
     "eslint-plugin-standard": "^4.0.1",
-    "jsdoc-to-markdown": "^5.0.3",
-    "lodash": "^4.17.20",
     "mocha": "^7.1.1",
-    "nyc": "^15.0.0",
-    "rimraf": "^3.0.0",
-    "timewaste": "^0.4.2"
+    "nyc": "^15.1.0",
+    "rimraf": "^3.0.0"
   },
   "nyc": {
     "all": true,
     "check-coverage": true,
     "exclude": [
-      "src/index.js"
+      "src/typedefs.js"
     ],
     "include": [
-      "src/**/*.js"
+      "src/**/*.js",
+      "test/mock-fs/**/*.js"
     ],
     "reporter": [
       "lcov",

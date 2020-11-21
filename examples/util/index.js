@@ -2,8 +2,9 @@
 
 module.exports = {
   dump: require('./dump'),
+  dumpFailures: require('./dumpFailures'),
   expand: require('./expand'),
-  measure: require('./measure'),
+  leaksTrap: require('./leaksTrap'),
   parseCl: require('./parse-cl'),
   print: require('./print')
 }

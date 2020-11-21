@@ -1,136 +1,128 @@
+//  Todo: use stubs instead of actual fs to test for retry conditions.
 'use strict'
 const ME = 'Walker'
 
 const { expect } = require('chai')
-const { DO_ABORT, DO_SKIP, loadFile, Ruler, Walker } = require('../src')
+const { DO_ABORT, DO_SKIP, Walker } = require('..')
 const FILES = 1
 const DIRS = 2
 const ROOT = 'test/directory'
-const defaultRules = [
-  DO_SKIP, 'node_modules', '.*'
-]
+// const defaultRules = [DO_SKIP, 'node_modules', '.*']
 
 const projectRules = [
   DO_ABORT, '*.html',
-  DO_SKIP, '/node_modules/', '.*',
+  DO_SKIP, '/node_modules/', '.*', '/to-be-skipped',
   FILES, 'item*.txt',
-  DIRS, '/src'
+  DIRS, '*/', '!*skipped/'
 ]
 
 let w, actionCounts
 
-const options = {
-  trace: (what, ctx, act) => console.log(what + `\t'${ctx.dir}' '${ctx.name}' ${act}`),
-
-  detect: function (context) {
-    const { absDir } = context
-    let v = loadFile(absDir + 'package.json')
-    console.log(`detect(${absDir}) --> ${!!v}`)
-
-    if (v) {
-      v = JSON.parse(v.toString())
-      context.ruler = this.projectRuler
-      context.current = { absDir, name: v.name || '?' }
-      this.trees.push(context.current)
-    }
-  },
-  onBegin: function (ctx) {
-    return /skipped$/.test(ctx.dir) ? DO_SKIP : this.onBegin(ctx)
-  },
-  onEnd: function (ctx) {
-    return /skipped$/.test(ctx.dir) ? DO_ABORT : this.onEnd(ctx)
-  }
+const onEntry = function (entry, ctx) {
+  const action = this.onEntry(entry, ctx)
+  actionCounts[action] = (actionCounts[action] || 0) + 1
+  // console.log(ctx.absPath, entry.name, action /* , actionCounts */)
+  return action
 }
 
-//  Plugin function calls Walker method and builds diagnostics.
-const onEntry = function (ctx) {
-  const action = this.onEntry(ctx)
-  actionCounts[action] = (actionCounts[action] || 0) + 1
-  return action
+const throwTest = () => {
+  throw new Error('Test')
 }
 
 describe(ME, () => {
   beforeEach(() => {
     actionCounts = {}
-    w = new Walker(options)
-    w.defaultRuler = new Ruler(defaultRules)
-    w.projectRuler = new Ruler(projectRules)
+    w = new Walker({ rules: projectRules })
   })
 
   it('should construct w defaults', () => {
-    // console.log(w.projectRuler.dump())
+    // console.log(w.ruler.dump())
     expect(w.failures).to.eql([])
-    expect(w.terminate).to.equal(false)
+    expect(w.halted).to.equal(undefined)
+    expect(w.duration).to.equal(0)
+    expect(w.stats).to.eql(
+      { dirs: 0, entries: 0, errors: 0, retries: 0, revoked: 0, walks: 0 })
   })
 
-  it('should walk synchronously', () => {
-    w.walkSync(ROOT, { onEntry })
-    expect(w.failures).to.eql([], 'failures')
-    expect(actionCounts[FILES]).to.equal(2, 'ACTION(FILES)')
-    expect(actionCounts[DIRS]).to.equal(2)
-    expect(w.trees.length).to.equal(1, '#1')
-    w.walkSync(ROOT, { onEntry })
-    expect(w.trees.length).to.equal(1, '#2')
-  }) /*
-
-  it('should register failure', () => {
-    expect(w.registerFailure('test', '1').failures[0]).to.eql('test\n  1')
-  })
-
-  it('should do default error handling', () => {
-    let data, onError = function (e, d) {
-      data = { args: d, instance: this }
-    }
-    w.walkSync('nope', { onError })
-    expect(data.instance).to.equal(w, 'instance')
-    expect(data.args).to.match(/\/nope$/, 'args')
-    expect(w.failures.length).to.eql(1, 'length')
-    expect(w.failures[0]).to.match(/^ENOENT:\s/, '[0]')
-    w.failures = []
-    expect(() => w.walkSync(undefined, {
-      onEntry: () => {
-        throw Error('Test')
+  it('should walk', async () => {
+    const track = {}
+    let ticks = 0, t
+    w.tick = () => (ticks += 1)
+    await w.walk(ROOT, {
+      onEntry,
+      trace: (key) => {
+        t = w.duration
+        track[key] = (track[key] || 0) + 1
       }
-    })).to.throw(Error, /^Test\ncontext:\s/, 'thrown')
-  })
-
-  it('should walk in async mode', (done) => {
-    w.walk('').then(() => done())
-  })
-
-  it('should catch in async mode', (done) => {
-    w.walk('/nope', { onError: (e) => e }).then(() => {
-      done(new Error('Failed'))
-    }).catch((e) => {
-      expect(e instanceof Error).to.equal(true, 'Error')
-      expect(e.message).to.match(/^ENOENT: /, 'ENOENT')
-      done()
     })
+    expect(w.failures.length).to.equal(0, 'failures')
+    expect(actionCounts[FILES]).to.equal(3, 'FILES')
+    expect(actionCounts[DIRS]).to.equal(2, 'DIRS')
+    expect(w.visited.size).to.equal(3, '#1')
+    expect(Object.keys(track).sort()).to.eql(['onDir', 'onEntry', 'onFinal', 'openDir'])
+    expect(ticks).to.eql(1, 'ticks')
+    expect(w.stats).to.eql(
+      { dirs: 3, entries: 11, errors: 3, retries: 0, revoked: 0, walks: 0 })
+    expect(t).to.gt(0)
   })
 
-  it('should intercept exceptions', () => {
-    let data, error
+  it('should avoid', async () => {
+    w.avoid([[ROOT + '/src/nested']])
+    await w.walk(ROOT)
+    expect(w.stats.dirs).to.equal(2)
+    expect(() => w.avoid({})).to.throw(TypeError)
+  })
 
-    const onError = (e, d) => {
-      error = e
-      data = d
+  it('should do default error handling', async () => {
+    try {
+      await w.walk(undefined, { onEntry: throwTest })
+    } catch (error) {
+      expect(error.context.locus).to.equal('onEntry')
+      return
+    }
+    expect(false).to.eql(true)
+  })
+
+  it('should halt', async () => {
+    expect(await w.walk(ROOT, {
+      onEntry: function (entry, ctx) {
+        if (entry.name === 'nested') {
+          this.halt(ctx, 'test').halt() //  Only the first call should effect.
+        }
+        return 0
+      }
+    })).to.eql({})
+    expect(w.halted.details).to.eql('test')
+    expect(w.halted.absPath).to.match(/src\/$/)
+  })
+
+  it('should do custom error override', async () => {
+    // let data
+
+    w.onError = function () {
+      // data = { err, inst: this }
       return DO_SKIP
     }
-
-    w.walkSync('nope', { onError })
-    expect(error.code).to.eql('ENOENT')
-    expect(data).to.match(/nope$/)
-    expect(w.failures).to.eql([])
+    const res = await w.walk('nope')
+    expect(res).to.eql({})
+    expect(w.failures.length).to.eql(1, 'length')
+    expect(w.failures[0].message).to.match(/^ENOENT:\s/, '[0]')
   })
 
-  describe('nested mode', () => {
-    before(() => (options.nested = true))
+  it('should immediately return non-numeric', async () => {
+    const e = new Error('Test')
+    const r = await w.walk(undefined, { onFinal: async () => e })
+    expect(r).to.equal(e)
+    expect(w.visited.size).to.equal(1)
+  })
 
-    it('should process rules', () => {
-      w.walkSync(ROOT, { onEntry })
-      expect(w.failures).to.eql([], 'failures')
-      // console.log('w.trees', w.trees)
-      expect(w.trees.length).to.equal(2, 'trees.length')
-    })
-  }) */
+  it('onDir throwing', async () => {
+    try {
+      await w.walk(undefined, { onDir: () => Promise.reject(new Error('Test')) })
+    } catch (error) {
+      expect(error.message).to.equal('Test')
+      expect(error.context.locus).to.equal('onDir')
+    }
+    expect(w.visited.size).to.equal(0)
+  })
 })

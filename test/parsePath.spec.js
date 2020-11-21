@@ -1,24 +1,21 @@
 'use strict'
-const ME = 'parse'
+const ME = 'parsePath'
 
 const { AssertionError } = require('assert')
-// const { isDeepStrictEqual } = require('util')
 const { expect } = require('chai')
-const { T_ANY, T_DIR, T_FILE } = require('../src/constants')
-const target = require('../src/' + ME)
-const { GLOB } = target
+const { T_DIR, T_FILE } = require('../src/constants')
+const target = require('../src/Ruler/' + ME)
+const OPTIONAL_DIRS = null
 const R_ANY = '.'
-const ANY = { type: T_ANY, isExclusion: false }
+const ANY = { type: 0, isExclusion: false }
 const DIR = { type: T_DIR, isExclusion: false }
-// const FILE = { type: T_FILE, isExclusion: false }
 const XDIR = { type: T_DIR, isExclusion: true }
 const XFIL = { type: T_FILE, isExclusion: true }
 let options
 
-const test = (str, exp, x = '') => {
+const test = (str, expected, x = '') => {
   const r = target(str, options)
-  // if (!isDeepStrictEqual(r, exp)) console.log(str + '\n', r, '\n', exp)
-  expect(r).to.eql(exp, `'${str}' ` + x)
+  expect(r).to.eql(expected, `'${str}' ` + x)
 }
 
 describe(ME, () => {
@@ -26,16 +23,17 @@ describe(ME, () => {
   it('should do simple parse', () => {
     test('/a', [ANY, '^a$'])
     test('/a/', [DIR, '^a$'])
-    test('a/', [DIR, GLOB, '^a$'])
-    test('a', [ANY, GLOB, '^a$'])
+    test('a/', [DIR, OPTIONAL_DIRS, '^a$'])
+    test('a', [ANY, OPTIONAL_DIRS, '^a$'])
     test('/*a', [ANY, 'a$'])
     test('/a/b*', [ANY, '^a$', '^b'])
     test('/*/a', [ANY, R_ANY, '^a$'])
     test('/a/*', [ANY, '^a$', R_ANY])
-    test('**/a', [ANY, GLOB, '^a$'])
-    test('/**/a', [ANY, GLOB, '^a$'])
-    test('/a/**/b', [ANY, '^a$', GLOB, '^b$'])
-    test('/a/**/b/', [DIR, '^a$', GLOB, '^b$'])
+    test('**/a', [ANY, OPTIONAL_DIRS, '^a$'])
+    test('/**/a', [ANY, OPTIONAL_DIRS, '^a$'])
+    test('/a/**/b', [ANY, '^a$', OPTIONAL_DIRS, '^b$'])
+    test('/a/**/b/', [DIR, '^a$', OPTIONAL_DIRS, '^b$'])
+    test('/a/**/**/b/', [DIR, '^a$', OPTIONAL_DIRS, '^b$'])
   })
 
   it('should parse with type override', () => {
@@ -44,9 +42,9 @@ describe(ME, () => {
   })
 
   it('should handle inversion', () => {
-    test('^/a/  ', [XDIR, '^a$'])
-    test('^/a!;f  ', [XFIL, '^a!$'])
-    test('\\^a', [ANY, GLOB, '^\\^a$'])
+    test('!/a/  ', [XDIR, '^a$'])
+    test('!/a!;f  ', [XFIL, '^a!$'])
+    test('\\!a', [ANY, OPTIONAL_DIRS, '^!a$'])
   })
 
   it('should handle separator escape', () => {
@@ -59,20 +57,20 @@ describe(ME, () => {
   })
 
   it('should ignore repeated glob', () => {
-    test('**/a/**', [DIR, GLOB, '^a$'])
+    test('**/a/**', [DIR, OPTIONAL_DIRS, '^a$'])
   })
 
   it('should strip trailing glob', () => {
     //  Todo: give some analysis back to parser
     test('/a/**', [DIR, '^a$'])
     test('/a/**/', [DIR, '^a$'])
-    test('/a/**/*', [ANY, '^a$', GLOB, R_ANY])
-    test('/a/**/*/*', [ANY, '^a$', GLOB, R_ANY, R_ANY])
+    test('/a/**/*', [ANY, '^a$', OPTIONAL_DIRS, R_ANY])
+    test('/a/**/*/*', [ANY, '^a$', OPTIONAL_DIRS, R_ANY, R_ANY])
   })
 
   it('should strip trailing glob, unoptimized', () => {
     options = { optimize: false }
-    test('/a/**/*/*', [ANY, '^a$', GLOB, '^.*$', '^.*$'])
+    test('/a/**/*/*', [ANY, '^a$', OPTIONAL_DIRS, '^.*$', '^.*$'])
     test('/a/b*', [ANY, '^a$', '^b.*$'])
   })
 

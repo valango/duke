@@ -1,47 +1,81 @@
 #!/usr/bin/env node
+
+//  Sample walking directories and gathering simple statistics.
+
+/* eslint no-console:0 */
 'use strict'
+const chalk = require('chalk')
+const { dirEntryTypeToLabel, Walker } = require('..')
+const { dumpFailures, leaksTrap, parseCl, print } = require('./util')
+const relativize = require('../relativize')
+const symlinksFinal = require('../symlinksFinal')
 
-const HELP = 'Count all files and subdirectories under directories given by arguments.'
-const color = require('chalk')
-const { Walker, typeName } = require('../src')
-const { dump, measure, parseCl, print } = require('./util')
+const HELP = 'Counts all files and subdirectories under directories given by arguments.'
 
-const counts = {}, { args } = parseCl({}, HELP, true)
+const counts = {}, { args, options } =
+  parseCl({
+    symlinks: ['s', 'enable symbolic links'],
+    verbose: ['v', 'talk a *lot*']
+  }, HELP, true)
 const d = { deepest: '', maxDepth: 0 }
-
-//  =======  Start of application-specific code.      =======
 
 const add = (key) => (counts[key] = ((counts[key] || 0) + 1))
 
-//  Use plugin pattern to avoid class declaration.
-//  In general case, we should call Walker instance method,
-//  but do not do it here.
+const report = counts =>
+  Reflect.ownKeys(counts).map(k =>
+    chalk.greenBright(dirEntryTypeToLabel(k)) + ': ' + counts[k]).join(', ')
 
-const onBegin = ({ absDir, depth }) => {
+//  The handlers will be injected into walk context.
+
+const onDir = async function (context) {
+  const { absPath, depth } = context
   if (depth > d.maxDepth) {
-    (d.deepest = absDir) && (d.maxDepth = depth)
+    (d.deepest = absPath) && (d.maxDepth = depth)
   }
-  return 0
+  return this.onDir(context, [])
 }
 
-const onEntry = ({ type }) => add(type)
+const onEntry = function ({ name, type }, context) {
+  return add(type) && this.onEntry({ name, type }, context)
+}
 
-const tick = (count) => process.stdout.write('Entries processed: ' + count + '\r')
+const onFinal = function (entries, context) {
+  return this._useSymLinks
+    ? symlinksFinal.call(this, entries, context) : Promise.resolve(0)
+}
 
-const walker = new Walker({ onBegin, onEntry, tick })
+/** @type {Walker} */
+const walker = leaksTrap(new Walker(options))
 
-measure(
-  () => args.map((dir) => walker.walkSync(dir)) && {}
-).then(({ time }) => {
-//  =======  Start of boilerplate code for reporting. =======
-  dump(walker.failures, color.redBright,
-    'Total %i failures.', walker.failures.length)
+walker.tick = count => process.stdout.write('Entries processed: ' + count + '\r')
 
-  for (const k of Object.keys(counts)) {
-    print(typeName(k).padStart(16, ' ') + ':', counts[k])
+//  Uncomment this, if you really like a lot of mess on your screen.
+/* walker.trace = (name, result, closure, args) => {
+  if (name !== 'xonEntry' && !/node_modules\/./.test(closure.absPath)) {
+    let s = args[0]
+    if (s && typeof s === 'object') s = s.name || '*'
+    console.log(relativize(closure.absPath), name,
+      typeof result === 'number' ? result : '*', s)
   }
-  const { directories, entries } = Walker.getTotals()
+} /* */
+
+const opts = { onDir, onEntry, onFinal }
+
+Promise.all(args.map(dir => walker.walk(dir, opts))).then(res => {
+  console.log('Finished!', res.length, 'walks            ')
+}).catch(error => {
+  console.log('Exception!', error)
+}).finally(() => {
+  const t = walker.duration, { dirs, entries, revoked, retries } = walker.stats
+
+  if (walker.halted) console.log('HALTED: ', walker.halted)
+
+  dumpFailures(walker.failures, options.verbose)
+
+  print('Counts by type: ', report(counts))
+
   print('Total %i ms (%i µs per entry) for %i entries in %i directories.'
-    , time / 1000, time / entries, entries, directories)
-  print('Max directory depth: %i, the deepest directory was:\n', d.maxDepth, d.deepest)
+    , t / 1000, t / entries, entries, dirs)
+  print('\tretries: %i, revoked: %i', retries, revoked)
+  print('The deepest (%i) directory was:\n  ', d.maxDepth, relativize(d.deepest))
 })
