@@ -51,6 +51,7 @@
     "non-recursive"
   ],
   "dependencies": {
+    "assert": "^2.0.0",
     "assert-fine": "^1.0.3",
     "brace-expansion": "^1.1.11",
     "lodash.omit": "^4.5.0"

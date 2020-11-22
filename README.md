@@ -39,7 +39,7 @@ Promise.all(dirs.map(dir => walker.walk(dir))).then(res => {
 ### How it works
 The _`Walker#walk()`_ method recursively walks the directory tree width-first.
 A _**walk**_ is a code execution sequence from _`walk()`_ method call until settling
-a promise returned by the call. Parallel calls create a **_batch_**.
+a promise returned by the call. Parallel calls result in a **_batch_**.
 Here is a simplified description, of what _`Walker`_ does during a _walk_:
    1. picks a _walk context_ from fifo;
    1. checks the _`visited`_ instance property and skips the directory if it's already there;
@@ -59,77 +59,22 @@ terminates a particular walk immediately and resolves the promise.
 
 ## API
 ### exports
-   * [_**constant**_ declarations](#constants)
-   * [_**`Ruler`** class_](#ruler-class)
    * [_**`Walker`** class_](#walker-class)
-   * [_**common** helpers_](#common-helpers)
+   * [_**`Ruler`** class_](doc/ruler.md)
+   * [_constants_](src/constants.js)
+   * [_common helpers_](#common-helpers)
    
-### constants
-The declarations of [types](src/typedefs.js) and [constants](src/constants.js)
-are self-explanatory.
-
-### _`Ruler`_ class
-Ruler instances serve for checking directory entries and are usually created and
-managed by _`Walker`_, so we'll be brief here.
-
-**`constructor`**`([options,] ...rule)`<br />
-   * `options.extended : boolean = true` - enable `{...}` syntax by using
-   [_`brace-expansion`_](https://github.com/juliangruber/brace-expansion) npm package;
-   * `options.optimize : boolean = true`;
-   * `rule `- applied to _`add`_ method.
-   
-**`add`**`(...definition) : Ruler` - method<br />
-The `definition` parameter can be a number, string or array.
-A numeric value is an action code for all the rules defined by strings that follow.
-Internally, the rules form an _inverted tree_. A definition like 'a/b' will
-be check for a matching rule path - if rule for 'a' exists, the 'b' will be added
-as its descendant.
-
-For better readability, you can form definitions as arrays - 
-`add()` will flatten those internally.
-
-Rule string is similar to bash glob patterns. Example:
-```javascript
-ruler.add(
-  DO_SKIP, '.*/', 'node_modules/', '!/test/**/node_modules/',
-  DO_CHECK, 'package.json', 'LICENSE', '*;l')
-```
-Here the first two rules generated will result in DO_SKIP when matching the name
-of entry of T_DIR type. The third rule tells not to skip node_modules
-anywhere under the topmost 'test' directory. The rules 3, 4 will be matched
-against any entries except of T_DIR type.
-The last rule (with **_explicit type_**) matches against T_SYMLINK entries only.
-<br />Without _explicit type_, all rules created are typeless or `T_DIR` ('d').
-Explicit type must match one in `S_TYPES` constant.
-
-**`ancestors`**` : number[][]` - private property<br />
-Determines which nodes of rule tree to use. Can be set via _`clone()`_ argument only. 
-   
-**`check`**`(name, [type]) : number` - method<br />
-Matches all rules descending from current _`ancestors`_ property against given
-name, if _`type`_ is not given or matches the _rule type_.<br >
-Returns the highest action value from all matching rules or DO_NOTHING.
-
-**`clone`**`([ancestors]) : Ruler` - method<br />
-Create an identical copy of the ruler instance, with _`ancestors`_ property
-set to supplied argument - see the [source code](src/Ruler/index.js) for details.
-
-**`dump`**`([options]) : string` - method<br />
-Used for debugging. Returns `undefined` in production environment.
-
-**`lastMatch`**` : number[][]` - property<br />
-Gives internal descriptor of all rules matching the most recent _`check()`_ call.
-This value applied to _`clone()`_ method serves to implement hierarchic rules.
+Types referred to below are declared in [src/typedefs.js](src/typedefs.js).
 
 ### _`Walker`_ class
-The most of the magic resides here. 
+The most of the magic happens here. 
 A brief overview of its [core concepts](doc/walker-concepts.md) may help
 to navigate in further details.
 
 **`constructor`**`(options : {TWalkerOptions})`<br />
    * `data : object = {}` - a shallow copy will be assigned to _`data`_ property.
    * `interval : number=` - instance property setting.
-   * `rules : *` - rule definitions, or a _`Ruler`_ instance to be cloned.
+   * `rules : *` - [rule definitions](#rules), or a _`Ruler`_ instance to be cloned.
    * `symlinks : boolean=` - enable symbolic links checking by _`onEntry()`_ handler.
 
 _Walker_ instance stores given (even unrecognized) options in private _`_options`_ property.
@@ -149,6 +94,7 @@ Called before opening the directory. Default just returns `DO_NOTHING`.
 **`onEntry`**`(entry: TDirEntry, context: TWalkContext) : *` - handler method<br />
 Called for every entry in the current directory. Default calls _`context.ruler.check()`_,
 stores the results it the entry instance and returns the _`check()`_ return value.
+This is the only place, where the _`Walker`_ actually checks the [rules](#rules).
 
 **`onError`**`(error: Error, context: TWalkContext) : *` - handler method<br />
 Called with trapped error. Default checks _`Walker.overrides`_ for match for
@@ -252,6 +198,53 @@ const onFinal = function (entries, context) {
     ? symlinksFinal.call(this, entries, context) : Promise.resolve(0)
 }
 ```
+
+### Rules
+Rules are defined as action code followed by any number of file patterns, 
+quite similar to _bash_ glob patterns or _.gitignore_ rules. Example:
+```javascript
+ruler.add(
+  DO_SKIP, '.*/', 'node_modules/', '!/test/**/node_modules/',
+  DO_CHECK, 'package.json', 'LICENSE', '*;l')
+```
+Here the first two rules generated will result in DO_SKIP when matching the name
+of entry of T_DIR type. The third rule tells not to skip node_modules
+anywhere under the topmost 'test' directory. The rules 3, 4 will be matched
+against any entries except of T_DIR type.
+The last rule (with **_explicit type_**) matches against T_SYMLINK entries only.
+<br />Without _explicit type_, all rules created are typeless or `T_DIR` ('d').
+Explicit type must match one in `S_TYPES` constant.
+
+Behind the scenes, a _`Ruler`_ instance creates and interprets a _**rule tree**_
+formed as an array on records <br/>
+_`(type, expression, ancestorIndex, actionCode)`_.
+For the above example, the _`Ruler` dump_ would be:
+```
+         0: 'd' null,               -1, 0,
+         1: 'd' /^\./,               0, 2,
+         2: 'd' /^node_modules$/,    0, 2,
+         3: 'd' /^test$/,           -1, 0,
+         4: 'd' null,                3, 0,
+         5: 'd' /^node_modules$/,    4, -2,
+         6: ' ' /^package\.json$/,   0, 1,
+         7: ' ' /^LICENSE$/,         0, 1,
+         8: 'l' /./,                 0, 1,
+_ancestors: [ [ 0, -1 ] ]
+
+```
+The internal _`ancestors`_ array contains tuples _`(actionCode, ruleIndex)`_.
+
+The _`Ruler#check()`_ method typically called from _`Walker#onEntry()`_ finds
+all rules matching the given entry _`(name, type)`_ and fills in the
+lastMatch array, analogous to ancestors array. Then it returns the most
+prominent (the highest) action code value. A negative value screens the actual one.
+
+The sub-directories opened later will inherit new _`Ruler`_ instances with _`ancestors`_
+set to _`lastMatch`_ contents from the upper level.
+So, the actual rule matching is trivial, and the rules can be switched dynamically.
+
+For further details, check the [_`Ruler`_ reference](doc/ruler.md) and
+the special [demo app](doc/examples.md#parsejs). 
 
 ## Version history
 * v5.1.0 @20201121

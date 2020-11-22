@@ -1,14 +1,17 @@
 'use strict'
 const ME = 'helpers'
 
+const { sep } = require('path')
 const { expect } = require('chai')
 const { dirEntryTypeToLabel, T_FILE, T_DIR } = require('..')
 const relativize = require('../relativize')
 
+const fix = sep === '\\' ?  path => path.replace(/(\\)/g, '/') : path => path
+
 describe(ME, () => {
   it('relativize', () => {
-    expect(relativize(__filename, process.cwd(), '.')).to.eql('./test/helpers.spec.js')
-    expect(relativize(__filename, process.cwd())).to.eql('test/helpers.spec.js')
+    expect(fix(relativize(__filename, process.cwd(), '.'))).to.eql('./test/helpers.spec.js')
+    expect(fix(relativize(__filename, process.cwd()))).to.eql('test/helpers.spec.js')
     expect(relativize(__filename, '~')).to.match(/^~.+\.js$/)
     expect(relativize(__filename)).to.match(/^\w.+\.js$/)
     expect(relativize('x')).to.eql('x')

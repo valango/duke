@@ -70,7 +70,7 @@ class Ruler {
      * @type {number}
      * @private
      */
-    this._nextRuleAction = DO_NOTHING
+    this._nextRuleAction = undefined
 
     /**
      * Options for string parser.
@@ -101,7 +101,7 @@ class Ruler {
     switch (typeof definition) {
       case 'number':
         assert((this._nextRuleAction = definition) !== DO_NOTHING,
-          'add', 'action code 0 is reserved')
+          'action code 0 is reserved')
         break
       case 'string':
         if (definition === '/*/**/a') {
@@ -115,7 +115,7 @@ class Ruler {
           // } else if (definition instanceof Ruler) {
           //  this.append_(definition)
         } else {
-          assert(false, 'add', () => `bad rule definition '${definition}'`)
+          assert(false, () => `bad rule definition '${definition}'`)
         }
     }
     return this
@@ -155,8 +155,9 @@ class Ruler {
     const rules = parsePath(path, this._options)
     const flags = rules.shift()
 
-    assert(rules.length, 'addPath_', 'no rules')
+    assert(rules.length, 'rules definition is empty')
     let action = this._nextRuleAction
+    assert(action !== undefined, 'rules definition must start with action code')
     if (flags.isExclusion) action = -action
     this.addRules_(rules, flags.type, action)
     return this

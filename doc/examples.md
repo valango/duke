@@ -1,11 +1,16 @@
 ## Examples
 
-_**Note:** clone the source repository first to actually play with examples._
+_**Note:** The examples, as well as tests, are not installed by npm,
+so to actually try them, please clone the source repository first:
+```
+git clone https://github.com/valango/duke.git
+```
+first to actually play with examples._
 
 There are some examples in [examples/](../examples) directory.
 To run, type in a terminal something like:
 ```shell script
-   examples/count.js -h
+./examples/count.js -h
 ```
 
 ### count.js
