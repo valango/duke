@@ -2,11 +2,13 @@
 'use strict'
 const ME = 'Walker'
 
+const { sep } = require('path')
 const { expect } = require('chai')
 const { DO_ABORT, DO_SKIP, Walker } = require('..')
+const t = require('./toNativePath')
 const FILES = 1
 const DIRS = 2
-const ROOT = 'test/directory'
+const ROOT = t('test/directory')
 // const defaultRules = [DO_SKIP, 'node_modules', '.*']
 
 const projectRules = [
@@ -67,7 +69,7 @@ describe(ME, () => {
   })
 
   it('should avoid', async () => {
-    w.avoid([[ROOT + '/src/nested']])
+    w.avoid([[ROOT + t('/src/nested')]])
     await w.walk(ROOT)
     expect(w.stats.dirs).to.equal(2)
     expect(() => w.avoid({})).to.throw(TypeError)
@@ -93,7 +95,8 @@ describe(ME, () => {
       }
     })).to.eql({})
     expect(w.halted.details).to.eql('test')
-    expect(w.halted.absPath).to.match(/src\/$/)
+    // (/src\/$/)
+    expect(w.halted.absPath).to.match(new RegExp(`\\${sep}src\\${sep}$`))
   })
 
   it('should do custom error override', async () => {

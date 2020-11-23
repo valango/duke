@@ -1,6 +1,8 @@
 'use strict'
 process.env.NODE_ENV = 'test'
 
+// const { sep } = require('path')
+const sep = '/'
 const { expect } = require('chai')
 const { DO_SKIP, T_DIR, T_SYMLINK } = require('..')
 const { createDirEntry } = require('../src/util/dirEntry')
@@ -32,7 +34,7 @@ describe('symlinksFinal', () => {
   it('should ignore', async () => {
     expect(await target(
       [createDirEntry('x1', T_DIR, 0), createDirEntry('x2', T_SYMLINK, DO_SKIP)],
-      { absPath: '/foo', closure: {} })).to.equal(0)
+      { absPath: sep + 'foo', closure: {} })).to.equal(0)
   })
 
   it('should do', async () => {
@@ -43,7 +45,7 @@ describe('symlinksFinal', () => {
       createDirEntry('d1l1', T_SYMLINK, 42)
     ]
     expect(await target.call(me, entries,
-      { absPath: '/d1/', closure: {} })).to.equal(0)
+      { absPath: sep + 'd1' + sep, closure: {} })).to.equal(0)
     expect(me.failures.length).to.equal(2)
     expect(me.failures[0].message).to.match(/broken\ssymlink/)
     expect(me.failures[1].message).to.match(/broken\ssymlink/)
