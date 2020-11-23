@@ -115,7 +115,7 @@ class Ruler {
           // } else if (definition instanceof Ruler) {
           //  this.append_(definition)
         } else {
-          assert(false, () => `bad rule definition '${definition}'`)
+          assert(false, 'bad rule definition %o', definition)
         }
     }
     return this
@@ -155,9 +155,9 @@ class Ruler {
     const rules = parsePath(path, this._options)
     const flags = rules.shift()
 
-    assert(rules.length, 'rules definition is empty')
+    assert(rules.length, 'no rules in definition %o', path)
     let action = this._nextRuleAction
-    assert(action !== undefined, 'rules definition must start with action code')
+    assert(action !== undefined, 'action code missing in rule definition %o', path)
     if (flags.isExclusion) action = -action
     this.addRules_(rules, flags.type, action)
     return this
