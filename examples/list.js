@@ -66,8 +66,8 @@ const composeResults = (data) => {
     let s = relativize(key).padEnd(maxPathLen + 1), v
 
     row.push(d[INSTALLED] ? color.bgBlue(s) : s)
-    ;(s = ((v = d[NAME]) || 'no name').padEnd(20)) && row.push(v ? s : N(s))
-    ;(s = ((v = d[VERSION]) || '?').padEnd(8)) && row.push(v ? s : N(s))
+    ;(s = ((v = d[NAME] + '') || 'no name').padEnd(20)) && row.push(v ? s : N(s))
+    ;(s = ((v = d[VERSION] + '') || '?').padEnd(8)) && row.push(v ? s : N(s))
     ;(s = ((v = d[DO_COUNT_FILE].length) + '').padStart(4)) && row.push((v ? s : N(s)) + '.js')
     ;(s = ((v = d[DO_COUNT_DOCS].length) + '').padStart(3)) && row.push((v > 1 ? Y(s) : s) + '.md')
     row.push(d[DO_COUNT_TEST].length ? Y('tests') : '     ')
