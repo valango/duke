@@ -3,12 +3,13 @@ const ME = 'helpers'
 
 const { expect } = require('chai')
 const { dirEntryTypeToLabel, T_FILE, T_DIR } = require('..')
+const t = require('./toNativePath')
 const relativize = require('../relativize')
 
 describe(ME, () => {
   it('relativize', () => {
-    expect(relativize(__filename, process.cwd(), '.')).to.eql('./test/helpers.spec.js')
-    expect(relativize(__filename, process.cwd())).to.eql('test/helpers.spec.js')
+    expect(relativize(__filename, process.cwd(), '.')).to.eql(t('./test/helpers.spec.js'))
+    expect(relativize(__filename, process.cwd())).to.eql(t('test/helpers.spec.js'))
     expect(relativize(__filename, '~')).to.match(/^~.+\.js$/)
     expect(relativize(__filename)).to.match(/^\w.+\.js$/)
     expect(relativize('x')).to.eql('x')

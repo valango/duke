@@ -18,7 +18,7 @@ const tree = {
 const fs = require('./mock-fs/openDir')(tree)
 require('./mock-fs/stat')(tree, fs)
 
-describe('symlinksFinal', () => {
+describe('mock.symlinksFinal', () => {
   it('realpathSync', () => {
     expect(fs.realpathSync('/d1/d1l0')).to.equal('/d0')
     expect(fs.realpathSync('/d1/d1l2')).to.equal('/d0/d0f0')

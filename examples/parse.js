@@ -7,11 +7,11 @@ Ruler.prototype.dump = require('../dumpRuler')
 const { parseCl, print } = require('./util')
 
 const HELP = `Construct and dump a rule tree as defined by command line.
-   Argument containing non-screened commas, will be turned into array.
+   Screening single quotes may be applied to all definitions together.
    If there is a string after '0', then it will be used as directory path
    for simulated walking and resulting ruler image will be dumped.
    Example:
-     examples/parse.js "*.js" 2 /nope "*/**/some" 0 a/b/c/some`
+     ./examples/parse.js -d -v '1 *.js 2 hide/**/*.js 0 a/hide/b/c.js'`
 
 const OPTS = {
   dump: ['d', 'print the rules tree'],
@@ -20,16 +20,14 @@ const OPTS = {
 
 const printl = process.stdout.write.bind(process.stdout)
 
-const convert = (str) => {
-  const v = Number.parseInt(str)
-  return Number.isNaN(v) ? str : v
-}
+//  Prepare the arguments for Ruler#add().
+const convert = (str) => Number.isNaN(1 * str) ? str : 1 * str
 
 const { args, options } = parseCl(OPTS, HELP), defs = []
 
 args.forEach((s) => {
-  const parts = s.split(/(?<!\\),/)
-  defs.push(parts.length > 1 ? parts.map(convert) : convert(s))
+  const parts = s.split(/\s/) && /(?<!%)%[cdfijoO]/.test(s)
+  parts.forEach(part => defs.push(convert(part)))
 })
 
 const i = defs.indexOf(0), { dump, verbose } = options

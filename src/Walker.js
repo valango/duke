@@ -22,6 +22,7 @@ const empty = () => Object.create(null)
 const intimates = 'closure onDir onEntry onError onFinal openDir trace'.split(' ')
 const nothing = Symbol('nothing')
 const shadow = intimates.concat('ruler')
+const termBySep = new RegExp('\\' + sep + '$')
 
 const usecsFrom = t0 => {
   const t1 = process.hrtime(t0)
@@ -113,7 +114,7 @@ class Walker {
         const t = typeof path, { _visited } = this
         if (t !== 'string') throw new TypeError(`expected string, received '${t}'`)
         let p = resolve(path)
-        if (!/\/$/.test(path)) p += '/'
+        if (!termBySep.test(path)) p += sep
         if (!_visited.has(p)) _visited.set(p, false)
       }
     }
@@ -408,7 +409,7 @@ class Walker {
     let doDirs
 
     const fifo = [{
-      absPath: /\/$/.test(rootPath) ? rootPath : rootPath + sep,
+      absPath: termBySep.test(rootPath) ? rootPath : rootPath + sep,
       closure: undefined,
       current: undefined,
       data,

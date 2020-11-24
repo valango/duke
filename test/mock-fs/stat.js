@@ -1,6 +1,6 @@
 'use strict'
 
-const { resolve } = require('path')
+const { resolve } = require('path').posix
 const { T_SYMLINK } = require('../..')
 const { getNode, mkEntry } = require('./getNode')
 

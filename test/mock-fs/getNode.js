@@ -1,16 +1,15 @@
 'use strict'
-const { getSystemErrorName } = require('util')
-
 const assert = require('assert-fine')
 const { T_DIR, T_FILE } = require('../..')
 const checkType = require('./checkType')
 const dirEntry = require('./Dirent')
 
-const ENOENT = 'no such file or directory'
+const messages = { ENOENT: 'no such file or directory', ENOTDIR: 'not a directory' }
+const numbers = { ENOENT: -2, ENOTDIR: -20 }  //  Windows codes may differ!
 
-const fail = (msg, errno, path) => {
-  const code = getSystemErrorName(errno), syscall = 'opendir'
-  let message = `${msg}, ${syscall}`
+const fail = (code, path) => {
+  const errno = numbers[code], syscall = 'opendir'
+  let message = `${messages[code]}, ${syscall}`
 
   if (path) message += ` '${path}'`
 
@@ -20,7 +19,7 @@ const fail = (msg, errno, path) => {
 const checkDirNode = (node, path) => {
   if (!(node && typeof node === 'object' && !Array.isArray(node))) {
     const p = typeof path === 'string' ? path : path.join('/')
-    fail('not a directory', -20, p)
+    fail('ENOTDIR', p)
   }
   return node
 }
@@ -42,10 +41,10 @@ const getNode = (tree, path) => {
 
     if (item) {
       if (i === 0) {  //  Only absolute paths here!
-        fail(ENOENT, -2, item)
+        fail('ENOENT', item)
       }
       if ((node = node[item]) === undefined) {
-        fail(ENOENT, -2, parts.slice(0, i + 1).join('/'))
+        fail('ENOENT', parts.slice(0, i + 1).join('/'))
       }
       dir.push(item)
       key = item
