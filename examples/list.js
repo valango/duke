@@ -55,6 +55,7 @@ const walker = leaksTrap(new Walker({ rules: defaultRules }))
   .avoid(relativize.homeDir + 'Library', '/Applications', '/Library')
 
 let maxPathLen = 0
+
 //  Results formatting helper.
 const composeResults = (data) => {
   const res = [], keys = Reflect.ownKeys(data).sort()

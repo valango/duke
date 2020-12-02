@@ -85,6 +85,12 @@ _Walker_ instance stores given (even unrecognized) options in private _`_options
 Injects the _paths_ into _`visited`_ collection thus preventing them from being visited.
 The arguments must be strings or arrays of strings - absolute or relative paths.
 
+**`getOverride`**`(error) : number` - method<br />
+Returns overriding action code current error and context.
+Walker calls it internally and assigns its numeric return value
+to `error.context.override` before calling `onError()` handler. Non-number return value
+has no effect.
+
 **`halt`**`([context,] [details]) : Walker` - method<br />
 Sets up the **_STC_** _(Shared Terminal Condition)_; has no effect if it is already set.
 
@@ -97,8 +103,8 @@ stores the results it the entry instance and returns the _`check()`_ return valu
 This is the only place, where the _`Walker`_ actually checks the [rules](#rules).
 
 **`onError`**`(error: Error, context: TWalkContext) : *` - handler method<br />
-Called with trapped error. Default checks _`Walker.overrides`_ for match for
-_`error.code`_ and _`context.locus`_, returning overriding action code or `undefined`.
+Called with trapped error after error.context has been set up.
+Default just returns _`error.context.override`_.
 Returned action code will be checked for special values; a non-numeric return means this
 was an unexpected error rejecting the _walk_ promise.
 
@@ -112,7 +118,8 @@ The _`action`_ is the highest action code returned by previous handlers in this 
 Default just returns `DO_NOTHING`.
 
 **`reset`**`([hard : boolean]) : Walker` - method<br />
-Resets possible SHC. In hard case, it resets all internal state properties.
+Resets a possible _STC_. In a _hard_ case, it resets all internal state properties,
+including those available via _`stats`_.
 Calling this method during walk throws an unrecoverable error.
 
 **`tick`**`(count : number)` - method<br />
@@ -146,6 +153,14 @@ will have a `context : TWalkContext` property set.
 
 **`ruler`**` : Ruler r/o` - initial ruler instance for a new walk.
 
+**`stats`**` : Object r/o` - general statistics as object with numeric properties:
+   * `dirs` - number of visited directories;
+   * `entries` - number of checked directory entries;
+   * `errors` - number of exceptions encountered;
+   * `retries` - number of operation retries (e.g. in case of out of file handles);
+   * `revoked` - number of directories recognized as already visited (may happen with **`symlinks`** option set);
+   * `walks` - number of walks currently active.
+   
 **`visited`**` : Map r/o` - a Map instance keyed with absolute directory paths.
 Data values have no meaning to Walker, but may have one for application code.
 
@@ -160,6 +175,9 @@ Data values have no meaning to Walker, but may have one for application code.
 
 **`shadow`**` : atring[]` - mask for omitting certain parts of context parameter,
 before injecting it to Error instance for logging.
+
+#### Walker protected API
+Is described in a [separate document](doc/walker-protected.md). 
 
 ### Common helpers
 Those helpers are available via package exports and may be useful on writing handlers.

@@ -15,16 +15,17 @@
 /**
  * Data context {@link Walker#walk} provides handler methods / plugins with.
  * @typedef {Object} TWalkContext
- * @property {string}   absPath   separator-terminated absolute path
- * @property {Object}   [closure] used internally.
- * @property {Object}   current   entry in {@link Walker#visited}.
- * @property {*}        data      to be returned by {@link Walker#walk} method.
- * @property {number}   depth     0 for `rootDir`.
- * @property {string}   done      the last successfully completed op.
- * @property {Ruler}    ruler     currently active Ruler instance.
+ * @property {string}   absPath     separator-terminated absolute path
+ * @property {Object}   [closure]   used internally.
+ * @property {Object}   current     entry in {@link Walker#visited}.
+ * @property {*}        data        to be returned by {@link Walker#walk} method.
+ * @property {number}   depth       0 for `rootDir`.
+ * @property {string}   done        the last successfully completed op.
+ * @property {Ruler}    ruler       currently active Ruler instance.
  * @property {function(...)} trace
- * @property {Array<*>} [args]    in error.context only
- * @property {string}   [locus]   in error.context or `termination` property.
+ * @property {number}   [override]  in error.context only
+ * @property {Array<*>} [args]      in error.context only
+ * @property {string}   [locus]     in error.context or in `termination` property.
  */
 
 /**

@@ -19,7 +19,7 @@ const { isNaN } = Number
 const { max } = Math
 const apply = Function.prototype.call.bind(Function.prototype.apply)
 const empty = () => Object.create(null)
-const intimates = 'closure onDir onEntry onError onFinal openDir trace'.split(' ')
+const intimates = 'closure data onDir onEntry onError onFinal openDir trace'.split(' ')
 const nothing = Symbol('nothing')
 const shadow = intimates.concat('ruler')
 const termBySep = new RegExp('\\' + sep + '$')
@@ -75,28 +75,29 @@ class Walker {
     /**
      * Descriptors of recognized filesystem subtrees.
      * @type {Map}
+     * @protected
      */
     this._visited = undefined
     /**
      * For launching the `tick()` method.
      * @type {number}
-     * @private
+     * @protected
      */
     this._nextTick = undefined
     /**
      * @type {number}
-     * @private
+     * @protected
      */
     this._nEntries = undefined
     this._nErrors = undefined
     this._nDirs = undefined
-    this._nRepeated = undefined
+    this._nRevoked = undefined
     this._nRetries = undefined
+    this._nWalks = 0
     this._options = opts
     this._useSymLinks = Boolean(opts.symlinks)
-    this._started = undefined
-    this._duration = undefined
-    this._nWalks = 0
+    this._tStart = undefined
+    this._tTotal = undefined
 
     this.reset(true)
   }
@@ -127,7 +128,19 @@ class Walker {
    * @type {number}
    */
   get duration () {
-    return this._nWalks > 0 ? usecsFrom(this._started) : this._duration
+    return this._nWalks > 0 ? usecsFrom(this._tStart) : this._tTotal
+  }
+
+  /**
+   * Gets override based on current error and context. Used by `onError_()` method.
+   * @param {Error} error
+   * @param {TWalkContext} context
+   * @returns {number|undefined}
+   */
+  getOverride (error, context) {
+    const overrides = Walker.overrides[context.locus]
+
+    return overrides && overrides[error.code]
   }
 
   /**
@@ -170,16 +183,15 @@ class Walker {
   }
 
   /**
-   * Error situation handler - translate error if applicable.
+   * Error situation handler.
+   * Override this method for specific error handling.
    *
-   * @param {Error} error   - with `context` property set.
+   * @param {Error} error - with `context.override` property already set by `onError_()`.
    * @param {TWalkContext} context
-   * @returns {number|Error|undefined}
+   * @returns {*}
    */
   onError (error, context) {
-    const override = Walker.overrides[error.context.locus]
-
-    return override && override[error.code]
+    return error.context.override
   }
 
   /**
@@ -211,8 +223,8 @@ class Walker {
       this.ruler = _options.rules instanceof Ruler
         ? _options.rules : newRuler(_options.rules)
       this._visited = new Map()
-      this._duration = this._nDirs = this._nEntries = this._nErrors =
-        this._nextTick = this._nRepeated = this._nRetries = 0
+      this._tTotal = this._nDirs = this._nEntries = this._nErrors =
+        this._nextTick = this._nRevoked = this._nRetries = 0
     }
     this.halted = undefined
     return this
@@ -228,7 +240,7 @@ class Walker {
       entries: this._nEntries,
       errors: this._nErrors,
       retries: this._nRetries,
-      revoked: this._nRepeated,
+      revoked: this._nRevoked,
       walks: this._nWalks
     }
   }
@@ -267,12 +279,12 @@ class Walker {
    * @returns {Promise<*>}  resolves to `data` member of `options` or `this`.
    */
   walk (startPath, options = {}) {
-    if (this._nWalks === 0) this._started = process.hrtime()
+    if (this._nWalks === 0) this._tStart = process.hrtime()
     this._nWalks += 1
 
     return new Promise((resolve, reject) =>
       this.walk_(startPath, options, (error, data) =>
-        this.finish_() && (error ? reject(error) : resolve(data)))
+        this.finalize_() && (error ? reject(error) : resolve(data)))
     )
   }
 
@@ -284,9 +296,16 @@ class Walker {
     return this._nWalks
   }
 
-  /* ************************ Private ************************ */
+  /* ************************ Protected ************************ */
 
-  //  Check for special action codes returned.
+  /**
+   * Check for special action codes returned, terminate the walk if necessary.
+   * @param {*}             value
+   * @param {TWalkContext}  context
+   * @param {string}        locus
+   * @returns {number}              - action code.
+   * @protected
+   */
   checkReturn_ (value, context, locus) {
     const { closure } = context
 
@@ -299,69 +318,89 @@ class Walker {
   }
 
   /**
-   * Execute an asynchronous call and handle possible rejections.
-   * @param {string} name
+   * Execute an asynchronous function and handle possible rejections.
+   * @param {string} functionName
    * @param {TWalkContext} context
    * @param args
    * @returns {Promise<*>}
-   * @private
+   * @protected
    */
-  execAsync_ (name, context, ...args) {
+  execAsync_ (functionName, context, ...args) {
     const { closure } = context
 
     if (this.halted) return closure.end(null, context.data)
     try {
-      return apply(context[name], this, args)
+      return apply(context[functionName], this, args)
         .catch(error => {
-          return this.onError_(error, name, context)
+          return this.onError_(error, context, functionName)
         })
         .then(result => {
           if (isNaN(closure.threadCount)) return closure.end(null, context.data)
 
-          context.trace(name, result, context, args)
+          context.trace(functionName, result, context, args)
           if (result === DO_RETRY) {
             if (closure.threadCount === 1) {
-              this.halt_(context, name + '.RETRY')
+              this.halt_(context, functionName + '.RETRY')
               return closure.end(new Error('Unable to retry'))
             }
             closure.fifo.push(context)
             result = DO_NOTHING
           } else {
-            context.done = name
-            if (!(typeof result === 'object' && name === 'openDir')) {
-              result = this.checkReturn_(result, context, name)
+            context.done = functionName
+            if (!(typeof result === 'object' && functionName === 'openDir')) {
+              result = this.checkReturn_(result, context, functionName)
             }
           }
           return result
         })
     } catch (e) {
       /* eslint-disable-next-line */
-      console.log('execAsync_', name, context.absPath)
+      console.log('execAsync_', functionName, context.absPath)
       throw e
     }
   }
 
-  execSync_ (name, context, ...args) {
+  /**
+   * Execute a synchronous function and handle possible rejections.
+   * @param {string} functionName
+   * @param {TWalkContext} context
+   * @param {...*} args
+   * @returns {number}
+   * @protected
+   */
+  execSync_ (functionName, context, ...args) {
     let result
 
     try {
-      result = apply(context[name], this, args)
-      context.trace(name, result, context, args)
+      result = apply(context[functionName], this, args)
+      context.trace(functionName, result, context, args)
     } catch (error) {
-      result = this.onError_(error, name, context)
+      result = this.onError_(error, context, functionName)
     }
-    return this.checkReturn_(result, context, name)
+    return this.checkReturn_(result, context, functionName)
   }
 
-  finish_ () {
+  /**
+   * Sets the Local Terminal Condition. Used internally by `walk()` instance method.
+   * @returns {boolean} always true (for call chaining).
+   * @private
+   */
+  finalize_ () {
     if (!(this._nWalks > 0)) throw new Error('Walk counter meltdown')
     if ((this._nWalks -= 1) === 0) {
-      this._duration = usecsFrom(this._started)
-      this._started = undefined
+      this._tTotal = usecsFrom(this._tStart)
+      this._tStart = undefined
     }
     return true
   }
 
+  /**
+   * Sets the Shared Terminal Condition. Used internally.
+   * @param {TWalkContext}  context
+   * @param {string}        locus
+   * @returns {number}              - always DO_ABORT.
+   * @private
+   */
   halt_ (context, locus) {
     if (this.halted === undefined) {
       (this.halted = omit(context, intimates)).locus = locus
@@ -372,11 +411,16 @@ class Walker {
 
   /**
    * Handle error if possible, register, terminate/reject if necessary.
-   * @private
+   * @param {Error}         error
+   * @param {TWalkContext}  context
+   * @param {string}        [locus]
+   * @returns {number}              - action code
+   * @protected
    */
-  onError_ (error, name, context) {
+  onError_ (error, context, locus = undefined) {
     this._nErrors += 1
-    ;(error.context = omit(context, shadow)).locus = name
+    if (locus !== undefined) context.locus = locus
+    ;(error.context = omit(context, shadow)).override  = this.getOverride(error, context)
 
     let r = this.onError(error, context)
 
@@ -387,7 +431,7 @@ class Walker {
       }
     } else {
       if (!(r instanceof Error)) r = error
-      this.halt_(context, name) && context.closure.end(r)
+      this.halt_(context, locus) && context.closure.end(r)
       r = DO_ABORT
     }
     return r
@@ -400,7 +444,7 @@ class Walker {
    * @param {string} startPath
    * @param {TWalkOptions} opts
    * @param {function(*,*=)} callback
-   * @private
+   * @protected
    */
   walk_ (startPath, opts, callback) {
     const data = opts.data || this.data || empty()
@@ -458,7 +502,7 @@ class Walker {
 
       if (context.done === undefined) {
         if (this._visited.has(context.absPath)) {
-          return checkEnd(this._nRepeated += 1)
+          return checkEnd(this._nRevoked += 1)
         }
         closure.threadCount += 1
         res = await this.execAsync_('onDir', context, context)
@@ -487,7 +531,7 @@ class Walker {
             if (v.done) break
             (entry = v.value) && (bad = undefined)
           } catch (error) {
-            res = this.onError_(bad = error, 'iterateDir', context)
+            res = this.onError_(bad = error, context, 'iterateDir')
           }
           if (res < DO_ABORT && bad === undefined) {
             entry = fromDirEntry(entry)
@@ -507,7 +551,7 @@ class Walker {
         try {   //  May be closed already by async iterator...
           await dir.close()
         } catch (error) {
-          res = max(res, this.onError_(error, 'closeDir', context))
+          res = max(res, this.onError_(error, context, 'closeDir'))
         }
         if (this.checkReturn_(res, context, 'closeDir') < DO_ABORT) {
           context.done = 'closeDir'

@@ -47,35 +47,35 @@ class Ruler {
      * Rule tree of nodes [entryType, rule, parent, action].
      * NB: negative action code means the action is masked out!
      * @type {any[][]}
-     * @private
+     * @protected
      */
     this._tree = [[T_DIR, GLOB_DIRS, NIL, DO_NOTHING]]
 
     /**
      * Pairs of (action, ruleIndex), set by clone(), used by check().
      * @type {number[][]}
-     * @private
+     * @protected
      */
     this._ancestors = [[DO_NOTHING, NIL]]
 
     /**
      * Array of (action, ruleIndex) set by check(), exposed via `lastMatch` property.
      * @type {number[][]}
-     * @private
+     * @protected
      */
     this._lastMatch = []
 
     /**
      * Action to be bound to next rule - used and possibly mutated by add().
      * @type {number}
-     * @private
+     * @protected
      */
     this._nextRuleAction = undefined
 
     /**
      * Options for string parser.
      * @type {Object}
-     * @private
+     * @protected
      */
     this._options = opts
 
@@ -96,7 +96,12 @@ class Ruler {
     return this.add_(args)
   }
 
-  /** @private */
+  /**
+   * Internal wrapper around `addPath_()`.
+   * @param {number|string|Array} definition
+   * @returns {Ruler}
+   * @protected
+   */
   add_ (definition) {
     switch (typeof definition) {
       case 'number':
@@ -104,16 +109,11 @@ class Ruler {
           'action code 0 is reserved')
         break
       case 'string':
-        if (definition === '/*/**/a') {
-          definition = '/*/**/a'
-        }
         this.addPath_(definition)
         break
       default:
         if (Array.isArray(definition)) {
           definition.forEach((item) => this.add_(item))
-          // } else if (definition instanceof Ruler) {
-          //  this.append_(definition)
         } else {
           assert(false, 'bad rule definition %o', definition)
         }
@@ -121,7 +121,31 @@ class Ruler {
     return this
   }
 
-  /** @private */
+  /**
+   * Parses the rule definition and calls the addRules_() method.
+   * @param {string} definition
+   * @returns {Ruler}
+   * @protected
+   */
+  addPath_ (definition) {
+    const rules = parsePath(definition, this._options)
+    const flags = rules.shift()
+
+    assert(rules.length, 'no rules in definition %o', definition)
+    let action = this._nextRuleAction
+    assert(action !== undefined, 'action code missing in rule definition %o', definition)
+    if (flags.isExclusion) action = -action
+    this.addRules_(rules, flags.type, action)
+    return this
+  }
+
+  /**
+   * Adds new rules to the tree.
+   * @param {string[]} rules
+   * @param type
+   * @param action
+   * @protected
+   */
   addRules_ (rules, type, action) {
     const last = rules.length - 1, { _tree } = this
     let parentIndex = NIL
@@ -144,23 +168,6 @@ class Ruler {
     })
     assert(parentIndex >= 0, 'addRules_', 'no node created')
     _tree[parentIndex][ACTION] = action
-  }
-
-  /**
-   * @param {string} path
-   * @returns {Ruler}
-   * @private
-   */
-  addPath_ (path) {
-    const rules = parsePath(path, this._options)
-    const flags = rules.shift()
-
-    assert(rules.length, 'no rules in definition %o', path)
-    let action = this._nextRuleAction
-    assert(action !== undefined, 'action code missing in rule definition %o', path)
-    if (flags.isExclusion) action = -action
-    this.addRules_(rules, flags.type, action)
-    return this
   }
 
   /**
