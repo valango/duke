@@ -103,7 +103,7 @@ stores the results it the entry instance and returns the _`check()`_ return valu
 This is the only place, where the _`Walker`_ actually checks the [rules](#rules).
 
 **`onError`**`(error: Error, context: TWalkContext) : *` - handler method<br />
-Called with trapped error after error.context has been set up.
+Called with trapped error after _`error.context`_ has been set up.
 Default just returns _`error.context.override`_.
 Returned action code will be checked for special values; a non-numeric return means this
 was an unexpected error rejecting the _walk_ promise.

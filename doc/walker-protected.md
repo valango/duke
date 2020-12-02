@@ -32,10 +32,10 @@ Then, if there was an exception, calls _`onError_()`_. Returns
 a numeric action code computed by _`checkResult_()`_.
 
 **`onError_`**`(error, context, [locusName])`<br />
-Sets the _`error.context`_ and calls _`onError()`_, which should check for a possible override.
-If _`onError`_ returns a numeric value, it is considered as an overriding _action code_ and
-the error instance is added to _`failures`_ instance property. If error was not overridden,
-sets the _Shared Terminal Condition_ and returns `DO_ABORT`.
+Calls _`getOverride()`_ and sets up _`error.context`_before calling _`onError()`_ handler.
+If _`onError`_ returns a numeric value, it is used as an overriding _action code_ and
+the error registers in _`failures`_ instance property. Without an override,
+sets _Shared Terminal Condition_ and returns `DO_ABORT`.
 
 **`walk_`**`(startPath, options : TWalkOptions, callback : function(error, data))`<br />
 Internal implementation of _`walk()`_ method. You should probably never override this one.
