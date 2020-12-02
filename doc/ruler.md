@@ -1,7 +1,7 @@
 ### _`Ruler`_ class
 Ruler instances serve for checking directory entries and are usually created and
 managed by _`Walker`_.
-The class declaration is in [src/Ruler/index.js](../src/Ruler/index.js).
+The class declaration is in [src/Ruler/index.js](https://github.com/valango/duke/blob/master/src/Ruler/index.js).
 
 **`constructor`**`([options,] ...rule)`<br />
    * `options.extended : boolean = true` - enable `{...}` syntax by using
@@ -9,7 +9,7 @@ The class declaration is in [src/Ruler/index.js](../src/Ruler/index.js).
    * `options.optimize : boolean = true`;
    * `rule `- applied to _`add`_ method.
    
-The package README describes [how it works](../README.md#rules).
+The package README describes [how it works](https://github.com/valango/duke/blob/master/README.md#rules).
 
 **`add`**`(...definition) : Ruler` - method<br />
 The `definition` parameter can be a number, string or array.
@@ -28,7 +28,8 @@ Returns the highest action value from all matching rules or DO_NOTHING.
 
 **`clone`**`([ancestors]) : Ruler` - method<br />
 Create an identical copy of the ruler instance, with _`ancestors`_ property
-set to supplied argument - see the [source code](../src/Ruler/index.js) for details.
+set to supplied argument - see the
+[source code](https://github.com/valango/duke/blob/master/src/Ruler/index.js) for details.
 
 **`dump`**`([options]) : string` - method<br />
 Used for debugging. Returns `undefined` in production environment.

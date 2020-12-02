@@ -1,6 +1,6 @@
 # dwalker [![Build Status](https://travis-ci.org/valango/duke.svg?branch=master)](https://travis-ci.org/valango/duke) [![Code coverage](https://codecov.io/gh/valango/duke/branch/master/graph/badge.svg)](https://codecov.io/gh/valango/duke)
 
-![](assets/quote.png)
+![](https://github.com/valango/duke/blob/master/assets/quote.png)
 
 Asynchronous rule-based file system walker. It:
    * does things most regexp-based walkers hardly can;
@@ -10,7 +10,7 @@ Asynchronous rule-based file system walker. It:
    * runs real fast.
 
 This is what a simple [demo app](doc/examples.md) does on my old 2,7 GHz MacBook Pro:
-![](assets/counts.png)
+![](https://github.com/valango/duke/blob/master/assets/counts.png)
 
 The version 5 is hugely different from its [ancestors](#version-history).
 
@@ -60,16 +60,17 @@ terminates a particular walk immediately and resolves the promise.
 ## API
 ### exports
    * [_**`Walker`** class_](#walker-class)
-   * [_**`Ruler`** class_](doc/ruler.md)
-   * [_constants_](src/constants.js)
+   * [_**`Ruler`** class_](https://github.com/valango/duke/blob/master/doc/ruler.md)
+   * [_constants_](https://github.com/valango/duke/blob/master/src/constants.js)
    * [_common helpers_](#common-helpers)
    
-Types referred to below are declared in [src/typedefs.js](src/typedefs.js).
+Types referred to below are declared in
+[src/typedefs.js](https://github.com/valango/duke/blob/master/src/typedefs.js).
 
 ### _`Walker`_ class
 The most of the magic happens here. 
-A brief overview of its [core concepts](doc/walker-concepts.md) may help
-to navigate in further details.
+A brief overview of its [core concepts](https://github.com/valango/duke/blob/master/doc/walker-concepts.md)
+may help to navigate in further details.
 
 **`constructor`**`(options : {TWalkerOptions})`<br />
    * `data : object = {}` - a shallow copy will be assigned to _`data`_ property.
@@ -178,7 +179,7 @@ Data values have no meaning to Walker, but may have one for application code.
 before injecting it to Error instance for logging.
 
 #### Walker protected API
-Is described in a [separate document](doc/walker-protected.md). 
+Is described in a [separate document](https://github.com/valango/duke/blob/master/doc/walker-protected.md). 
 
 ### Common helpers
 Those helpers are available via package exports and may be useful on writing handlers.
@@ -262,8 +263,9 @@ The sub-directories opened later will inherit new _`Ruler`_ instances with _`anc
 set to _`lastMatch`_ contents from the upper level.
 So, the actual rule matching is trivial, and the rules can be switched dynamically.
 
-For further details, check the [_`Ruler`_ reference](doc/ruler.md) and
-the special [demo app](doc/examples.md#parsejs). 
+For further details, check the
+[_`Ruler`_ reference](https://github.com/valango/duke/blob/master/doc/ruler.md) and
+the special [demo app](https://github.com/valango/duke/blob/master/doc/examples.md#parsejs). 
 
 ## Version history
 * v5.1.0 @20201121
