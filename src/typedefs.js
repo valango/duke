@@ -23,6 +23,7 @@
  * @property {string}   done        the last successfully completed op.
  * @property {Ruler}    ruler       currently active Ruler instance.
  * @property {function(...)} trace
+ * @property {number}   upperAction from onEntry handler on upper level.
  * @property {number}   [override]  in error.context only
  * @property {Array<*>} [args]      in error.context only
  * @property {string}   [locus]     in error.context or in `termination` property.
@@ -34,6 +35,7 @@
  * @property {*}                          [data]    to be shared between handlers.
  * @property {function(Object)}           [onDir]   handler
  * @property {function(Object,Object)}    [onEntry] handler
+ * @property {function(Error,Object)}     [onError] handler
  * @property {function(Object,Object[])}  [onFinal] handler
  * @property {function(...)}              [trace]   handler
  * @property {Ruler}                      [ruler]   Ruler instance.

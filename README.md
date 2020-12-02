@@ -112,10 +112,11 @@ Walker may provide the following _`context.locus`_ values:
 `'onDir', 'openDir', 'iterateDir', 'onEntry', 'closeDir', 'onFinal'`.
 Overriding handlers may define their own locus names.
 
-**`onFinal`**`(entries : [], context: TWalkContext, action : number) : *` - _async_ handler method<br />
+**`onFinal`**`(entries : [], context: TWalkContext, action : number) : number` - _async_ handler method<br />
 Called after all entries checked and directory closed.
 The _`action`_ is the highest action code returned by previous handlers in this cycle.
-Default just returns `DO_NOTHING`.
+Returning `DO_SKIP` or higher prevents walking any sub-directories.
+Default just returns `action`.
 
 **`reset`**`([hard : boolean]) : Walker` - method<br />
 Resets a possible _STC_. In a _hard_ case, it resets all internal state properties,

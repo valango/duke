@@ -200,10 +200,10 @@ class Walker {
    * @param {TDirEntry[]}  entries
    * @param {TWalkContext} context
    * @param {number}       action   - the most relevant action code from `onEntry`.
-   * @returns {Promise<number>}
+   * @returns {Promise<number>}     - DO_SKIP or higher prevents sub-dirs and links walking.
    */
   async onFinal (entries, context, action) {
-    return DO_NOTHING
+    return action
   }
 
   /**
@@ -419,8 +419,11 @@ class Walker {
    */
   onError_ (error, context, locus = undefined) {
     this._nErrors += 1
-    if (locus !== undefined) context.locus = locus
-    ;(error.context = omit(context, shadow)).override  = this.getOverride(error, context)
+
+    if (locus !== undefined) {
+      context.locus = locus
+    }
+    (error.context = omit(context, shadow)).override = this.getOverride(error, context)
 
     let r = this.onError(error, context)
 
@@ -465,7 +468,8 @@ class Walker {
       onFinal: opts.onFinal || this.onFinal,
       openDir,
       ruler: opts.ruler || this.ruler,
-      trace: opts.trace || this.trace
+      trace: opts.trace || this.trace,
+      upperAction: DO_NOTHING
     }]
 
     const closure = {
@@ -537,8 +541,8 @@ class Walker {
             entry = fromDirEntry(entry)
             res = this.execSync_('onEntry', context, entry, context)
             this._nEntries += 1
-            if ((action = max(action, res) >= DO_ABORT)) break
-            if (action < DO_SKIP) {
+            if (res === DO_SKIP) continue
+            if ((action = max(action, res)) < DO_ABORT) {
               if (entry.type === T_DIR) {
                 entries.push(entry)
               } else if (entry.type === T_SYMLINK && this._useSymLinks) {
@@ -572,7 +576,8 @@ class Walker {
               closure: undefined,
               done: undefined,
               depth: context.depth + 1,
-              ruler: context.ruler.clone(entry.match)
+              ruler: context.ruler.clone(entry.match),
+              upperAction: entry.action
             }
             fifo.push(ctx)
           }

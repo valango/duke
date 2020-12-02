@@ -52,7 +52,7 @@ describe(ME, () => {
     w.tick = () => (ticks += 1)
     await w.walk(ROOT, {
       onEntry,
-      trace: (key) => {
+      trace: (key /* , result, context, args */) => {
         t = w.duration
         track[key] = (track[key] || 0) + 1
       }
