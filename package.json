@@ -4,7 +4,7 @@
     "email": "villem.alango@gmail.com"
   },
   "name": "dwalker",
-  "version": "5.2.3",
+  "version": "5.2.4",
   "description": "Asynchronous rules-based file system walker.",
   "repository": {
     "type": "git",
