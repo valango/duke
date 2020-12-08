@@ -33,10 +33,10 @@
  * Options for Walker#walk...() instance methods and constructor.
  * @typedef {Object} TWalkOptions
  * @property {*}                          [data]    to be shared between handlers.
- * @property {function(Object)}           [onDir]   handler
- * @property {function(Object,Object)}    [onEntry] handler
+ * @property {function(Object):Promise}           [onDir]   handler
+ * @property {function(Object,Object):number}    [onEntry] handler
  * @property {function(Error,Object)}     [onError] handler
- * @property {function(Object,Object[])}  [onFinal] handler
+ * @property {function(*,*,*):Promise}     [onFinal] handler
  * @property {function(...)}              [trace]   handler
  * @property {Ruler}                      [ruler]   Ruler instance.
  */

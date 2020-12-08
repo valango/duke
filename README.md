@@ -9,7 +9,8 @@ Asynchronous rule-based file system walker. It:
    * provides powerful extendable API;
    * runs real fast.
 
-This is what a simple [demo app](doc/examples.md) does on my old 2,7 GHz MacBook Pro:
+This is what a simple [demo app](https://github.com/valango/duke/blob/master/doc/examples.md)
+does on my old 2,7 GHz MacBook Pro:
 ![](https://github.com/valango/duke/blob/master/assets/counts.png)
 
 The version 5 is hugely different from its [ancestors](#version-history).
@@ -96,7 +97,9 @@ has no effect.
 Sets up the **_STC_** _(Shared Terminal Condition)_; has no effect if it is already set.
 
 **`onDir`**`(context: TWalkContext) : *` - _async_ handler method<br />
-Called before opening the directory. Default just returns `DO_NOTHING`.
+Called before opening the directory. Default just returns `DO_NOTHING`.<br />
+_**NB:** It is not advisable to run async code here - the onFinal() is much better place
+for this. See the [list example](https://github.com/valango/duke/blob/master/examples/list.js)!_
 
 **`onEntry`**`(entry: TDirEntry, context: TWalkContext) : *` - handler method<br />
 Called for every entry in the current directory. Default calls _`context.ruler.check()`_,

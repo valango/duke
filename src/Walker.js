@@ -31,17 +31,17 @@ const usecsFrom = t0 => {
 
 /**
  * A static helper method so you don't have to import Ruler class explicitly.
- * @param rules
+ * @param {...*} args
  * @returns {Ruler}
  */
-const newRuler = (rules) => new Ruler(rules)
+const newRuler = (...args) => new Ruler(...args)
 
 /**
  * File system walk machinery.
  */
 class Walker {
   /**
-   * @param {TWalkerOptions=} options
+   * @param {Object} options
    * @constructor
    */
   constructor (options = {}) {
@@ -177,7 +177,6 @@ class Walker {
    */
   onEntry (entry, context) {
     const action = context.ruler.check(entry.name, entry.type)
-    entry.action = action
     entry.match = context.ruler.lastMatch
     return action
   }
@@ -247,7 +246,7 @@ class Walker {
 
   /**
    * For progress indicators.
-   * @type {function(number):?*}
+   * @type {function(*):*}
    */
   tick (countOfEntriesProcessed) {
   }
@@ -541,7 +540,8 @@ class Walker {
             entry = fromDirEntry(entry)
             res = this.execSync_('onEntry', context, entry, context)
             this._nEntries += 1
-            if (res === DO_SKIP) continue
+
+            if ((entry.action = res) === DO_SKIP) continue
             if ((action = max(action, res)) < DO_ABORT) {
               if (entry.type === T_DIR) {
                 entries.push(entry)
