@@ -7,5 +7,6 @@ module.exports = {
   /** @type {function(Walker):Walker} */
   leaksTrap: require('./leaksTrap'),
   parseCl: require('./parse-cl'),
+  /** @type {function(...*):boolean} */
   print: require('./print')
 }

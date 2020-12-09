@@ -2,8 +2,6 @@
 
 //  Sample application scanning for npm javascript projects
 //  and computing some simple statistics on them.
-
-/* eslint no-console:0 */
 'use strict'
 
 const { readFile } = require('fs').promises
@@ -122,7 +120,7 @@ const onFinal = async function (entries, context, action) {
   return action
 }
 
-walker.tick = count => process.stdout.write('Entries processed: ' + count + '\r')
+walker.tick = count => print('Entries processed: ' + count + '\r')
 
 //  Results formatting helper - see - that's more complex than the handlers logic!
 const composeResults = (data) => {
@@ -145,9 +143,6 @@ const composeResults = (data) => {
       const d = data[key], row = []
       let s = d[PATH].padEnd(maxPathLen + 1), v
 
-      if (!d[A_INSTALLED]) {
-        process.cwd()
-      }
       row.push(d[A_INSTALLED].length ? color.bgBlue(s) : s)
       ;(s = ((v = d[NAME] + '') || 'no name').padEnd(20)) && row.push(v ? s : N(s))
       ;(s = ((v = d[VERSION] + '') || '?').padEnd(8)) && row.push(v ? s : N(s))

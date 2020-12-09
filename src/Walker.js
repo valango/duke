@@ -246,7 +246,8 @@ class Walker {
 
   /**
    * For progress indicators.
-   * @type {function(*):*}
+   * @param {number} countOfEntriesProcessed
+   * @returns {*}
    */
   tick (countOfEntriesProcessed) {
   }

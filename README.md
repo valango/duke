@@ -98,8 +98,9 @@ Sets up the **_STC_** _(Shared Terminal Condition)_; has no effect if it is alre
 
 **`onDir`**`(context: TWalkContext) : *` - _async_ handler method<br />
 Called before opening the directory. Default just returns `DO_NOTHING`.<br />
-_**NB:** It is not advisable to run async code here - the onFinal() is much better place
+_**NB:** It is not advisable to run async code here - the `onFinal()` is much better place
 for this. See the [list example](https://github.com/valango/duke/blob/master/examples/list.js)!_
+Probably, this method will be _synchronous_ in future releases.
 
 **`onEntry`**`(entry: TDirEntry, context: TWalkContext) : *` - handler method<br />
 Called for every entry in the current directory. Default calls _`context.ruler.check()`_,
@@ -271,6 +272,8 @@ For further details, check the
 the special [demo app](https://github.com/valango/duke/blob/master/doc/examples.md#parsejs). 
 
 ## Version history
+* v5.2.0 @20201202
+   - added: Walker#getOverride instance method.
 * v5.1.0 @20201121
    - removed: hadAction(), hasAction() Ruler instance methods.
 * v5.0.0 @20201120
@@ -282,7 +285,7 @@ the special [demo app](https://github.com/valango/duke/blob/master/doc/examples.
    - Walker throws error if on illegal action code returned by handler;
    - added: Walker#expectedErrors, removed: Walker#getMaster;
    - added: check(), hadAction(), hasAction() to Ruler, removed: match();
-   - up-to-date documentation;
+   - an up-to-date documentation;
 * v3.1.0 @20200217
 * v3.0.0 @20200211
 * v2.0.0 @20200126
