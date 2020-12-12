@@ -40,7 +40,8 @@ const throwErrorAsync = async () => {
 }
 
 const testWalk = async (options, msg) => {
-  let res, w = new Walker({ rules: projectRules })
+  let res
+  const w = new Walker({ rules: projectRules })
   try {
     res = await w.walk(undefined, options)
   } catch (error) {

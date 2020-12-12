@@ -206,6 +206,11 @@ To use those helpers, load them first, like:
 ```javascript
 const symlinksFinal = require('dwalker/symlinksFinal')
 ```
+**`pathTranslate`**`(path, [absolute]) : string` function.<br />
+Translate the `path` from POSIX to native format, resolves the
+leading '~' to user home directory. If `absolute` is on, then
+makes the path absolute, always ending with path separator.
+
 **`relativize`**`(path, [rootPath, [prefix]]) : string` function.<br />
 Strips the _`rootPath`_ (defaulting to _`homeDir`_)part from given `path`, if it is there.
 Optional _`prefix`_ string will be applied to resulting relative path.

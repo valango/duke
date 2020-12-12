@@ -14,6 +14,7 @@ const { DO_ABORT, DO_NOTHING, DO_RETRY, DO_SKIP, DO_HALT, T_DIR, T_SYMLINK } =
         require('./constants')
 const Ruler = require('./Ruler')
 const { fromDirEntry } = require('./util/dirEntry')
+const pathTranslate = require('./helpers/pathTranslate')
 
 const { isNaN } = Number
 const { max } = Math
@@ -22,7 +23,7 @@ const empty = () => Object.create(null)
 const intimates = 'closure data onDir onEntry onError onFinal openDir trace'.split(' ')
 const nothing = Symbol('nothing')
 const shadow = intimates.concat('ruler')
-const termBySep = new RegExp('\\' + sep + '$')
+// const termBySep = new RegExp('\\' + sep + '$')
 
 const usecsFrom = t0 => {
   const t1 = process.hrtime(t0)
@@ -114,8 +115,7 @@ class Walker {
       } else if (path) {
         const t = typeof path, { _visited } = this
         if (t !== 'string') throw new TypeError(`expected string, received '${t}'`)
-        let p = resolve(path)
-        if (!termBySep.test(path)) p += sep
+        const p = pathTranslate(path, true)
         if (!_visited.has(p)) _visited.set(p, false)
       }
     }
@@ -459,11 +459,10 @@ class Walker {
    */
   walk_ (startPath, opts, callback) {
     const data = opts.data || this.data || empty()
+    const rootPath = pathTranslate(startPath, true)
     /* eslint-disable-next-line */
     let walkDirs_
-    let rootPath = resolve(startPath || '.')
 
-    if (!termBySep.test(rootPath)) rootPath += sep
     const fifo = [{
       absPath: rootPath,
       closure: undefined,

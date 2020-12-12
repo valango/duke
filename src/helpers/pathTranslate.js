@@ -1,6 +1,5 @@
 'use strict'
 
-const { join, resolve, sep } = require('path')
 const { homedir } = require('os')
 
 /**
@@ -11,20 +10,24 @@ const { homedir } = require('os')
  * @returns {string}
  */
 const pathTranslate = (givenPath, absolute = false) => {
-  let path = givenPath
+  const { core } = exports, { join, sep } = core
+  let path = givenPath || '.'
 
   //  Translate from Posix, if necessary.
   if (sep !== '/') {
     path = path.split('/').join(sep)
   }
   //  Translate user homedir, if present.
-  if (path.indexOf('~' + sep) === 0) {
+  if (path.indexOf('~' + sep) === 0 || path === '~') {
     path = join(homedir(), path.substring(1))
   }
   if (absolute) {
-    path = join(resolve(path), sep)
+    path = join(core.resolve(path), sep)
   }
   return path
 }
 
-module.exports = pathTranslate
+exports = module.exports = pathTranslate
+
+//  For testing
+exports.core = require('path')
