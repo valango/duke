@@ -161,7 +161,7 @@ class Walker {
    *
    * @async
    * @param {TWalkContext} context
-   * @returns {number}  action code.
+   * @returns {Promise<number>}  action code.
    */
   async onDir (context) {
     return DO_NOTHING
@@ -198,11 +198,11 @@ class Walker {
    * @async
    * @param {TDirEntry[]}  entries
    * @param {TWalkContext} context
-   * @param {number}       action   - the most relevant action code from `onEntry`.
+   * @param {number}       recentAction - the most relevant action code from `onEntry`.
    * @returns {Promise<number>}     - DO_SKIP or higher prevents sub-dirs and links walking.
    */
-  async onFinal (entries, context, action) {
-    return action
+  async onFinal (entries, context, recentAction) {
+    return recentAction
   }
 
   /**
@@ -337,7 +337,11 @@ class Walker {
         .then(result => {
           if (isNaN(closure.threadCount)) return closure.end(null, context.data)
 
+          if (result instanceof Error) {
+            result = this.onError_(result, context, functionName)
+          }
           context.trace(functionName, result, context, args)
+
           if (result === DO_RETRY) {
             if (closure.threadCount === 1) {
               this.halt_(context, functionName + '.RETRY')
@@ -355,7 +359,7 @@ class Walker {
         })
     } catch (e) {
       /* eslint-disable-next-line */
-      console.log('execAsync_', functionName, context.absPath)
+      console.error('execAsync_', functionName, context.absPath)
       throw e
     }
   }
@@ -373,6 +377,10 @@ class Walker {
 
     try {
       result = apply(context[functionName], this, args)
+
+      if (result instanceof Error) {
+        result = this.onError_(result, context, functionName)
+      }
       context.trace(functionName, result, context, args)
     } catch (error) {
       result = this.onError_(error, context, functionName)
@@ -451,12 +459,13 @@ class Walker {
    */
   walk_ (startPath, opts, callback) {
     const data = opts.data || this.data || empty()
-    const rootPath = resolve(startPath || '.')
     /* eslint-disable-next-line */
-    let doDirs
+    let walkDirs_
+    let rootPath = resolve(startPath || '.')
 
+    if (!termBySep.test(rootPath)) rootPath += sep
     const fifo = [{
-      absPath: termBySep.test(rootPath) ? rootPath : rootPath + sep,
+      absPath: rootPath,
       closure: undefined,
       current: undefined,
       data,
@@ -467,6 +476,7 @@ class Walker {
       onError: opts.onError || this.onError,
       onFinal: opts.onFinal || this.onFinal,
       openDir,
+      rootPath,
       ruler: opts.ruler || this.ruler,
       trace: opts.trace || this.trace,
       upperAction: DO_NOTHING
@@ -588,10 +598,10 @@ class Walker {
       if (checkEnd()) {
         return
       }
-      setTimeout(doDirs, 0)
+      setTimeout(walkDirs_, 0)
     }
 
-    doDirs = () => {
+    walkDirs_ = () => {
       const t = Date.now()
 
       if (t >= this._nextTick && (!isNaN(closure.threadCount))) {
@@ -605,7 +615,7 @@ class Walker {
     }
 
     this._nEntries += 1
-    doDirs()
+    walkDirs_()
   }
 }
 

@@ -27,8 +27,27 @@ const onEntry = function (entry, ctx) {
   return action
 }
 
-const throwTest = () => {
+const returnError = () => new Error('Test')
+
+const returnErrorAsync = async () => returnError()
+
+const throwError = () => {
   throw new Error('Test')
+}
+
+const throwErrorAsync = async () => {
+  return throwError()
+}
+
+const testWalk = async (options, msg) => {
+  let res, w = new Walker({ rules: projectRules })
+  try {
+    res = await w.walk(undefined, options)
+  } catch (error) {
+    res = error
+  }
+  expect(res).to.be.instanceOf(Error, 'DID NOT THROW ' + msg)
+  return w
 }
 
 describe(ME, () => {
@@ -76,13 +95,10 @@ describe(ME, () => {
   })
 
   it('should do default error handling', async () => {
-    try {
-      await w.walk(undefined, { onEntry: throwTest })
-    } catch (error) {
-      expect(error.context.locus).to.equal('onEntry')
-      return
-    }
-    expect(false).to.eql(true)
+    testWalk({ onEntry: throwError }, 'throw')
+    testWalk({ onEntry: returnError }, 'return')
+    testWalk({ onFinal: throwErrorAsync }, 'async throw')
+    testWalk({ onFinal: returnErrorAsync }, 'async return')
   })
 
   it('should halt', async () => {
@@ -113,7 +129,7 @@ describe(ME, () => {
   })
 
   it('should immediately return non-numeric', async () => {
-    const e = new Error('Test')
+    const e = {}
     const r = await w.walk(undefined, { onFinal: async () => e })
     expect(r).to.equal(e)
     expect(w.visited.size).to.equal(1)

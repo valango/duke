@@ -17,10 +17,11 @@
  * @typedef {Object} TWalkContext
  * @property {string}   absPath     separator-terminated absolute path
  * @property {Object}   [closure]   used internally.
- * @property {Object}   current     entry in {@link Walker#visited}.
+ * @property {Object}   current     reserved for application.
  * @property {*}        data        to be returned by {@link Walker#walk} method.
- * @property {number}   depth       0 for `rootDir`.
+ * @property {number}   depth       0 for `rootPath` and increased, but never used!
  * @property {string}   done        the last successfully completed op.
+ * @property {string}   rootPath    where the walk started from.
  * @property {Ruler}    ruler       currently active Ruler instance.
  * @property {function(...)} trace
  * @property {number}   upperAction from onEntry handler on upper level.
