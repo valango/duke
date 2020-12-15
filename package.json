@@ -15,6 +15,7 @@
     "LICENSE",
     "doc/*.md",
     "dumpRuler.js",
+    "pathTranslate.js",
     "relativize.js",
     "src",
     "symlinksFinal.js"
