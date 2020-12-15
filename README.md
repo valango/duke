@@ -87,27 +87,25 @@ _Walker_ instance stores given (even unrecognized) options in private _`_options
 Injects the _paths_ into _`visited`_ collection thus preventing them from being visited.
 The arguments must be strings or arrays of strings - absolute or relative paths.
 
+**`getDataFor`**`(dirPath) : * ` - method<br/ >
+For accessing the data in the internal dictionary. Empty entries are created there before calling
+the _`onDir()`_ handler. Walker itself does not use those values.
+
 **`getOverride`**`(error) : number` - method<br />
 Returns overriding action code current error and context.
 Walker calls it internally and assigns its numeric return value
 to `error.context.override` before calling `onError()` handler. Non-number return value
 has no effect.
 
-**`halt`**`([context,] [details]) : Walker` - method<br />
-Sets up the **_STC_** _(Shared Terminal Condition)_; has no effect if it is already set.
+**`onDir`**`(context: TDirContext) : *` - _async_ handler method<br />
+Called before opening the directory. Default just returns `DO_NOTHING`.
 
-**`onDir`**`(context: TWalkContext) : *` - _async_ handler method<br />
-Called before opening the directory. Default just returns `DO_NOTHING`.<br />
-_**NB:** It is not advisable to run async code here - the `onFinal()` is much better place
-for this. See the [list example](https://github.com/valango/duke/blob/master/examples/list.js)!_
-Probably, this method will be _synchronous_ in future releases.
-
-**`onEntry`**`(entry: TDirEntry, context: TWalkContext) : *` - handler method<br />
+**`onEntry`**`(entry: TDirEntry, context: TDirContext) : *` - handler method<br />
 Called for every entry in the current directory. Default calls _`context.ruler.check()`_,
 stores the results it the entry instance and returns the _`check()`_ return value.
 This is the only place, where the _`Walker`_ actually checks the [rules](#rules).
 
-**`onError`**`(error: Error, context: TWalkContext) : *` - handler method<br />
+**`onError`**`(error: Error, context: TDirContext) : *` - handler method<br />
 Called with trapped error after _`error.context`_ has been set up.
 Default just returns _`error.context.override`_.
 Returned action code will be checked for special values; a non-numeric return means this
@@ -117,11 +115,9 @@ Walker may provide the following _`context.locus`_ values:
 `'onDir', 'openDir', 'iterateDir', 'onEntry', 'closeDir', 'onFinal'`.
 Overriding handlers may define their own locus names.
 
-**`onFinal`**`(entries : [], context: TWalkContext, action : number) : number` - _async_ handler method<br />
+**`onFinal`**`(entries : [], context: TDirContext, action : number) : number` - _async_ handler method<br />
 Called after all entries checked and directory closed.
 The _`action`_ is the highest action code returned by previous handlers in this cycle.
-Returning `DO_SKIP` or higher prevents walking any sub-directories.
-Default just returns `action`.
 
 **`reset`**`([hard : boolean]) : Walker` - method<br />
 Resets a possible _STC_. In a _hard_ case, it resets all internal state properties,
@@ -144,20 +140,13 @@ The promise resolves to _`data`_, to non-numeric return value from a handler or
 rejects to unexpected error instance.
 
 #### Walker instance properties
-**`data`**` : *` - will be available to all _walks_.
-
 **`duration`**` : number` - microseconds elapsed from start of the current _walk batch_
 or duration of the most recent batch.
 
 **`failures`**` : Error[]` - all errors overridden during walk. The error instances
-will have a `context : TWalkContext` property set.
+will have a `context : TDirContext` property set.
 
-**`halted`**` : *` - a non-`undefined` value means _STC_.
-**Do not mutate** it directly, use _`halt()`_ method instead!
-
-**`interval`**` : number = 200` - minimal msecs between _`tick()`_ calls, 0 disables ticking.
-
-**`ruler`**` : Ruler r/o` - initial ruler instance for a new walk.
+**`ruler`**` : Ruler` - initial ruler instance for a new walk.
 
 **`stats`**` : Object r/o` - general statistics as object with numeric properties:
    * `dirs` - number of visited directories;
@@ -165,10 +154,7 @@ will have a `context : TWalkContext` property set.
    * `errors` - number of exceptions encountered;
    * `retries` - number of operation retries (e.g. in case of out of file handles);
    * `revoked` - number of directories recognized as already visited (may happen with **`symlinks`** option set);
-   * `walks` - number of walks currently active.
-   
-**`visited`**` : Map r/o` - a Map instance keyed with absolute directory paths.
-Data values have no meaning to Walker, but may have one for application code.
+   * `walks` - number of _currently active_ walks.
 
 **`walks`**` : number r/o` - number of currently active walks.
 

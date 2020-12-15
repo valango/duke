@@ -23,7 +23,7 @@ module.exports = function dump (options = true) {
       mask = opts.split(/\W+/g)
     } else if (typeof opts === 'number') {
       mask = [opts]
-    } else if (Array.isArray(opts)) {
+    } else if (opts instanceof Array) {
       mask = opts
     }
     opts = { colors: true }

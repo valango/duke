@@ -6,7 +6,7 @@ const { homedir } = require('os')
  * Translate a (possibly) POSIX path to native OS format; replace leading '~' w homedir.
  *
  * @param {string} givenPath
- * @param {boolean} [absolute] - require the result to be separator-terminated absolute path.
+ * @param {boolean} [absolute] - require the result to be absolute path.
  * @returns {string}
  */
 const pathTranslate = (givenPath, absolute = false) => {
@@ -19,12 +19,10 @@ const pathTranslate = (givenPath, absolute = false) => {
   }
   //  Translate user homedir, if present.
   if (path.indexOf('~' + sep) === 0 || path === '~') {
-    path = join(homedir(), path.substring(1))
+    path = join(homedir(), path.slice(1))
   }
-  if (absolute) {
-    path = join(core.resolve(path), sep)
-  }
-  return path
+
+  return absolute ? core.resolve(path) : path
 }
 
 exports = module.exports = pathTranslate

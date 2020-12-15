@@ -4,11 +4,10 @@
 //  and computing some simple statistics on them.
 'use strict'
 
-const { readFile } = require('fs').promises
 const { inspect } = require('util')
 const color = require('chalk')
-const { DO_NOTHING, DO_ABORT, DO_CHECK, DO_SKIP, T_DIR, Walker } = require('..')
-const { dumpFailures, leaksTrap, parseCl, print } = require('./util')
+const { DO_NOTHING, DO_ABORT, DO_SKIP, Walker } = require('..')
+const { dumpFailures, leaksTrap, parseCl, print, readPackage } = require('./util')
 const relativize = require('../relativize')
 
 const { max } = Math
@@ -18,7 +17,7 @@ const HELP = `Scan directories for Node.js projects, sorting output by actual pr
   Counting .js files will ignore those in '/test' or 'vendor' directories or in
   directories containing .html files (like code coverage report).
   Projects containing '/test' directory will be flagged by 'T'.`
-const OPTS = { verbose: ['v', 'talk a *lot*'] }
+const OPTS = { verbose: ['v', 'talk a *lot*'], trace: ['t', 'beyond verbose'] }
 
 //  Project-specific actions (also data array indexes)
 const PATH = 0
@@ -37,21 +36,18 @@ const SIZE = 10
 //  The statistics will be collected even before the project is detected
 //  but it will be discarded if it wasn't a project.
 const defaultRules = [
-  DO_SKIP, '.*/',
-  DO_ABORT, 'lcov-report/', 'lcov.info',
-  DO_CHECK, 'package.json;f',
-  A_FILES, '*.js*', '*.vue', '*.ts', '!package.json',
-  A_INSTALLED, 'node_modules/',
-  A_DOCS, '*.md', '!README*.md',
-  A_TESTS, 'test*/',
-  A_SPECIALS, '*.yml', 'README*;f', 'LICENSE*;f'
+  DO_ABORT, '*.app/', '*.exe',
+  DO_SKIP, '.*/', 'node_modules/'
 ]
 
 const projectRules = [
-  [DO_SKIP, 'node_modules/', '.*/', 'vendor/'],
+  [DO_SKIP, '.*/', 'vendor/', '!/.git/', '!/.*.yml'],
+  [A_GIT, '/.git/'],
   [A_FILES, '*.js*', '*.vue', '*.ts'],
-  [A_NESTED, 'package.json;f'],
-  [A_DOCS, '*.md']
+  [A_NESTED, '*/**/package.json'],
+  [A_INSTALLED, '/node_modules/'],
+  [A_DOCS, '*/**/*.md'],
+  [A_SPECIALS, '/README*', '/LICENSE*', '/.*.yml']
 ]
 
 const { args, options } = parseCl(OPTS, HELP, true)   //  Command-line interface.
@@ -62,65 +58,49 @@ const data = {}
 const walker = leaksTrap(new Walker({ rules: defaultRules }))
   .avoid(relativize.homeDir + 'Library', '/Applications', '/Library')
 
-//  Uncomment this, if you _really_ like a mess on your screen. ;)
-/* walker.trace = (name, result, context, args) => {
-  console.log(context.absPath, args[0])
-} /* */
-
-//  Todo: move to different file!
-const parsePackage = pack => {
-  try {
-    return JSON.parse(pack.toString())  //  Todo: add content checking!
-  } catch (error) {
-    return error
+if (options.trace) {
+  walker.trace = (locus, value, context, args) => {
+    console.log(context.dirPath, locus, value >= 0 ? value : '[Object]')
   }
 }
 
 // Initialize a project data - just in case ;)
 const onDir = async function (context) {
-  let { absPath, current } = context
+  let { current, data, project, dirPath } = context, tmp
 
-  if (current && context.data[current[PATH]] === current) {
-    return this.onDir(context)        //  We are in recognized project already.
+  if (project === undefined) {
+    if ((tmp = await readPackage(dirPath)).error) return tmp.error
+
+    if (tmp.json) {
+      project = new Int8Array(SIZE).reduce(a => (a.push([]) && a), [])
+      project[PATH] = dirPath
+      project[NAME] = tmp.json.name
+      project[VERSION] = tmp.json.version
+      project[PATH] = dirPath
+      data[dirPath] = (context.project = project)
+      context.ruler = Walker.newRuler(projectRules)
+    }
+  } else {
+    current.project = project
   }
-  context.current = current = new Array(SIZE)
-  for (let i = A_FILES; i <= A_INSTALLED; ++i) current[i] = []
-  current[PATH] = absPath
   return DO_NOTHING
 }
 
 //  Handle some special cases.
 const onEntry = function (entry, context) {
   let action = this.onEntry(entry, context)
-  const { current } = context, { name } = entry
+  const { project } = context, { name } = entry
 
-  if (action < SIZE && action > DO_NOTHING) {
-    current[action].push(name)
+  if (project && action < SIZE && action > DO_NOTHING) {
+    project[action].push(name)
     if (action === A_INSTALLED) action = DO_SKIP
-  } else if (entry.type === T_DIR && name === '.git') {
-    current[A_GIT].push(name)
+    // } else if (entry.type === T_DIR && name === '.git') {
+    //   current[A_GIT].push(name)
   }
   return action
 }
 
-//  If there was a project recognized, then initialize and register this.
-const onFinal = async function (entries, context, action) {
-  if (action < DO_SKIP) {
-    const { absPath, current } = context
-
-    if (action === DO_CHECK) {
-      const pack = parsePackage(await readFile(absPath + 'package.json'))
-      const v = pack.name
-      current[NAME] = (v && v.length > 20) ? v.substring(0, 17) + '...' : v
-      current[VERSION] = pack.version
-      context.ruler = Walker.newRuler(projectRules)
-      context.data[absPath] = current
-    }
-  }
-  return action
-}
-
-walker.tick = count => print('Entries processed: ' + count + '\r')
+walker.tick = count => process.stdout.write('Entries processed: ' + count + '\r')
 
 //  Results formatting helper - see - that's more complex than the handlers logic!
 const composeResults = (data) => {
@@ -130,7 +110,7 @@ const composeResults = (data) => {
   res.push(`Projects detected: ${keys.length}`, '')
 
   for (const key of keys) {
-    let s = relativize(data[key][PATH])
+    let s = relativize(key)
 
     if (s.length > LIMIT) {
       s = s.substring(0, LIMIT - 2) + '...'
@@ -158,7 +138,7 @@ const composeResults = (data) => {
   return res
 }
 
-Promise.all(args.map(dir => walker.walk(dir, { data, onDir, onEntry, onFinal }))).then(res => {
+Promise.all(args.map(dir => walker.walk(dir, { data, onDir, onEntry }))).then(res => {
   print('******* DONE *******      ')
   if (options.verbose) print(inspect(res, { depth: 10 }))
   print(composeResults(data).join('\n'))

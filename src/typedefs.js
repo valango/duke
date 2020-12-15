@@ -13,33 +13,33 @@
  */
 
 /**
- * Data context {@link Walker#walk} provides handler methods / plugins with.
- * @typedef {Object} TWalkContext
- * @property {string}   absPath     separator-terminated absolute path
+ * Data context {@link Walker#walk} available when walking the current directory.
+ * @typedef {Object} TDirContext
+ * @property {Array<*>} [args]      in error.context only
  * @property {Object}   [closure]   used internally.
- * @property {Object}   current     reserved for application.
+ * @property {Object}   current     the data from this._visited[dirPath]
  * @property {*}        data        to be returned by {@link Walker#walk} method.
  * @property {number}   depth       0 for `rootPath` and increased, but never used!
- * @property {string}   done        the last successfully completed op.
+ * @property {string}   dirPath     current directory absolute path
+ * @property {string}   [done]      the last successfully completed op.
+ * @property {string}   [locus]     in error.context or in `termination` property.
+ * @property {*}        [onDir]
+ * @property {*}        [onEntry]
+ * @property {*}        [onFinal]
+ * @property {number}   [override]  in error.context only.
+ * @property {Object}   project     reserved for application.
  * @property {string}   rootPath    where the walk started from.
  * @property {Ruler}    ruler       currently active Ruler instance.
- * @property {function(...)} trace
- * @property {number}   upperAction from onEntry handler on upper level.
- * @property {number}   [override]  in error.context only
- * @property {Array<*>} [args]      in error.context only
- * @property {string}   [locus]     in error.context or in `termination` property.
  */
 
 /**
  * Options for Walker#walk...() instance methods and constructor.
  * @typedef {Object} TWalkOptions
- * @property {*}                          [data]    to be shared between handlers.
- * @property {function(Object):Promise}           [onDir]   handler
- * @property {function(Object,Object):number}    [onEntry] handler
- * @property {function(Error,Object)}     [onError] handler
- * @property {function(*,*,*):Promise}     [onFinal] handler
- * @property {function(...)}              [trace]   handler
- * @property {Ruler}                      [ruler]   Ruler instance.
+ * @property {*}                              [data]
+ * @property {function(Object):Promise}       [onDir]   handler
+ * @property {function(Object,Object):number} [onEntry] handler
+ * @property {function(*,*,*):Promise}        [onFinal] handler
+ * @property {Ruler}                          [ruler]   Ruler instance.
  */
 
 /**

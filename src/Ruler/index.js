@@ -112,7 +112,7 @@ class Ruler {
         this.addPath_(definition)
         break
       default:
-        if (Array.isArray(definition)) {
+        if (definition instanceof Array) {
           definition.forEach((item) => this.add_(item))
         } else {
           assert(false, 'bad rule definition %o', definition)
@@ -233,7 +233,7 @@ class Ruler {
     let a = ancestors
     const c = new Ruler(this._options)
 
-    if (!Array.isArray(a)) {
+    if (!(a instanceof Array)) {
       a = (a && this._lastMatch) || this._ancestors
     }
     c._ancestors = a.slice()

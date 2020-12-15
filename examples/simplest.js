@@ -1,10 +1,9 @@
 'use strict'
 
-const walker = new (require('.')).Walker()
+const walker = new (require('..')).Walker()
 const print = require('./util/print')
-const dirs = '/dev ..'.split(' ')
 
-Promise.all(dirs.map(dir => walker.walk(dir))).then(res => {
+walker.walk('..').then(res => {
   print('Finished!', res.length)
 }).catch(error => {
   print('Exception!', error)

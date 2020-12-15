@@ -31,3 +31,36 @@ _Handler_ usually returns an _Action_ code.
 
 _**Action**_ code is a numeric value returned by _Handler_. 
 Some (`DO_SKIP`, `DO_ABORT`, `DO_RETRY`, `DO_TERMINATE`) have special meaning for _`Walker`_.
+
+## Handler details
+The handler functions _`onDir`_, _`onEntry`_ and _`onFinal`_ may be Walker instance methods or
+may be injected via _`walk()`_ method options. The onEntry must be synchronous function.
+
+### Context argument
+
+The context argument always provided for these handlers has some members of special importance:
+   * data should be used as a common namespace for the current walk (launched by _`walk()`_ call).
+   It is a good place to store the finalized data from file system.
+   You may provide this value via walk() options. Without this option, the data will be a separate
+   array for every walk() call.
+   * dirPath is the current directory absolute path.
+   * current is the object value held in the internal dictionary of visited directories. It is empty,
+   but application code may use it in any possible way.
+   * project is for application use. Its value inherits to sub-directories contexts.
+   
+### Return values
+Some **_numeric action codes_** have special effect on Walker operation:
+   * DO_ABORT terminates walking of the current directory and its subdirectories. Fas no effect from onFinal.
+   * DO_HALT will terminate all walks in progress and will set up the halt condition disabling the Walker instance
+   until reset() is called.
+   * DO_SKIP has effect from onEntry only and results the current directory entry to be ignored.
+   
+_**Error instance**_ returned is equivalent to it to bne thrown - the result depends on error how this
+particular error handles by _override rules_ ands _`onError()`_ instance method.
+
+_**Any other non-numeric value**_ cases the walk to terminate and resolve to this value, terminating
+other sub-walks in progress.
+   
+   
+
+
