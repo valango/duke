@@ -1,5 +1,7 @@
 # dwalker [![Build Status](https://travis-ci.org/valango/duke.svg?branch=master)](https://travis-ci.org/valango/duke) [![Code coverage](https://codecov.io/gh/valango/duke/branch/master/graph/badge.svg)](https://codecov.io/gh/valango/duke)
 
+**NB:** A major update is on it's way before Dec-17, 2020!
+
 ![](https://github.com/valango/duke/blob/master/assets/quote.png)
 
 Asynchronous rule-based file system walker. It:
