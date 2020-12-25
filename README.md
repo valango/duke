@@ -1,7 +1,5 @@
 # dwalker [![Build Status](https://travis-ci.org/valango/duke.svg?branch=master)](https://travis-ci.org/valango/duke) [![Code coverage](https://codecov.io/gh/valango/duke/branch/master/graph/badge.svg)](https://codecov.io/gh/valango/duke)
 
-**NB:** A major update is on it's way before Dec-17, 2020!
-
 ![](https://github.com/valango/duke/blob/master/assets/quote.png)
 
 Asynchronous rule-based file system walker. It:
@@ -15,7 +13,7 @@ This is what a simple [demo app](https://github.com/valango/duke/blob/master/doc
 does on my old 2,7 GHz MacBook Pro:
 ![](https://github.com/valango/duke/blob/master/assets/counts.png)
 
-The version 5 is hugely different from its [ancestors](#version-history).
+The version 6 is hugely different from its [ancestors](#version-history).
 
 ## Usage
 **NB:** This package needs Node.js v12.12 or higher.
