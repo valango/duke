@@ -28,14 +28,14 @@ const walker = new (require('dwalker')).Walker()
 const dirs = '/dev ..'.split(' ')
 
 Promise.all(dirs.map(dir => walker.walk(dir))).then(res => {
-  console.log('Finished!', res.length)
+  console.log('Done(%d):', res.length)
 }).catch(error => {
   console.log('Exception!', error)
 }).finally(() => {
   console.log(walker.stats)
 })
-// -> Finished! 2
-// -> { dirs: 2471, entries: 16181, errors: 2472, retries: 0, revoked: 0 }
+// -> Done(1): { dirs: 8462, entries: 65444, errors: 2472, retries: 0, revoked: 0 }
+// -> Elapsed: 1012 ms
 ```
 ### How it works
 The _`Walker#walk()`_ method recursively walks the directory tree width-first.
@@ -263,6 +263,11 @@ For further details, check the
 the special [demo app](https://github.com/valango/duke/blob/master/doc/examples.md#parsejs). 
 
 ## Version history
+* v6.0.0 @20201225
+   - cleaned code and API (breaking changes) after using dWalker in some actual projects,
+   so the basic use cases are clear now. As the general concepts persist,
+   migration sould not be a major headache and reading the updated
+   [core concepts](https://github.com/valango/duke/blob/master/doc/walker-concepts.md) should help.
 * v5.2.0 @20201202
    - added: Walker#getOverride instance method.
 * v5.1.0 @20201121

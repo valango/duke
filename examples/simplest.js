@@ -1,10 +1,12 @@
+#!/usr/bin/env node
 'use strict'
+//  Walks the upper directory gathering rudimentary statistics.
 
 const walker = new (require('..')).Walker()
 const print = require('./util/print')
 
 walker.walk('..').then(res => {
-  print('Finished!', res.length)
+  print('Finished!')
 }).catch(error => {
   print('Exception!', error)
 }).finally(() => {
