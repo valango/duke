@@ -16,12 +16,6 @@
   
 ### Protected methods
 
-**`checkReturn_`**`(value, context, locusName)`<br />
-Checks the value presumably returned by a handler function. It this is `DO_HALT`, then
-sets both _Local_ and _Shared Terminal Condition_. If value is not a number type, then
-the _Local Terminal Condition_ is set and walk promise will resolve to this value.
-Return a numeric action code (`DO_ABORT` if Terminal Condition set).
-
 **`execAsync_`**`(functionName, context, ...args) : Promise<*>`<br />
 Asynchronous form of _`execSync_()`_. It also handles `DO_RETRY` actions and internal
 filesystem API calls.
@@ -36,6 +30,3 @@ Calls _`getOverride()`_ and sets up _`error.context`_before calling _`onError()`
 If _`onError`_ returns a numeric value, it is used as an overriding _action code_ and
 the error registers in _`failures`_ instance property. Without an override,
 sets _Shared Terminal Condition_ and returns `DO_ABORT`.
-
-**`walk_`**`(startPath, options : TWalkOptions, callback : function(error, data))`<br />
-Internal implementation of _`walk()`_ method. You should probably never override this one.

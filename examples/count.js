@@ -31,13 +31,12 @@ const onEntry = function ({ name, type }, context) {
 }
 
 const onFinal = async function (entries, context, action) {
-  const { absPath, depth } = context
+  const { dirPath, depth } = context
 
   if (depth > extremes.maxDepth) {
-    (extremes.deepest = absPath) && (extremes.maxDepth = depth)
+    (extremes.deepest = dirPath) && (extremes.maxDepth = depth)
   }
 
-  //  NB: DO_SKIP or above codes may result from overridden errors!
   return (action < DO_SKIP && this._useSymLinks)
     ? symlinksFinal.call(this, entries, context) : action
 }
@@ -45,14 +44,14 @@ const onFinal = async function (entries, context, action) {
 /** @type {Walker} */
 const walker = leaksTrap(new Walker(options))
 
-walker.tick = count => print('Entries processed: ' + count + '\r')
+walker.tick = count => process.stdout.write('Entries processed: ' + count + '\r')
 
 //  Uncomment this, if you _really_ like a lot of mess on your screen.
 /* walker.trace = (name, result, closure, args) => {
-  if (name !== 'xonEntry' && !/node_modules\/./.test(closure.absPath)) {
+  if (name !== 'xonEntry' && !/node_modules\/./.test(closure.dirPath)) {
     let s = args[0]
     if (s && typeof s === 'object') s = s.name || '*'
-    console.log(relativize(closure.absPath), name,
+    console.log(relativize(closure.dirPath), name,
       typeof result === 'number' ? result : '*', s)
   }
 } /* */

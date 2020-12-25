@@ -34,7 +34,7 @@ describe('symlinksFinal', () => {
   it('should ignore', async () => {
     expect(await target(
       [createDirEntry('x1', T_DIR, 0), createDirEntry('x2', T_SYMLINK, DO_SKIP)],
-      { absPath: sep + 'foo', closure: {} })).to.equal(0)
+      { ownPath: sep + 'foo', closure: {} })).to.equal(0)
   })
 
   it('should do', async () => {
@@ -45,7 +45,7 @@ describe('symlinksFinal', () => {
       createDirEntry('d1l1', T_SYMLINK, 42)
     ]
     expect(await target.call(me, entries,
-      { absPath: sep + 'd1' + sep, closure: {} })).to.equal(0)
+      { ownPath: sep + 'd1' + sep, closure: {} })).to.equal(0)
     expect(me.failures.length).to.equal(2)
     expect(me.failures[0].message).to.match(/broken\ssymlink/)
     expect(me.failures[1].message).to.match(/broken\ssymlink/)
@@ -58,7 +58,7 @@ describe('symlinksFinal', () => {
       createDirEntry('d1l2', T_SYMLINK, 0),
       createDirEntry('nope', T_SYMLINK, 0)
     ]
-    expect(await target.call(me, entries, { absPath: '/d1/', closure: {} })).to.equal(0)
+    expect(await target.call(me, entries, { ownPath: '/d1/', closure: {} })).to.equal(0)
     expect(me.failures.length).to.equal(0)
     // console.log(me.failures.map(e => e.message))
   })

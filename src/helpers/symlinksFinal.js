@@ -30,12 +30,12 @@ const { isNaN } = Number
  * }
  */
 function symlinksFinal (entries, context) {
-  const { absPath, closure } = context
+  const { ownPath, closure } = context
 
   return Promise.all(entries.map(({ action, name, type }, index) => {
     if (type !== T_SYMLINK || action >= DO_SKIP) return DO_NOTHING
 
-    const path = absPath + name
+    const path = ownPath + name
 
     return stat(path)
       .then(st => {

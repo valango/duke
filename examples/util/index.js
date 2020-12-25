@@ -8,5 +8,6 @@ module.exports = {
   leaksTrap: require('./leaksTrap'),
   parseCl: require('./parse-cl'),
   /** @type {function(...*):boolean} */
-  print: require('./print')
+  print: require('./print'),
+  readPackage: require('./read-package')
 }

@@ -23,7 +23,7 @@ let w, actionCounts
 const onEntry = function (entry, ctx) {
   const action = this.onEntry(entry, ctx)
   actionCounts[action] = (actionCounts[action] || 0) + 1
-  // console.log(ctx.absPath, entry.name, action /* , actionCounts */)
+  // console.log(ctx.dirPath, entry.name, action /* , actionCounts */)
   return action
 }
 
@@ -70,17 +70,15 @@ describe(ME, () => {
     const track = {}
     let ticks = 0, t
     w.tick = () => (ticks += 1)
-    await w.walk(ROOT, {
-      onEntry,
-      trace: (key /* , result, context, args */) => {
-        t = w.duration
-        track[key] = (track[key] || 0) + 1
-      }
-    })
+    w.trace = (key /* , result, context, args */) => {
+      t = w.duration
+      track[key] = (track[key] || 0) + 1
+    }
+    await w.walk(ROOT, { onEntry })
     expect(w.failures.length).to.equal(0, 'failures')
     expect(actionCounts[FILES]).to.equal(3, 'FILES')
     expect(actionCounts[DIRS]).to.equal(2, 'DIRS')
-    expect(w.visited.size).to.equal(3, '#1')
+    expect(w.stats.dirs).to.equal(3, '#1')
     expect(Object.keys(track).sort()).to.eql(['onDir', 'onEntry', 'onFinal', 'openDir'])
     expect(ticks).to.eql(1, 'ticks')
     expect(w.stats).to.eql(
@@ -106,14 +104,14 @@ describe(ME, () => {
     expect(await w.walk(ROOT, {
       onEntry: function (entry, ctx) {
         if (entry.name === 'nested') {
-          this.halt(ctx, 'test').halt() //  Only the first call should effect.
+          this.halt_(ctx, 'test')
+          this.halt_(ctx, 'other')
         }
         return 0
       }
-    })).to.eql({})
-    expect(w.halted.details).to.eql('test')
-    // (/src\/$/)
-    expect(w.halted.absPath).to.match(new RegExp(`\\${sep}src\\${sep}$`))
+    })).to.eql([])
+    expect(w.halted.locus).to.eql('test')
+    expect(w.halted.dirPath).to.match(new RegExp(`\\${sep}src$`))
   })
 
   it('should do custom error override', async () => {
@@ -124,16 +122,20 @@ describe(ME, () => {
       return DO_SKIP
     }
     const res = await w.walk('nope')
-    expect(res).to.eql({})
+    expect(res).to.eql([])
     expect(w.failures.length).to.eql(1, 'length')
     expect(w.failures[0].message).to.match(/^ENOENT:\s/, '[0]')
   })
 
   it('should immediately return non-numeric', async () => {
     const e = {}
-    const r = await w.walk(undefined, { onFinal: async () => e })
+    const r = await w.walk(undefined, {
+      onFinal: async () => {
+        return e
+      }
+    })
     expect(r).to.equal(e)
-    expect(w.visited.size).to.equal(1)
+    // expect(w.stats.dirs).to.equal(1) // Walk is undeterministic!
   })
 
   it('onDir throwing', async () => {
@@ -143,6 +145,6 @@ describe(ME, () => {
       expect(error.message).to.equal('Test')
       expect(error.context.locus).to.equal('onDir')
     }
-    expect(w.visited.size).to.equal(0)
-  })
+    expect(w.stats.dirs).to.equal(0)
+  }) /* */
 })
