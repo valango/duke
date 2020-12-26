@@ -11,8 +11,7 @@ mockFs(require('fs'))
 const { join } = require('path')
 const omit = require('lodash.omit')
 
-const { DO_ABORT, DO_NOTHING, DO_RETRY, DO_SKIP, DO_HALT, T_DIR, T_SYMLINK } =
-        require('./constants')
+const { DO_ABORT, DO_NOTHING, DO_RETRY, DO_SKIP, DO_HALT, T_DIR } = require('./constants')
 const Ruler = require('./Ruler')
 const { fromDirEntry } = require('./util/dirEntry')
 const translatePath = require('./helpers/pathTranslate')
@@ -519,12 +518,8 @@ class Walker {
             this._nEntries += 1
 
             if (res < DO_SKIP) {
-              if (entry.type === T_DIR) {
-                entries.push(entry)
-              } else if (entry.type === T_SYMLINK && this._useSymLinks) {
-                entries.push(entry)
-              }
               entry.action = res
+              entries.push(entry)
             }
           }
         }
@@ -591,7 +586,7 @@ module.exports = Walker
  */
 Walker.overrides = {
   closeDir: {
-    ERR_DIR_CLOSED: DO_NOTHING    //  Fix for Node.js bug #36237
+    ERR_DIR_CLOSED: DO_NOTHING
   },
   iterateDir: {
     EBADF: DO_SKIP
