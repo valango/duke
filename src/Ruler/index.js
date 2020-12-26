@@ -1,7 +1,7 @@
 'use strict'
 
 const assert = require('assert-fine')
-const { DO_NOTHING, T_DIR } = require('../constants')
+const { DO_NOTHING, DO_RETRY, T_DIR } = require('../constants')
 const parsePath = require('./parsePath')
 
 const { GLOB_DIRS } = parsePath
@@ -12,13 +12,13 @@ const RULE = 1
 // const PARENT = 2
 const ACTION = 3
 
+const reserved = [DO_NOTHING, DO_RETRY, -DO_NOTHING]
+
 const { max } = Math
 
 const rule_ = (r) => r ? new RegExp(r) : GLOB_DIRS
 
-const typeMatch_ = (itemType, nodeType) => {
-  return !nodeType || (nodeType === itemType)
-}
+const typeMatch_ = (itemType, nodeType) => !nodeType || (nodeType === itemType)
 
 /**
  * Rule tree and intermediate state of searches.
@@ -105,8 +105,8 @@ class Ruler {
   add_ (definition) {
     switch (typeof definition) {
       case 'number':
-        assert((this._nextRuleAction = definition) !== DO_NOTHING,
-          'action code 0 is reserved')
+        assert(!reserved.includes(definition), 'Ruler: action code %i is reserved', definition)
+        this._nextRuleAction = definition
         break
       case 'string':
         this.addPath_(definition)
@@ -115,7 +115,7 @@ class Ruler {
         if (definition instanceof Array) {
           definition.forEach((item) => this.add_(item))
         } else {
-          assert(false, 'bad rule definition %o', definition)
+          assert(false, 'Ruler: bad rule definition %o', definition)
         }
     }
     return this
@@ -131,9 +131,9 @@ class Ruler {
     const rules = parsePath(definition, this._options)
     const flags = rules.shift()
 
-    assert(rules.length, 'no rules in definition %o', definition)
+    assert(rules.length, 'Ruler: empty definition %o', definition)
     let action = this._nextRuleAction
-    assert(action !== undefined, 'action code missing in rule definition %o', definition)
+    assert(action !== undefined, 'Ruler: definition %o has no action code', definition)
     if (flags.isExclusion) action = -action
     this.addRules_(rules, flags.type, action)
     return this
@@ -166,7 +166,7 @@ class Ruler {
         parentIndex = nodeIndex
       }
     })
-    assert(parentIndex >= 0, 'addRules_', 'no node created')
+    assert(parentIndex >= 0, 'Ruler: could not understand %o', rules)
     _tree[parentIndex][ACTION] = action
   }
 

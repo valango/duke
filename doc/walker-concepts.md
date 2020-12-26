@@ -53,6 +53,8 @@ Some **_numeric action codes_** have special effect on Walker operation:
    * **_`DO_ABORT`_** terminates walking of the current directory and its subdirectories. Fas no effect from onFinal.
    * **_`DO_HALT`_** will terminate all walks in progress and will set up the halt condition,
    disabling the _`Walker`_ instance until _`reset()`_ is called.
+   * **_`DO_RETRY`_** the current directory walk will be resumed later from the same point.
+   This is the default override for `EMFILE` (_out of file handles_) exception, when opening a directory.
    * **_`DO_SKIP`_** has effect from onEntry only and results the current directory entry to be ignored.
    
 _**Error instance**_ returned is equivalent to it to bne thrown - the result depends on error how this
