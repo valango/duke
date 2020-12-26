@@ -427,7 +427,7 @@ class Walker {
       data,                   //  NB: undefined value here means immediate return.
       depth: 0,
       dirPath: rootPath,
-      done: undefined,
+      done: undefined,        //  To enable the _retry_ functionality.
       locus: undefined,
       onDir: opts.onDir || this.onDir,
       onEntry: opts.onEntry || this.onEntry,
@@ -497,7 +497,7 @@ class Walker {
         closure.callsPending += 1
         dir = await this.execAsync_('openDir', { ...context, openDir }, context.dirPath)
         closure.callsPending -= 1
-        if (typeof dir !== 'object') return checkEnd(dir)
+        if (dir instanceof Error || typeof dir !== 'object') return checkEnd(dir)
 
         const iterator = dir.entries()
         let entryFailed, entry
@@ -591,7 +591,7 @@ module.exports = Walker
  */
 Walker.overrides = {
   closeDir: {
-    ERR_DIR_CLOSED: DO_NOTHING
+    ERR_DIR_CLOSED: DO_NOTHING    //  Fix for Node.js bug #36237
   },
   iterateDir: {
     EBADF: DO_SKIP
@@ -609,7 +609,7 @@ Walker.overrides = {
     EMFILE: DO_RETRY,
     ENOTDIR: DO_SKIP,
     EPERM: DO_ABORT
-    // ENOENT results from faulty file spec given, so it will not be overridden.
+    // ENOENT results from faulty file spec given, so it should not be overridden.
   }
 }
 
