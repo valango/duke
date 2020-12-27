@@ -9,7 +9,7 @@ Asynchronous rule-based file system walker. It:
    * provides powerful extendable API;
    * runs real fast.
 
-This is what a simple [demo app](https://github.com/valango/duke/blob/master/doc/examples.md)
+This is what a simple [demo app](doc/examples.md)
 does on my old 2,7 GHz MacBook Pro:
 ![](https://github.com/valango/duke/blob/master/assets/counts.png)
 
@@ -61,16 +61,16 @@ terminates a particular walk immediately and resolves the promise.
 ## API
 ### exports
    * [_**`Walker`** class_](#walker-class)
-   * [_**`Ruler`** class_](https://github.com/valango/duke/blob/master/doc/ruler.md)
-   * [_constants_](https://github.com/valango/duke/blob/master/src/constants.js)
+   * [_**`Ruler`** class_](doc/ruler.md)
+   * [_constants_](src/constants.js)
    * [_common helpers_](#common-helpers)
    
 Types referred to below are declared in
-[src/typedefs.js](https://github.com/valango/duke/blob/master/src/typedefs.js).
+[src/typedefs.js](src/typedefs.js).
 
 ### _`Walker`_ class
 The most of the magic happens here. 
-A brief overview of its [core concepts](https://github.com/valango/duke/blob/master/doc/walker-concepts.md)
+A brief overview of its [core concepts](doc/walker-concepts.md)
 may help to navigate in further details.
 
 **`constructor`**`(options : {TWalkerOptions})`<br />
@@ -169,7 +169,7 @@ will have a `context : TDirContext` property set.
 before injecting it to Error instance for logging.
 
 #### Walker protected API
-Is described in a [separate document](https://github.com/valango/duke/blob/master/doc/walker-protected.md). 
+Is described in a [separate document](doc/walker-protected.md). 
 
 ### Common helpers
 Those helpers are available via package exports and may be useful on writing handlers.
@@ -259,15 +259,15 @@ set to _`lastMatch`_ contents from the upper level.
 So, the actual rule matching is trivial, and the rules can be switched dynamically.
 
 For further details, check the
-[_`Ruler`_ reference](https://github.com/valango/duke/blob/master/doc/ruler.md) and
-the special [demo app](https://github.com/valango/duke/blob/master/doc/examples.md#parsejs). 
+[_`Ruler`_ reference](doc/ruler.md) and
+the special [demo app](doc/examples.md#parsejs). 
 
 ## Version history
 * v6.0.0 @20201225
    - cleaned code and API (breaking changes) after using dWalker in some actual projects,
    so the basic use cases are clear now. As the general concepts persist,
    migration sould not be a major headache and reading the updated
-   [core concepts](https://github.com/valango/duke/blob/master/doc/walker-concepts.md) should help.
+   [core concepts](doc/walker-concepts.md) should help.
 * v5.2.0 @20201202
    - added: Walker#getOverride instance method.
 * v5.1.0 @20201121
