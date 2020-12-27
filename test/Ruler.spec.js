@@ -9,7 +9,7 @@ Ruler.prototype.dump = require('../dumpRuler')
 const NIL = -1
 
 const T1 = [
-  DO_SKIP, '/skp-dir', 'skip*', '!skipnever*',
+  DO_SKIP, '/skip-dir/', 'skip*', '!skipnever*',
   1, 'src/**/*',
   2, '*.js;f',
   3, 'src/**/*.js',
@@ -67,9 +67,6 @@ describe(ME, () => {
   it('should clone', () => {
     const t1 = t.clone().add(2, '/two')
     expect(t1._tree.length).to.eql(t._tree.length + 1, 'length')
-    // match('skip.js', T_FILE, [2, 8, 7, 6, 5], [4])
-    // t1 = t.clone()
-    // expect(t1._ancestors[0][1]).to.eql(4)
   })
 
   it('should handle dive', () => {

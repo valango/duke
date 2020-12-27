@@ -179,7 +179,7 @@ class Ruler {
    * @returns {number} the most prevailing action among matching rules.
    */
   check (entryName, entryType = undefined) {
-    const { _tree } = this, masked = []
+    const { _tree } = this, maskedActions = []
 
     let ancestors = [], matches = [], news = this._ancestors.map(([, i]) => i)
 
@@ -189,18 +189,19 @@ class Ruler {
       ancestors = ancestors.concat(news).sort((a, b) => b - a)
       news = []
 
-      for (let iA = 0, anc; (anc = ancestors[iA]) !== undefined; iA += 1) {
-        for (let i = _tree.length; --i > anc;) {
-          const [type, rule, par, act] = _tree[i]
+      for (const ancestor of ancestors) {
+        for (let i = _tree.length; --i > ancestor;) {
+          const [type, rule, parent, act] = _tree[i]
 
-          if (par !== anc) continue
-          if (rule === GLOB_DIRS ||
-            (typeMatch_(entryType, type) && rule.test(entryName))) {
-            if (matches.find(([, idx]) => idx === i)) continue
-            matches.push([act, i])
-            if (act < 0) masked.push(-act)
-            if (rule === GLOB_DIRS && ancestors.indexOf(i) < 0) {
-              news.push(i)
+          if (parent === ancestor) {
+            if (rule === GLOB_DIRS ||
+              (typeMatch_(entryType, type) && rule.test(entryName))) {
+              if (matches.find(([, ruleIndex]) => ruleIndex === i)) continue
+              matches.push([act, i])
+              if (act < 0) maskedActions.push(-act)
+              if (rule === GLOB_DIRS && ancestors.indexOf(i) < 0) {
+                news.push(i)
+              }
             }
           }
         }
@@ -210,9 +211,9 @@ class Ruler {
     if (entryType !== T_DIR) {
       matches = matches.filter(([, i]) => _tree[i][RULE] !== GLOB_DIRS)
     }
-    if (masked.length !== 0) {
-      for (let i = matches.length; --i > 0;) {
-        if (masked.indexOf(matches[i][0]) >= 0) {
+    if (maskedActions.length !== 0) {
+      for (let i = matches.length; --i >= 0;) {
+        if (maskedActions.indexOf(matches[i][0]) >= 0) {
           matches[i][0] = DO_NOTHING
         }
       }
