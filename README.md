@@ -22,7 +22,7 @@ Install with yarn or npm
 ```
 yarn add dwalker   ## npm i -S dwalker
 ```
-The following code walks all given directory trees in parallel, gathering basic statistics:
+The <a name="simple">following code</a> walks all given directory trees in parallel, gathering basic statistics:
 ```javascript
 const walker = new (require('dwalker')).Walker()
 const dirs = '/dev ..'.split(' ')
@@ -30,7 +30,7 @@ const dirs = '/dev ..'.split(' ')
 Promise.all(dirs.map(dir => walker.walk(dir))).then(res => {
   console.log('Done(%d):', res.length)
 }).catch(error => {
-  console.log('Exception!', error)
+  console.log('EXCEPTION!', error)
 }).finally(() => {
   console.log(walker.stats)
 })
@@ -57,6 +57,33 @@ Every _handler_ has access to current _walk context_ and to _`Walker`_ instance 
 What happens next, depends on its return value. This value is usually a numeric
 **_action code_** - a predefined or application specific one. A non-numeric return value
 terminates a particular walk immediately and resolves the promise.
+terminates a particular walk immediately and resolves the promise.
+
+## Exceptions handling
+**The good news** is: whatever will happen during a walk, the _`Walker`_ instance won't throw
+an exception!
+
+If an exception occurs and there is an [override defined](#get-override) for it, a new entry
+will be added to the [failures instance property](#failures), and the walk will continue.
+
+Without an override defined, however, it is _an unexpected exception_.
+In this case, the walk will terminate with an augmented _`Error`_ instance via rejection.
+The [example program above](#simple) would then output something like this:
+```
+EXCEPTION! TypeError: Cannot read property 'filter' of undefined
+    at ProjectWalker.onDir (/Users/me/dev-npm/nsweep/lib/ProjectWalker.js:111:38)
+    at async doDir (/Users/me/dev-npm/nsweep/node_modules/dwalker/src/Walker.js:491:15)
+  context: {
+    depth: 0,
+    dirPath: '/Users/me/dev-npm/nsweep',
+    done: undefined,
+    locus: 'onDir',
+    rootPath: '/Users/me/dev-npm/nsweep',
+    override: undefined
+  }
+} 
+```
+An error stack combined with a walk context snapshot should be enough to spot the bug.
 
 ## API
 ### exports
@@ -89,33 +116,34 @@ The arguments must be strings or arrays of strings - absolute or relative paths.
 
 **`getDataFor`**`(dirPath) : * ` - method<br/ >
 For accessing the data in the internal dictionary. Empty entries are created there before calling
-the _`onDir()`_ handler. Walker itself does not use those values.
+the _`onDir()`_ handler. The _`Walker`_ itself does not use those values.
 
-**`getOverride`**`(error) : number` - method<br />
-Returns overriding action code current error and context.
-Walker calls it internally and assigns its numeric return value
-to `error.context.override` before calling `onError()` handler. Non-number return value
-has no effect.
+**`getOverride`**`(error) : number` - <a name="get-override">method</a><br />
+Returns an overriding action code (if any) for the current exception and its context.
+The _`Walker`_ calls this method internally and assigns its numeric return value
+to `error.context.override` before calling its `onError()` method. A non-numeric return value
+has no effect. Instead of overriding this method, you can directly modify the
+[overrides export](#walker-class-methods-and-properties) of the package.
 
-**`onDir`**`(context: TDirContext) : *` - _async_ handler method<br />
+**`onDir`**`(context: TDirContext) : *` - _async_ **handler** method<br />
 Called before opening the directory. Default just returns `DO_NOTHING`.
 
-**`onEntry`**`(entry: TDirEntry, context: TDirContext) : *` - handler method<br />
+**`onEntry`**`(entry: TDirEntry, context: TDirContext) : *` - **handler** method<br />
 Called for every entry in the current directory. Default calls _`context.ruler.check()`_,
 stores the results it the entry instance and returns the _`check()`_ return value.
 This is the only place, where the _`Walker`_ actually checks the [rules](#rules).
 
-**`onError`**`(error: Error, context: TDirContext) : *` - handler method<br />
+**`onError`**`(error: Error, context: TDirContext) : *` - method<br />
 Called with trapped error after _`error.context`_ has been set up.
 Default just returns _`error.context.override`_.
 Returned action code will be checked for special values; a non-numeric return means this
 was an unexpected error rejecting the _walk_ promise.
 
-Walker may provide the following _`context.locus`_ values:
+The _`Walker`_ may provide the following _`context.locus`_ values:
 `'onDir', 'openDir', 'iterateDir', 'onEntry', 'closeDir', 'onFinal'`.
 Overriding handlers may define their own locus names.
 
-**`onFinal`**`(entries : [], context: TDirContext, action : number) : number` - _async_ handler method<br />
+**`onFinal`**`(entries : [], context: TDirContext, action : number) : number` - _async_ **handler** method<br />
 Called after all entries checked and directory closed.
 The _`action`_ is the highest action code returned by previous handlers in this cycle.
 
@@ -143,8 +171,8 @@ rejects to unexpected error instance.
 **`duration`**` : number` - microseconds elapsed from start of the current _walk batch_
 or duration of the most recent batch.
 
-**`failures`**` : Error[]` - all errors overridden during walk. The error instances
-will have a `context : TDirContext` property set.
+**`failures`**` : Error[]` - any <a name="failures">exceptions overridden</a> during a walk.
+The _`Error`_ instances in there will have a `context : TDirContext` property set.
 
 **`ruler`**` : Ruler` - initial ruler instance for a new walk.
 
@@ -159,11 +187,12 @@ will have a `context : TDirContext` property set.
 **`walks`**` : number r/o` - number of currently active walks.
 
 #### Walker class methods and properties
+All those are directly available via the package exports.
 
 **`newRuler`**`(...args) : Ruler` - factory method.
 
-**`overrides`**` : Object` - error override rules as tree:
-( handlerName -> errorCode -> actionCode ).
+**`overrides`**` : Object` - error override rules as a tree:
+( locus -> _`error.code`_ -> actionCode ).
 
 **`shadow`**` : atring[]` - mask for omitting certain parts of context parameter,
 before injecting it to Error instance for logging.

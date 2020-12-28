@@ -15,21 +15,21 @@
 /**
  * Data context {@link Walker#walk} available when walking the current directory.
  * @typedef {Object} TDirContext
- * @property {Array<*>} [args]      in error.context only
- * @property {Object}   [closure]   used internally.
- * @property {Object}   current     the data from this._visited[dirPath]
+ * @property {Array<*>} [args]      in `error.context` only: arguments of the failed call.
+ * @property {Object}   [closure]   Walker internal.
+ * @property {Object}   current     the data from `this._visited[dirPath]`
  * @property {*}        data        to be returned by {@link Walker#walk} method.
- * @property {number}   depth       0 for `rootPath` and increased, but never used!
+ * @property {number}   depth       0 for `rootPath`; increased, but not used by Walker.
  * @property {string}   dirPath     current directory absolute path
- * @property {string}   [done]      the last successfully completed op.
- * @property {string}   [locus]     in error.context or in `termination` property.
- * @property {*}        [onDir]
- * @property {*}        [onEntry]
- * @property {*}        [onFinal]
- * @property {number}   [override]  in error.context only.
+ * @property {string}   done        the name of recently completed handler.
+ * @property {string}   [locus]     in `error.context` only: name of the failed function.
+ * @property {*}        [onDir]     Walker internal.
+ * @property {*}        [onEntry]   Walker internal.
+ * @property {*}        [onFinal]   Walker internal.
+ * @property {number}   [override]  in `error.context` only: override value.
  * @property {Object}   project     reserved for application.
  * @property {string}   rootPath    where the walk started from.
- * @property {Ruler}    ruler       currently active Ruler instance.
+ * @property {Ruler}    ruler       the currently active Ruler instance.
  */
 
 /**
