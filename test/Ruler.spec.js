@@ -64,6 +64,14 @@ describe(ME, () => {
     check('skipa', T_FILE, DO_SKIP)
   })
 
+  it('should handle long dir globs', () => {
+    t = new Ruler(1, '/a/**/f/')
+    check('a', T_DIR, DO_NOTHING)
+    ;(t = t.clone(true)) && check('b', T_DIR, DO_NOTHING)
+    ;(t = t.clone(true)) && check('c', T_DIR, DO_NOTHING)
+    ;(t = t.clone(true)) && check('f', T_DIR, 1)
+  })
+
   it('should clone', () => {
     const t1 = t.clone().add(2, '/two')
     expect(t1._tree.length).to.eql(t._tree.length + 1, 'length')

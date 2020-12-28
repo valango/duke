@@ -101,7 +101,7 @@ A brief overview of its [core concepts](doc/walker-concepts.md)
 may help to navigate in further details.
 
 **`constructor`**`(options : {TWalkerOptions})`<br />
-   * `data : object = {}` - a shallow copy will be assigned to _`data`_ property.
+   * `avoid : string | strig[]` - the `avoid()` instance method will be called.
    * `interval : number=` - instance property setting.
    * `rules : *` - [rule definitions](#rules), or a _`Ruler`_ instance to be cloned.
    * `symlinks : boolean=` - enable symbolic links checking by _`onEntry()`_ handler.

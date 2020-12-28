@@ -235,7 +235,7 @@ class Ruler {
     const c = new Ruler(this._options)
 
     if (!(a instanceof Array)) {
-      a = (a && this._lastMatch) || this._ancestors
+      a = (a && this._lastMatch.length && this._lastMatch) || this._ancestors
     }
     c._ancestors = a.slice()
     c._nextRuleAction = DO_NOTHING  //  Do not forward the parsing status.

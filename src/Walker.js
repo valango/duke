@@ -96,6 +96,7 @@ class Walker {
     this._tTotal = undefined
 
     this.reset(true)
+    this.avoid(opts.avoid)
   }
 
   /**
