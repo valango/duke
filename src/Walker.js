@@ -11,7 +11,8 @@ mockFs(require('fs'))
 const { join } = require('path')
 const omit = require('lodash.omit')
 
-const { DO_ABORT, DO_NOTHING, DO_RETRY, DO_SKIP, DO_HALT, T_DIR } = require('./constants')
+const { DO_ABORT, DO_NOTHING, DO_RETRY, DO_SKIP, DO_HALT, T_DIR, T_SYMLINK } =
+        require('./constants')
 const Ruler = require('./Ruler')
 const { fromDirEntry } = require('./util/dirEntry')
 const translatePath = require('./helpers/pathTranslate')
@@ -512,14 +513,16 @@ class Walker {
             res = this.checkError_(entryFailed = error, context, 'iterateDir')
           }
           if (res < DO_ABORT && entryFailed === undefined) {
-            entry = fromDirEntry(entry)
-            res = this.execSync_('onEntry', context, entry, context)
-            if (!(res < DO_ABORT)) break
             this._nEntries += 1
+            entry = fromDirEntry(entry)
+            res = entry.action = this.execSync_('onEntry', context, entry, context)
+            if (!(res < DO_ABORT)) break
 
             if (res < DO_SKIP) {
-              entry.action = res
-              entries.push(entry)
+              if (entry.type === T_DIR || res > DO_NOTHING ||
+                (entry.type === T_SYMLINK && this._useSymLinks)) {
+                entries.push(entry)
+              }
             }
           }
         }
