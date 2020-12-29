@@ -234,9 +234,8 @@ class Ruler {
     let a = ancestors
     const c = new Ruler(this._options)
 
-    if (!(a instanceof Array)) {
-      a = (a && this._lastMatch.length && this._lastMatch) || this._ancestors
-    }
+    if (!(a instanceof Array)) a = a ? this._lastMatch : []
+    if (a.length === 0) a = this._ancestors
     c._ancestors = a.slice()
     c._nextRuleAction = DO_NOTHING  //  Do not forward the parsing status.
     c._tree = this._tree.slice()

@@ -15,6 +15,8 @@ does on my old 2,7 GHz MacBook Pro:
 
 The version 6 is hugely different from its [ancestors](#version-history).
 
+The further text describes the [usage](#usage), [API](#api) and [version history](#version-history).
+
 ## Usage
 **NB:** This package needs Node.js v12.12 or higher.
 
@@ -86,7 +88,10 @@ EXCEPTION! TypeError: Cannot read property 'filter' of undefined
 An error stack combined with a walk context snapshot should be enough to spot the bug.
 
 ## API
-### exports
+Contents: [package exports](#package-exports), [Walker](#walker-class), 
+[common helpers](#common-helpers), [special helpers](#special-helpers), 
+[rule system](#rule-system)
+### Package exports
    * [_**`Walker`** class_](#walker-class)
    * [_**`Ruler`** class_](doc/ruler.md)
    * [_constants_](src/constants.js)
@@ -96,9 +101,12 @@ Types referred to below are declared in
 [src/typedefs.js](src/typedefs.js).
 
 ### _`Walker`_ class
-The most of the magic happens here. 
+The most of the magic happens here. For details, see: [methods](#walker-instance-methods),
+[properties](#walker-instance-properties), [class/static API](#walker-class-methods-and-properties),
+[protected API](doc/walker-protected.md).
+
 A brief overview of its [core concepts](doc/walker-concepts.md)
-may help to navigate in further details.
+may help you in navigating the further description.
 
 **`constructor`**`(options : {TWalkerOptions})`<br />
    * `avoid : string | strig[]` - the `avoid()` instance method will be called.
@@ -243,7 +251,7 @@ const onFinal = function (entries, context) {
 }
 ```
 
-### Rules
+### Rule system
 Rules are defined as action code followed by any number of file patterns, 
 quite similar to _bash_ glob patterns or _.gitignore_ rules. Example:
 ```javascript
