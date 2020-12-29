@@ -15,18 +15,18 @@
    * `_tStart, _tTotal : bigint` - for computing _`duration`_ property value.
   
 ### Protected methods
+It is very likely that you'll never need to call those methods directly.
+
+**`checkError_`**`(error:Error, context:TDirContext, locus:string)`<br />
+Calls _`getOverride()`_ and sets up _`error.context`_before calling _`onError()`_ handler.
+If _`onError`_ returns a numeric value, it is used as an overriding _action code_ and
+the error registers in _`failures`_ instance property. Without an override,
+sets _Shared Terminal Condition_ and returns `DO_ABORT`.
 
 **`execAsync_`**`(functionName, context, ...args) : Promise<*>`<br />
 Asynchronous form of _`execSync_()`_. It also handles `DO_RETRY` actions and internal
 filesystem API calls.
 
-**`execSync_`**`(functionName, context, ...args)`<br />
+**`execSync_`**`(functionName, context, ...args) : *`<br />
 Executes context[functionName] and calls _`context.trace()`_.
-Then, if there was an exception, calls _`onError_()`_. Returns
-a numeric action code computed by _`checkResult_()`_.
-
-**`onError_`**`(error, context, [locusName])`<br />
-Calls _`getOverride()`_ and sets up _`error.context`_before calling _`onError()`_ handler.
-If _`onError`_ returns a numeric value, it is used as an overriding _action code_ and
-the error registers in _`failures`_ instance property. Without an override,
-sets _Shared Terminal Condition_ and returns `DO_ABORT`.
+Then, if there was an exception, calls _`checkError_()`_.

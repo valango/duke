@@ -9,7 +9,7 @@ The class declaration is in [src/Ruler/index.js](../src/Ruler/index.js).
    * `options.optimize : boolean = true`;
    * `rule `- applied to _`add`_ method.
    
-The package README describes [how it works](../README.md#rules).
+The package README describes [how it works](../README.md#rule-system).
 
 **`add`**`(...definition) : Ruler` - method<br />
 The `definition` parameter can be a number, string or array.

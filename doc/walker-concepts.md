@@ -22,12 +22,12 @@ _**Context**_ is a data of [`TDirContext` type](../src/typedefs.js) describing t
 Among many other things, it contains the _Data_ reference.
 The _Context_ modifications will affect all oncoming sub-walks down from the current directory.
 
-_**S**hared **T**erminal **C**ondition_ occurs after the `DO_HALT` action code, or 
+_**S**hared **T**erminal **C**ondition_ <a name="stc">occurs</a> after the `DO_HALT` action code, or 
 an unexpected exception occurs. 
 _STC_ is set by calling the _`halt()`_ instance method. 
 On _STC_, all active _Walks_ will terminate, resolving to their _Data_.
 
-_**L**ocal **T**erminal **C**ondition_ occurs when any _Handler_ returns
+_**L**ocal **T**erminal **C**ondition_ <a name="ltc">occurs</a> when any _Handler_ returns
 the `DO_TERMINATE` action code, or a non-numerical value.
 
 _**Handler**_ is an optional _`walk()`_ argument or _`Walker`_ 
@@ -37,10 +37,70 @@ _Handler_ usually returns an _Action_ code.
 _**Action**_ code is a numeric value returned by _Handler_. 
 Some (`DO_SKIP`, `DO_ABORT`, `DO_RETRY`, `DO_TERMINATE`) have special meaning for _`Walker`_.
 
+## The walk algorithm
+Here is a simplified _synchronous_ pseudocode the _`Walker`_ runs after _`walk()`_ method call:
+```javascript
+  fifo.put(createDirContext(startDirectory, walkOptions))
+
+  while ((context = fifo.get()) !== undefined) {
+    if (!visited.had(context.dirPath)) {
+      visited.set(context.dirPath, context.current = {})
+      if (isSpecial(result = onDir(context))) break
+
+      for (const entry of (entries = openDirectory(context.dirPath))) {
+        //  The Walker#onEntry() calls context.ruler.check(entry),
+        //  mutating entry.action and entry.matched and returning the action code.
+        if (isSpecial(result = onEntry(entry, context))) break
+      }
+      closeDirectory(entries)
+
+      if (isSpecial(result)) break
+
+      for (const entry of entries.filter(({action, type}) => type === T_DIR && action < DO_SKIP)) {
+        fifo.put(context.clone({
+          dirPath: join(context.dirPath, entry.name), 
+          ruler: context.ruler.clone(entry.matched)   // Inherit the rules tree traversal status.
+        }))
+      }
+
+      if (isSpecial(result = onFinal(context, entries, result))) break
+    }
+  }
+```
+For the sake of simplicity, few important things weren't shown in the code above:
+   1. All calls that may fail, are made via special wrappers taking care of
+   [exceptions handling](../README.md#exceptions-handling),
+   and possibly setting up the [_LTC_](#ltc) or [_STC_](#stc); then
+   1. the _`trace()`_ instance method is called; and
+   1. if the initial call was a success, _`context.locus`_ containing the method name, 
+   is assigned to _`context.done`_.
+
 ## Handlers
 The handler functions _`onDir`_, _`onEntry`_ and _`onFinal`_ are _`Walker`_ instance methods.
 Their temporary overrides can be injected via _`walk()`_ method options.
-In both cases, they are available as walk Context properties.
+In both cases, the Walker will actually get them from _`context` properties_.
+
+When writing your own handlers, be sure to call the original class method first!
+
+**`onDir`**`(context: TDirContext) : *` - _async_ **handler** method<br />
+Called before opening the directory. Default just returns `DO_NOTHING`.
+
+**`onEntry`**`(entry: TDirEntry, context: TDirContext) : *` - **handler** method<br />
+Called for every entry in the current directory. Default calls _`context.ruler.check()`_,
+stores the results it the entry instance and also returns the _`check()`_ return value.
+This is the only place, where the _`Walker`_ actually checks
+the [rules](../README.md#rule-system).
+
+_**NB:** this is the only _synchronous_ handler - definitely no place for any time-consuming
+or I/O operations._
+
+**`onFinal`**`(entries : TDirEntry[], context: TDirContext, action : number) : *` - _async_ **handler** method<br />
+Called after all entries checked and directory closed.
+The _`action`_ is the highest action code returned by previous handlers walking this directory.
+The entries also contain the rules checking information.
+
+_**NB:** In the case of several sub-directories, the onFinal calling order is unpredictable.
+It is also likely, that sub-walks are in progress already, when it happens._
 
 ### Context argument
 

@@ -8,7 +8,7 @@
  * @typedef {Object} TDirEntry
  *
  * @property {number} action      - from the rule check for this entry.
- * @property {number[][]} match   - used by `Ruler` instance.
+ * @property {number[][]} matched - used by `Ruler` instance.
  * @property {string} name
  * @property {TEntryType} type
  */

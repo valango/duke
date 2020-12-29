@@ -170,16 +170,18 @@ class Walker {
 
   /**
    * Handler called synchronously for every directory entry.
-   * Not much computing should be done here.
+   * Not much computing should be done in overriding methods!
    *
+   * @affects {entry.action}        - the inFinal() handler might use this.
+   * @affects {entry.action}        - information about matching nodes in the rules tree.
    * @param {TDirEntry} entry
    * @param {TDirContext} context
-   * @returns {number}
+   * @returns {number}              - the action code from ruler.check(entry)
    */
   onEntry (entry, context) {
     const action = context.ruler.check(entry.name, entry.type)
-    entry.match = context.ruler.lastMatch
-    return action
+    entry.matched = context.ruler.lastMatch
+    return (entry.action = action)
   }
 
   /**
@@ -364,7 +366,7 @@ class Walker {
    * @param {TDirContext} context
    * @param {...*} args
    * @returns {number}
-   * @private
+   * @protected
    */
   execSync_ (name, context, ...args) {
     if (this._halted || !context.data) return (context.data = undefined) || DO_ABORT
@@ -516,7 +518,7 @@ class Walker {
           if (res < DO_ABORT && entryFailed === undefined) {
             this._nEntries += 1
             entry = fromDirEntry(entry)
-            res = entry.action = this.execSync_('onEntry', context, entry, context)
+            res = this.execSync_('onEntry', context, entry, context)
             if (!(res < DO_ABORT)) break
 
             if (res < DO_SKIP) {
@@ -549,7 +551,7 @@ class Walker {
               depth: context.depth + 1,
               done: undefined,
               dirPath: join(context.dirPath, entry.name),
-              ruler: context.ruler.clone(entry.match)
+              ruler: context.ruler.clone(entry.matched)
             }
             fifo.push(Object.seal(ctx))
           }
