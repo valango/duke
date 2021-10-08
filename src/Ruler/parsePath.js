@@ -82,8 +82,7 @@ exports = module.exports = (path, options = undefined) => {
         rule = anyChar
       } else {
         rule = rule.indexOf(optionalChars) === 0 ? rule.substring(2) : '^' + rule
-        rule = /\.\*$/.test(rule)
-          ? rule.substring(0, rule.length - 2) : rule + '$'
+        rule = /\.\*$/.test(rule) ? rule.substring(0, rule.length - 2) : rule + '$'
       }
     }
     rules.push(rule)

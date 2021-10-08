@@ -222,8 +222,7 @@ class Walker {
       this.failures = []
       this._interval = _options.interval
       this._nextTick = this._interval >= 1 ? 0 : NaN
-      this.ruler = _options.rules instanceof Ruler
-        ? _options.rules : newRuler(_options.rules)
+      this.ruler = _options.rules instanceof Ruler ? _options.rules : newRuler(_options.rules)
       this._visited = new Map()
       this._tTotal = this._nDirs = this._nEntries = this._nErrors =
         this._nextTick = this._nRevoked = this._nRetries = 0
@@ -577,8 +576,7 @@ class Walker {
     }
     this.finalize_()
 
-    return result instanceof Error ? Promise.reject(result)
-      : (result === nothing ? data : result)
+    return result instanceof Error ? Promise.reject(result) : (result === nothing ? data : result)
   }
 }
 

@@ -60,6 +60,7 @@ const walker = leaksTrap(new Walker({ rules: defaultRules }))
 
 if (options.trace) {
   walker.trace = (locus, value, context, args) => {
+    // eslint-disable-next-line
     console.log(context.dirPath, locus, value >= 0 ? value : '[Object]')
   }
 }

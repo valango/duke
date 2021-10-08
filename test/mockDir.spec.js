@@ -86,10 +86,10 @@ describe('mockFs/openDir promise', () => {
 
   it('should read', async () => {
     /* eslint-disable-next-line */
-    let i = 0, entry
+    let i = 0
     dir = await stub.promises.opendir('/d1')
 
-    while ((entry = await dir.read()) !== null) i += 1
+    while (await dir.read() !== null) i += 1
     expect(i).to.equal(3)
     expect(await dir.close()).to.be.equal(undefined)
   })

@@ -42,7 +42,7 @@ module.exports = {
 
     'no-unreachable': 1,
     'no-useless-return': 1,
-    'object-curly-spacing': 0,
-    'quotes': ['error', 'single', { avoidEscape: true }]
+    'object-curly-spacing': 0
+    // 'quotes': ['error', 'single', { avoidEscape: true }]
   }
 }

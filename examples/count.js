@@ -38,7 +38,8 @@ const onFinal = async function (entries, context, action) {
   }
 
   return (action < DO_SKIP && this._useSymLinks)
-    ? symlinksFinal.call(this, entries, context) : action
+    ? symlinksFinal.call(this, entries, context)
+    : action
 }
 
 /** @type {Walker} */
