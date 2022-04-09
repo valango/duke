@@ -1,5 +1,5 @@
 'use strict'
-const assert = require('assert-fine')
+const assert = require('assert')
 const { T_DIR, T_FILE } = require('../..')
 const checkType = require('./checkType')
 const dirEntry = require('./Dirent')

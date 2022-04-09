@@ -363,11 +363,6 @@
     "define-properties" "^1.1.3"
     "es-abstract" "^1.19.0"
 
-"assert-fine@^2.0.0":
-  "integrity" "sha512-owcY1/PI+8B4GDN5O8GmKM1Me4/p8pTIog5TLll/VF0AkXvimwsaEghQj2eY4AAR3b88lyqxuF7PE9eyvGtnzA=="
-  "resolved" "https://registry.npmjs.org/assert-fine/-/assert-fine-2.0.0.tgz"
-  "version" "2.0.0"
-
 "assertion-error@^1.1.0":
   "integrity" "sha512-jgsaNduz+ndvGyFt3uSuWqvy4lCnIJiovtouQN5JZHOKCS2QuhEdbcQHFhVksz2N2U9hXJo8odG7ETyWlEeuDw=="
   "resolved" "https://registry.npmjs.org/assertion-error/-/assertion-error-1.1.0.tgz"

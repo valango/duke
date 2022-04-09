@@ -3,7 +3,7 @@
  * @version 1.0.0
  */
 'use strict'
-const assert = require('assert-fine')
+const assert = require('assert')
 const { T_BLOCK, T_CHAR, T_DIR, T_FILE, T_FIFO, T_SOCKET, T_SYMLINK, checkDirEntryType } =
         require('../..')
 

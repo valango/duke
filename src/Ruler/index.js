@@ -1,6 +1,6 @@
 'use strict'
 
-const assert = require('assert-fine')
+const assert = require('assert')
 const { DO_NOTHING, DO_RETRY, T_DIR } = require('../constants')
 const parsePath = require('./parsePath')
 
@@ -105,7 +105,7 @@ class Ruler {
   add_ (definition) {
     switch (typeof definition) {
       case 'number':
-        assert(!reserved.includes(definition), 'Ruler: action code %i is reserved', definition)
+        assert(!reserved.includes(definition), `Ruler: action code ${definition} is reserved`)
         this._nextRuleAction = definition
         break
       case 'string':
@@ -115,7 +115,7 @@ class Ruler {
         if (definition instanceof Array) {
           definition.forEach((item) => this.add_(item))
         } else {
-          assert(false, 'Ruler: bad rule definition %o', definition)
+          assert(false, `Ruler: bad rule definition '${definition}'`)
         }
     }
     return this
@@ -131,9 +131,9 @@ class Ruler {
     const rules = parsePath(definition, this._options)
     const flags = rules.shift()
 
-    assert(rules.length, 'Ruler: empty definition %o', definition)
+    assert(rules.length, `Ruler: empty definition '${definition}'`)
     let action = this._nextRuleAction
-    assert(action !== undefined, 'Ruler: definition %o has no action code', definition)
+    assert(action !== undefined, `Ruler: definition '${definition}' has no action code`)
     if (flags.isExclusion) action = -action
     this.addRules_(rules, flags.type, action)
     return this
@@ -166,7 +166,7 @@ class Ruler {
         parentIndex = nodeIndex
       }
     })
-    assert(parentIndex >= 0, 'Ruler: could not understand %o', rules)
+    assert(parentIndex >= 0, `Ruler: could not understand '${rules}'`)
     _tree[parentIndex][ACTION] = action
   }
 

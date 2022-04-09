@@ -1,6 +1,6 @@
 'use strict'
 
-const assert = require('assert-fine')
+const assert = require('assert')
 const brexIt = require('brace-expansion')
 const { S_TYPES, T_DIR, T_FIFO, T_FILE } = require('../constants')
 
@@ -21,7 +21,7 @@ const { isNaN } = Number
  * @returns {Array} the first entry is flags object
  */
 exports = module.exports = (path, options = undefined) => {
-  const check = (cond) => assert(cond, 'invalid rule definition %o', path)
+  const check = (cond) => assert(cond, 'invalid rule definition: ' + path)
   const opts = { extended: true, optimize: true, ...options }, rules = []
 
   let pattern = path.replace(/\\\s/g, '\\s').trimEnd()  //  Normalize spaces.
@@ -36,7 +36,7 @@ exports = module.exports = (path, options = undefined) => {
     if (s) {
       if (isNaN(v)) v = S_TYPES.indexOf(s)
       assert(v >= T_FILE && v <= T_FIFO && (v % 1) === 0,
-        'bad type in rule definition %o', path)
+        'bad type in rule definition: ' + path)
       givenType = v
     } else {
       givenType = anyType
@@ -92,7 +92,7 @@ exports = module.exports = (path, options = undefined) => {
   //  a/**$ --> a/$
   if (rules[l] === null) (type = T_DIR) && rules.pop()
   assert(givenType === anyType || type === anyType || type === givenType,
-    'type conflict in rule definition %o', path)
+    'type conflict in rule definition: ' + path)
   check(!(rules.length === 1 && (rules[0] === anyChar || rules[0] === any)))
   rules.unshift({ type: type || givenType, isExclusion })
   return rules
